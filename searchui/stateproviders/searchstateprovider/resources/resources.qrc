@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/xml">
+        <file alias="searchstateprovider.docml">searchstateprovider.docml</file>
+    </qresource>
+    <qresource prefix="/decorators">
+        <file alias="video.png">video.png</file>
+        <file alias="calender.png">calender.png</file>
+        <file alias="camera.png">camera.png</file>
+        <file alias="email.png">email.png</file>
+        <file alias="message.png">message.png</file>
+        <file alias="phonebook.png">phonebook.png</file>
+        <file alias="sound.png">sound.png</file>
+    </qresource>
+</RCC>

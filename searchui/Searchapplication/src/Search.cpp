@@ -1,0 +1,126 @@
+/*
+ * Copyright (c) 2009 Nokia Corporation and/or its subsidiary(-ies).
+ * All rights reserved.
+ * This component and the accompanying materials are made available
+ * under the terms of "Eclipse Public License v1.0"
+ * which accompanies this distribution, and is available
+ * at the URL "http://www.eclipse.org/legal/epl-v10.html".
+ *
+ * Initial Contributors:
+ * Nokia Corporation - initial contribution.
+ *
+ * Contributors:
+ *
+ * Description:  Search application main class.
+ *
+ */
+
+#include "Search.h"
+#include "hsruntime.h"
+#include "hsruntimefactory.h"
+
+// ---------------------------------------------------------------------------
+// Search::Search
+// ---------------------------------------------------------------------------
+//
+Search::Search(QObject* aParent) :
+    QObject(aParent), mRuntime(NULL)
+    {
+    SEARCH_FUNC_ENTRY("SEARCH::Search::Search");
+
+    HsRuntimeFactory factory("searchresources/plugins/runtimeproviders",
+            "searchresources/plugins/runtimeproviders");
+
+    HsRuntimeToken token;
+    token.mLibrary = "searchruntimeprovider.dll";
+    token.mUri = "search.nokia.com/runtime/defaultruntime";
+
+    mRuntime = factory.createRuntime(token);
+    if (mRuntime)
+        {
+        mRuntime->setParent(this);
+        connect(mRuntime, SIGNAL(started()), SLOT(handleRuntimeStarted()));
+        connect(mRuntime, SIGNAL(stopped()), SLOT(handleRuntimeStopped()));
+        connect(mRuntime, SIGNAL(faulted()), SLOT(handleRuntimeFaulted()));
+        }
+
+    SEARCH_FUNC_EXIT("SEARCH::Search::Search");
+    }
+
+// ---------------------------------------------------------------------------
+// Search::~Search()
+// ---------------------------------------------------------------------------
+//
+Search::~Search()
+    {
+    if (mRuntime)
+        {
+        disconnect(mRuntime, SIGNAL(started()), this,
+                SLOT(handleRuntimeStarted()));
+        disconnect(mRuntime, SIGNAL(stopped()), this,
+                SLOT(handleRuntimeStopped()));
+        disconnect(mRuntime, SIGNAL(faulted()), this,
+                SLOT(handleRuntimeFaulted()));
+
+        delete mRuntime;
+        }
+    }
+
+// ---------------------------------------------------------------------------
+// Search::start()
+// ---------------------------------------------------------------------------
+//
+void Search::start()
+    {
+    SEARCH_FUNC_ENTRY("SEARCH::Search::start");
+
+    if (mRuntime)
+        {
+        mRuntime->start();
+        }
+    else
+        {
+        emit exit();
+        }
+
+    SEARCH_FUNC_EXIT("SEARCH::Search::start");
+    }
+
+// ---------------------------------------------------------------------------
+// Search::stop()
+// ---------------------------------------------------------------------------
+//
+void Search::stop()
+    {
+    SEARCH_FUNC_ENTRY("SEARCH::Search::stop");
+
+    mRuntime->stop();
+
+    SEARCH_FUNC_EXIT("SEARCH::Search::stop");
+    }
+
+// ---------------------------------------------------------------------------
+// Search::handleRuntimeStarted()
+// ---------------------------------------------------------------------------
+//
+void Search::handleRuntimeStarted()
+    {
+    }
+
+// ---------------------------------------------------------------------------
+// Search::handleRuntimeStopped()
+// ---------------------------------------------------------------------------
+//
+void Search::handleRuntimeStopped()
+    {
+    emit exit();
+    }
+
+// ---------------------------------------------------------------------------
+// Search::handleRuntimeFaulted()
+// ---------------------------------------------------------------------------
+//
+void Search::handleRuntimeFaulted()
+    {
+    emit exit();
+    }
