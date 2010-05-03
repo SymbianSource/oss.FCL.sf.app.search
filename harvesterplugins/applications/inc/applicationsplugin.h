@@ -23,7 +23,7 @@
 #include <common.h>
 #include <apgcli.h> //RApaLsSession
 #include <apgnotif.h> //Notification
-#include <widgetregistryclient.h>
+#include <WidgetRegistryClient.h>
 #include "delayedcallback.h"
 
 class CCPixIndexer;

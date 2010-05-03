@@ -23,8 +23,14 @@
 #include <csearchdocument.h>
 #include <e32base.h>
 //#include <menu2internalcrkeys.h> //for KCRUidMenu
-#include <widgetpropertyvalue.h> // EBundleDisplayName 
+#include <WidgetPropertyValue.h> // EBundleDisplayName 
 #include <centralrepository.h>
+#include <opensystemtrace.h> 
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "applicationspluginTraces.h"
+#endif
+
 
 //Hidden applications
 //#define KHiddenAppRepositoryUid KCRUidMenu
@@ -47,9 +53,11 @@ const TInt KHarvestingDelay = 1000;
 // -----------------------------------------------------------------------------
 CApplicationsPlugin* CApplicationsPlugin::NewL()
 	{
+    OstTraceFunctionEntry0( CAPPLICATIONSPLUGIN_NEWL_ENTRY );
     CPIXLOGSTRING("CApplicationsPlugin::NewL()");
 	CApplicationsPlugin* instance = CApplicationsPlugin::NewLC();
     CleanupStack::Pop(instance);
+    OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_NEWL_EXIT );
     return instance;
 	}
 
@@ -124,12 +132,14 @@ void CApplicationsPlugin::AddWidgetInfoL( CSearchDocument* aDocument, TUid aUid 
     iWidgetRegistry.GetWidgetPath( aUid, temp );
     aDocument->AddFieldL(KApplicationFieldAbsolutePath, temp,  CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
     CPIXLOGSTRING2("AddApplicationInfo(): PATH = %S ", &temp);
+    OstTraceExt1( TRACE_NORMAL, CAPPLICATIONSPLUGIN_ADDWIDGETINFOL, "CApplicationsPlugin::AddWidgetInfoL;PATH=%S", &temp );
 
     //GetWidgetPropertyValueL returns CWidgetPropertyValue* which in turn has an operator to convert to TDesC
     aDocument->AddFieldL(KApplicationFieldCaption, *(iWidgetRegistry.GetWidgetPropertyValueL( aUid, EBundleDisplayName )),  CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
 
     iWidgetRegistry.GetWidgetBundleName( aUid, temp );
     aDocument->AddExcerptL( temp );
+    OstTraceExt1( TRACE_NORMAL, DUP1_CAPPLICATIONSPLUGIN_ADDWIDGETINFOL, "CApplicationsPlugin::AddWidgetInfoL;DisplayName=%S", &temp );
     CPIXLOGSTRING2("AddApplicationInfo(): DisplayName = %S ", &temp );
     }
 
@@ -143,6 +153,8 @@ void AddApplicationInfoL( CSearchDocument* aDocument, TApaAppInfo& aAppInfo )
     aDocument->AddFieldL(KApplicationFieldCaption, aAppInfo.iShortCaption, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
     aDocument->AddFieldL(KApplicationFieldAbsolutePath, aAppInfo.iFullName, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
     aDocument->AddExcerptL( aAppInfo.iCaption );
+    OstTraceExt2( TRACE_NORMAL, _ADDAPPLICATIONINFOL, "::AddApplicationInfoL;UID=%S;PATH=%S", &docidString, &aAppInfo.iFullName );
+    OstTraceExt2( TRACE_NORMAL, DUP1__ADDAPPLICATIONINFOL, "::AddApplicationInfoL;Excerpt=%S;Caption=%S", &aAppInfo.iCaption, &aAppInfo.iShortCaption );
     
     CPIXLOGSTRING3("AddApplicationInfo(): UID = %S, PATH = %S ", &docidString, &aAppInfo.iFullName );
     CPIXLOGSTRING3("AddApplicationInfo():  Excerpt = %S, Caption = %S ", &aAppInfo.iCaption, &aAppInfo.iShortCaption );
@@ -154,9 +166,12 @@ TBool CApplicationsPlugin::IsAppHiddenL(TUid aUid)
     //Application should not have 'hidden' capability.
     TBool ret( EFalse );
     TApaAppCapabilityBuf cap;
+    OstTrace1( TRACE_NORMAL, CAPPLICATIONSPLUGIN_ISAPPHIDDENL, "CApplicationsPlugin::IsAppHiddenL;UID=%d", aUid );
     CPIXLOGSTRING2("CApplicationsPlugin::IsAppHidden(): UID = %d", aUid );
     if ( iApplicationServerSession.GetAppCapability(cap, aUid) == KErrNone )
         {
+        OstTraceState0( STATE_DUP1_CAPPLICATIONSPLUGIN_ISAPPHIDDENL, "GetCapability returned KErrNone", "" );
+    
         CPIXLOGSTRING("CApplicationsPlugin::IsAppHidden(): GetCapability returned KErrNone");
         ret = cap().iAppIsHidden;
         }
@@ -177,6 +192,7 @@ TBool CApplicationsPlugin::IsAppHiddenL(TUid aUid)
 //            }
 //        CleanupStack::PopAndDestroy( uidString );
 //        }
+    OstTrace1( TRACE_NORMAL, DUP1_CAPPLICATIONSPLUGIN_ISAPPHIDDENL, "CApplicationsPlugin::IsAppHiddenL;Return Value=%d", &ret );
 
     CPIXLOGSTRING2("CApplicationsPlugin::IsAppHidden(): %d", &ret);
     return ret;
@@ -204,10 +220,12 @@ void CApplicationsPlugin::CreateApplicationsIndexItemL( TApaAppInfo& aAppInfo, T
     TRAPD( error, iIndexer->AddL( *document ) );
     if( KErrNone == error )
         {
+        OstTrace0( TRACE_NORMAL, CAPPLICATIONSPLUGIN_CREATEAPPLICATIONSINDEXITEML, "CApplicationsPlugin::CreateApplicationsIndexItemL : No Error" );
         CPIXLOGSTRING("CApplicationsPlugin::CreateApplicationsIndexItemL(): No Error" );
         }
     else 
         {
+        OstTrace1( TRACE_NORMAL, DUP1_CAPPLICATIONSPLUGIN_CREATEAPPLICATIONSINDEXITEML, "CApplicationsPlugin::CreateApplicationsIndexItemL;Error=%d", error );
         CPIXLOGSTRING2("CApplicationsPlugin::CreateApplicationsIndexItemL(): Error = %d", error );
         }
     CleanupStack::PopAndDestroy( document );
@@ -249,6 +267,8 @@ void CApplicationsPlugin::DelayedError( TInt aCode )
 // -----------------------------------------------------------------------------
 void CApplicationsPlugin::HandleAppListEvent( TInt aEvent )
     {
+    OstTraceFunctionEntry0( CAPPLICATIONSPLUGIN_HANDLEAPPLISTEVENT_ENTRY );
+    OstTrace1( TRACE_NORMAL, CAPPLICATIONSPLUGIN_HANDLEAPPLISTEVENT, "CApplicationsPlugin::HandleAppListEvent;Event=%d", aEvent );
     CPIXLOGSTRING2("CApplicationsPlugin::HandleAppListEvent: Start with Event = %d", aEvent );
     if( aEvent == EAppListChanged )
         {
@@ -259,6 +279,7 @@ void CApplicationsPlugin::HandleAppListEvent( TInt aEvent )
         TRAP_IGNORE( StartHarvestingL( KNullDesC ) ); //simply reharvest
         }
     CPIXLOGSTRING("CApplicationsPlugin::HandleAppListEvent: Exit" );
+    OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_HANDLEAPPLISTEVENT_EXIT );
     }
 
 #ifdef __PERFORMANCE_DATA

@@ -41,13 +41,12 @@ SearchInitState::~SearchInitState()
     }
 
 // ---------------------------------------------------------------------------
-// SearchInitState::~construct()
+// SearchInitState::construct()
 // ---------------------------------------------------------------------------
 //
 void SearchInitState::construct()
     {
-    // Read configuration parameters?
-    // lazyInit()?
+    
     }
 
 // ---------------------------------------------------------------------------

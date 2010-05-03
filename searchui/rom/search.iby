@@ -35,17 +35,12 @@ file=/epoc32/release/armv5/urel/searchindevicehandler.dll SHARED_LIB_DIR/searchi
 
 
 //runtime provider dll
-data=/epoc32/data/z/searchresources/plugins/runtimeproviders/searchruntimeprovider.manifest  searchresources/plugins/runtimeproviders/searchruntimeprovider.manifest
-data=/epoc32/data/z/searchresources/plugins/runtimeproviders/searchruntimeprovider.qtplugin  searchresources/plugins/runtimeproviders/searchruntimeprovider.qtplugin
 file=/epoc32/release/armv5/urel/searchruntimeprovider.dll SHARED_LIB_DIR/searchruntimeprovider.dll
 
 
 
 
 //state provider dll
-
-data=/epoc32/data/z/searchresources/plugins/stateproviders/searchstateprovider.manifest  searchresources/plugins/stateproviders/searchstateprovider.manifest
-data=/epoc32/data/z/searchresources/plugins/stateproviders/searchstateprovider.qtplugin  searchresources/plugins/stateproviders/searchstateprovider.qtplugin
 file=/epoc32/release/armv5/urel/searchstateprovider.dll SHARED_LIB_DIR/searchstateprovider.dll
 
 #endif //FF_SEARCH_SW

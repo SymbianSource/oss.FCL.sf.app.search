@@ -56,11 +56,29 @@ public:
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
 
 	/**
-	 * CreateFileIndexItemL sends a file for indexing
+	 * CreateContentIndexItemL sends a file for indexing contents
 	 * @aFilename full path and filename of the file to be indexed
 	 * @aActionType action to be taken on the file
 	 */
-	void CreateFileIndexItemL(const TDesC& aFilename, TCPixActionType aActionType);
+	void CreateContentIndexItemL(const TDesC& aFilename, TCPixActionType aActionType);
+	/**
+     * CreateFolderIndexItemL sends a folder/file for indexing
+     * @aFilename full path and filename of the file to be indexed
+     * @aActionType action to be taken on the file
+     */
+	void CreateFolderFileIndexItemL(const TDesC& aFilename, TCPixActionType aActionType, TBool aIsDir = ETrue);
+private:
+	/**
+     * CreateCpixDocumentL creates a document file 
+     * @aFilePath full path of the file/folder to be indexed     
+     */
+	CSearchDocument* CreateCpixDocumentL(const TDesC& aFilePath, TBool aIsDir);	
+	
+	/**
+     * IsFileTypeMedia checks for vaild extention type to be indexed 
+     * @aExt file extention
+     */
+	TBool IsFileTypeMedia(const TDesC& aExt);
 
 public:
 	// 
@@ -105,7 +123,7 @@ public:
 	 * @aBaseAppClass return descriptor containing the baseAppClass
 	 * returns KErrNone on success or a standard error code
 	 */
-	static TInt FormBaseAppClass(TDriveNumber aMedia, TDes& aBaseAppClass);
+	static TInt FormBaseAppClass(TDriveNumber aMedia,const TDesC& aGenericAppClass, TDes& aBaseAppClass);
 	
 	
 	/**
@@ -113,7 +131,7 @@ public:
 	 * @param aMedia - The drive for which the path should be constructed.
 	 * returns pointer to the IndexDb path.
 	 */
-	HBufC* DatabasePathLC(TDriveNumber aMedia);
+	HBufC* DatabasePathLC(TDriveNumber aMedia,const TDesC& aPath);
 
 protected:
 	CFilePlugin();
@@ -122,6 +140,8 @@ protected:
 private:
     // CPix database 
     CCPixIndexer* iIndexer[EDriveZ+1]; // EDriveZ enum value is 25, so add 1.
+    
+    CCPixIndexer* iFolderIndexer[EDriveZ+1];
 
     // File system session
     RFs iFs;
@@ -134,8 +154,8 @@ private:
     CFileMonitor* iMonitor;
 
     // MMC monitor
-    CMMCMonitor* iMmcMonitor;
-
+    CMMCMonitor* iMmcMonitor; 
+    
 #ifdef __PERFORMANCE_DATA
     TTime iStartTime[26];// for the all drives
     TTime iCompleteTime;

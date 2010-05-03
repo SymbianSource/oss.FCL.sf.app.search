@@ -20,14 +20,19 @@
 #include <hbwidget.h>
 #include <qlist.h>
 #include <hbgridview.h>
-#include <Search_global.h>
+#include <search_global.h>
 class HbCheckBox;
 class HbDialog;
 class QSignalMapper;
+class HbDocumentLoader;
+class HbDataFormModel;
+class HbDataForm;
+class HbRadioButtonList;
+class HbDataFormModelItem;
 
 SEARCH_CLASS(SearchStateProviderTest)
 
-class SettingsWidget : public HbWidget
+class SettingsWidget : public QObject
     {
 Q_OBJECT
 public:
@@ -52,11 +57,11 @@ public:
     /**
      * unchecking subcategories under the main category once main category unchecked
      */
-    void unCheckSubCategories(int aUnCheckSubCategory);
+    void unCheckSubCategories();
     /**
      * checking subcategories under the main category once main category checked
      */
-    void checkSubCategories(int acheckSubCategory);
+    void checkSubCategories();
     /**
      * storing settings to application ini file
      * 
@@ -66,7 +71,15 @@ public:
      * Load setting from application ini file
      * 
      */
-    void loadSettingsFrominiFile();
+    void loadDeviceSettings();
+    
+    /**
+     * Load default settings for search categories to ini file
+     * 
+     */
+
+    void loadBaseSettings();
+
     /**
      * make "OK" button visible 
      * 
@@ -76,7 +89,28 @@ public:
      * enable default settings in the application ini file
      * 
      */
-    void enableDefaultSettings();
+    void storeDefaultSettings();
+    
+    /**
+     * setting up gui for the settings widget
+     */
+
+    void createGui();
+    
+    /**
+     * Filter out categories from the sql database provided by the engine
+     * for only those categories that have been successfully harvested
+     */
+
+    void preparecategories();
+    
+    
+    /**
+      * initilize the settings wizard while entering to the setting state
+      */
+
+    void initialize();
+  
 public slots:
     /**
      * will be called when settings OK is clicked
@@ -91,10 +125,10 @@ public slots:
      */
     void itemChecked(int);
     /**
-     * will be called when change oin internet or device selectin
-     * 
-     */
-    void changeDeviceInternetCheck();
+      * slot called while clicking items added to  the combobox
+      */
+
+    void q_currentIndexChanged(int);
 signals:
     /**
      * Emitted when setting closed
@@ -138,8 +172,20 @@ private:
     /**
      * list of hardcoded device categories
      */
-    QStringList deviceCategoryList;
+    QMap<QString, bool> mCategoryDbMapping;
 
+    QStringList mDeviceListDisplay;
+    /**
+      * list of hardcoded device categories:cretaed to
+      * set up default category values to the ini file
+      */
+
+    QStringList mDeviceCategoryRefList;
+    /**
+      * intermediate variable to store selected category values
+      */
+
+    QList<bool> mDeviceMapping;
     /**
      * list of hardcoded service providers
      */
@@ -147,6 +193,42 @@ private:
     /**
      * for unit testing
      */
+    QStringList mCategoryList;
+    /**
+      * DocumentLoader variable for the setting widget
+      */
+
+    HbDocumentLoader* mDocumentLoader;
+    
+    /**
+     * Dataform for the settingwidget
+     */
+
+    HbDataForm* dataform;
+
+    /**
+      * Dataform model
+      */
+    HbDataFormModel* mModel;
+    /**
+      * variable for customizing each item the in the dataform
+      */
+
+    QList<HbDataFormModelItem*> mModelItemList;
+
+    QList<QAction*> mActions;
+
+    int mSelectedScope;
+
+    int mSelectedProvider;
+    /**
+      * Radio buttion list for internet search categories
+      */
+
+    HbRadioButtonList* mradiolist;
+
+    bool mInstialize;
+    bool mchangestate;
 SEARCH_FRIEND_CLASS    (SearchStateProviderTest)
     };
 #endif

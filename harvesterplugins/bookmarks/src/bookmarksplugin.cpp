@@ -17,8 +17,8 @@
 
 #include "bookmarksplugin.h"
 
-#include <favouritesitemlist.h>
-#include <activefavouritesdbnotifier.h>
+#include <FavouritesItemList.h>
+#include <ActiveFavouritesDbNotifier.h>
 #include <e32base.h> 
 #include <uri8.h> //For parsing URL names.
 
@@ -26,6 +26,11 @@
 #include "common.h"
 #include "csearchdocument.h"
 #include "ccpixindexer.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "bookmarkspluginTraces.h"
+#endif
+
 
 /** The milliseconds delay between harvesting chunks. */
 const TInt KHarvestingDelay = 1000;
@@ -99,10 +104,12 @@ void CBookmarksPlugin::StartPluginL()
 // -----------------------------------------------------------------------------
 void CBookmarksPlugin::StartHarvestingL( const TDesC& /*aMedia*/ )
     {
+    OstTrace0( TRACE_NORMAL, CBOOKMARKSPLUGIN_STARTHARVESTINGL, "StartHarvestingL: resetting database" );
     CPIXLOGSTRING("StartHarvestingL: resetting database");
     iIndexer->ResetL();//reset any indexes if exist already
     iCurrentIndex = 0; //Initialize to zero as it is started
     iFavouritesDb.Count( iCurrentCount );
+    OstTrace1( TRACE_NORMAL, DUP1_CBOOKMARKSPLUGIN_STARTHARVESTINGL, "StartHarvestingL::Current count=%d", iCurrentCount );
     CPIXLOGSTRING2("StartHarvestingL::Current count = %d.", iCurrentCount);
     //Get all the UID list from current database
     //GetUids() appends items to the list. So, reset it first.
@@ -128,6 +135,7 @@ void CBookmarksPlugin::DelayedCallbackL( TInt /*aCode*/ )
             break;
         
         //Create index item
+        OstTraceExt2( TRACE_NORMAL, CBOOKMARKSPLUGIN_DELAYEDCALLBACKL, "CBookmarksPlugin::DelayedCallbackL;Harvesting id=%d;BookmarkUid=%d", iCurrentIndex, iArrUidsCurrentBookmarkList->At(iCurrentIndex) );
         CPIXLOGSTRING3("CBookmarksPlugin::DelayedCallbackL(): Harvesting id=%d, BookmarkUid = %d.", iCurrentIndex, iArrUidsCurrentBookmarkList->At(iCurrentIndex) );
         //Create new bookmark document and add
         CreateBookmarksIndexItemL(iArrUidsCurrentBookmarkList->At(iCurrentIndex),ECPixAddAction);
@@ -137,8 +145,10 @@ void CBookmarksPlugin::DelayedCallbackL( TInt /*aCode*/ )
     if( iAsynchronizer && (iCurrentIndex < iCurrentCount) )
         {
         // Launch the next RunL
+        OstTrace1( TRACE_NORMAL, DUP1_CBOOKMARKSPLUGIN_DELAYEDCALLBACKL, "CBookmarksPlugin::DelayedCallbackL;scheduling item count=%d", iCurrentIndex );
         CPIXLOGSTRING2("CBookmarksPlugin::DelayedCallbackL(): scheduling item count: %d.", iCurrentIndex );
         iAsynchronizer->Start(0, this, KHarvestingDelay);
+        OstTrace1( TRACE_NORMAL, DUP2_CBOOKMARKSPLUGIN_DELAYEDCALLBACKL, "CBookmarksPlugin::DelayedCallbackL;DONE scheduling item count=%d", iCurrentIndex );
         CPIXLOGSTRING2("CBookmarksPlugin::DelayedCallbackL(): DONE scheduling item count: %d.", iCurrentIndex );
         }
     else
@@ -149,6 +159,7 @@ void CBookmarksPlugin::DelayedCallbackL( TInt /*aCode*/ )
     UpdatePerformaceDataL();
 #endif
         iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrNone);
+        OstTrace0( TRACE_NORMAL, DUP3_CBOOKMARKSPLUGIN_DELAYEDCALLBACKL, "CBookmarksPlugin::DelayedCallbackL(): Harvesting complete" );
         CPIXLOGSTRING("CBookmarksPlugin::DelayedCallbackL(): Harvesting complete");
         }
 	}
@@ -175,6 +186,7 @@ void CBookmarksPlugin::DelayedError( TInt aCode )
  */
 void GetDomainNameL( const TDesC& aUrl, TPtrC& aDomain )
     {
+    OstTraceExt1( TRACE_NORMAL, CBOOKMARKSPLUGIN_GETDOMAINNAMEL, "CBookmarksPlugin::GetDomainNameL();URL=%S", aUrl );
     CPIXLOGSTRING2("CBookmarksPlugin::GetDomainNameL(): URL = %S", &aUrl );
     //Convert to 8-bit descriptors.
     HBufC8* url8 = HBufC8::NewLC( aUrl.Length() );
@@ -231,15 +243,18 @@ void GetDomainNameL( const TDesC& aUrl, TPtrC& aDomain )
     aDomain.Set( *domain16 );
     CleanupStack::Pop( domain16 );
     CleanupStack::PopAndDestroy( url8 );
+    OstTraceExt1( TRACE_NORMAL, DUP1_CBOOKMARKSPLUGIN_GETDOMAINNAMEL, "CBookmarksPlugin::GetDomainNameL();domain=%S", aDomain );
     CPIXLOGSTRING2("CBookmarksPlugin::GetDomainNameL(): domain = %S", &aDomain );
     }
 
 // -----------------------------------------------------------------------------
 void CBookmarksPlugin::DoIndexingL(CFavouritesItem*& aItem, const TDesC& aDocidStr, TCPixActionType& aActionType)
     {
+    OstTraceFunctionEntry0( CBOOKMARKSPLUGIN_DOINDEXINGL_ENTRY );
     CPIXLOGSTRING("CBookmarksPlugin::DoIndexingL(): Entering");
     if(aItem->Type() == CFavouritesItem::EItem ) //Store only Items not folders
         {
+        OstTraceExt2( TRACE_NORMAL, CBOOKMARKSPLUGIN_DOINDEXINGL, "CBookmarksPlugin::DoIndexingL();url=%S;name=%S", (aItem->Url()), (aItem->Name()) );
         CPIXLOGSTRING3("CBookmarksPlugin::DoIndexingL(): url = %S ,name = %S", &(aItem->Url()), &(aItem->Name()));
         CSearchDocument* index_item = CSearchDocument::NewLC(aDocidStr, _L(BOOKMARKAPPCLASS));
         index_item->AddFieldL(KMimeTypeField, KMimeTypeBookmark, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
@@ -252,6 +267,7 @@ void CBookmarksPlugin::DoIndexingL(CFavouritesItem*& aItem, const TDesC& aDocidS
             index_item->AddFieldL(KBookMarkUrl, aItem->Url(), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized);
             GetDomainNameL( aItem->Url(), domain );
             index_item->AddFieldL(KBookMarkDomain, domain , CDocumentField::EStoreYes | CDocumentField::EIndexTokenized);
+            OstTraceExt1( TRACE_NORMAL, DUP1_CBOOKMARKSPLUGIN_DOINDEXINGL, "CBookmarksPlugin::DoIndexingL();domain=%S", domain );
             CPIXLOGSTRING2("CBookmarksPlugin::DoIndexingL(): domain = %S", &domain );
             }
         //Add Excerpt as it is must have field. What should be excerpt in bookmarks ?
@@ -267,17 +283,22 @@ void CBookmarksPlugin::DoIndexingL(CFavouritesItem*& aItem, const TDesC& aDocidS
         TRAPD(err, iIndexer->AddL(*index_item));
         if (err == KErrNone)
             {
+                OstTrace0( TRACE_NORMAL, DUP2_CBOOKMARKSPLUGIN_DOINDEXINGL, "CBookmarksPlugin::DoIndexingL(): Added." );
                 CPIXLOGSTRING("CBookmarksPlugin::DoIndexingL(): Added.");
                 }
             else
                 {
+                OstTrace1( TRACE_NORMAL, DUP3_CBOOKMARKSPLUGIN_DOINDEXINGL, "CBookmarksPlugin::DoIndexingL();Error %d in adding", err );
                 CPIXLOGSTRING2("CBookmarksPlugin::DoIndexingL(): Error %d in adding.", err);
                 }           
+        OstTrace0( TRACE_NORMAL, DUP4_CBOOKMARKSPLUGIN_DOINDEXINGL, "CBookmarksPlugin::DoIndexingL(): Logic complete" );
         CPIXLOGSTRING("CBookmarksPlugin::DoIndexingL(): Logic complete");
         CleanupStack::PopAndDestroy( index_item );
+        OstTrace0( TRACE_NORMAL, DUP5_CBOOKMARKSPLUGIN_DOINDEXINGL, "CBookmarksPlugin::DoIndexingL(): Pop complete complete" );
         CPIXLOGSTRING("CBookmarksPlugin::DoIndexingL(): Pop complete complete");
         }
     CPIXLOGSTRING("CBookmarksPlugin::DoIndexingL(): Returning");
+    OstTraceFunctionExit0( CBOOKMARKSPLUGIN_DOINDEXINGL_EXIT );
     }
 
 // -----------------------------------------------------------------------------
@@ -286,6 +307,7 @@ void CBookmarksPlugin::CreateBookmarksIndexItemL(TInt aBookMarkUid, TCPixActionT
     //@sai: CTC: Will never be null in normal usecase. Needs to be present for UTs.
     if( !iIndexer )
         return;
+    OstTrace1( TRACE_NORMAL, CBOOKMARKSPLUGIN_CREATEBOOKMARKSINDEXITEML, "CBookmarksPlugin::CreateBookmarkIndexItemL();aBookMarkUid=%d", aBookMarkUid );
     CPIXLOGSTRING2("CBookmarksPlugin::CreateBookmarkIndexItemL(): aBookMarkUid = %d ", aBookMarkUid );
     // creating CSearchDocument object with unique ID for this application
     TBuf<20> docid_str;
@@ -293,6 +315,7 @@ void CBookmarksPlugin::CreateBookmarksIndexItemL(TInt aBookMarkUid, TCPixActionT
     //Add or update actions.
     CFavouritesItem* item = CFavouritesItem::NewLC();
     TInt err = iFavouritesDb.Get(aBookMarkUid,*item);
+    OstTrace1( TRACE_NORMAL, DUP1_CBOOKMARKSPLUGIN_CREATEBOOKMARKSINDEXITEML, "CBookmarksPlugin::CreateBookmarkIndexItemL();DB Get error=%d", err );
     CPIXLOGSTRING2("CBookmarksPlugin::CreateBookmarkIndexItemL(): DB Get error = %d ", err );
     //@sai: CTC: did not ever get 'false' for this check. Since this is a private function,
     // we cannot UT this with an invalid bookmarkUid.
@@ -301,6 +324,7 @@ void CBookmarksPlugin::CreateBookmarksIndexItemL(TInt aBookMarkUid, TCPixActionT
         CleanupStack::PopAndDestroy(item);
         return;
         }
+    OstTrace1( TRACE_NORMAL, DUP2_CBOOKMARKSPLUGIN_CREATEBOOKMARKSINDEXITEML, "CBookmarksPlugin::CreateBookmarkIndexItemL();item->Type()=%d", item->Type() );
     CPIXLOGSTRING2("CBookmarksPlugin::CreateBookmarkIndexItemL(): item->Type() = %d ", item->Type() );
     DoIndexingL(item, docid_str, aActionType); //add to / update index
     CleanupStack::PopAndDestroy(item);
@@ -317,9 +341,11 @@ void CBookmarksPlugin::HandleFavouritesDbEventL( RDbNotifier::TEvent aEvent )
         {
         if( iAsynchronizer->CallbackPending() )
             {
+            OstTrace0( TRACE_NORMAL, CBOOKMARKSPLUGIN_HANDLEFAVOURITESDBEVENTL, "HandleFavouritesDbEventL: Cancelling callback" );
             CPIXLOGSTRING("HandleFavouritesDbEventL: Cancelling callback");
             iAsynchronizer->CancelCallback(); //first cancel any ongoing harvesting.
             }
+        OstTrace0( TRACE_NORMAL, DUP1_CBOOKMARKSPLUGIN_HANDLEFAVOURITESDBEVENTL, "HandleFavouritesDbEventL: calling StartHarvestingL" );
         CPIXLOGSTRING("HandleFavouritesDbEventL: calling StartHarvestingL");
         StartHarvestingL( KNullDesC );
         }

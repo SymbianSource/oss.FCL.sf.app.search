@@ -18,11 +18,11 @@
 #ifndef SEARCHAPPLICATION_H
 #define SEARCHAPPLICATION_H
 
-#include "Search_global.h"
+#include "search_global.h"
 
-#include <QObject>
+#include <qobject.h>
 
-class HsRuntime;
+class QStateMachine;
 
 /**
  * @ingroup group_searchsearchlication
@@ -53,8 +53,8 @@ public:
      */
     virtual ~Search();
 
-private:
-
+private:   
+    
     Q_DISABLE_COPY(Search)
 
 signals:
@@ -104,7 +104,7 @@ private:
     /**
      * Runtime.
      */
-    HsRuntime* mRuntime;
+    QStateMachine* mRuntime;
     };
 
 #endif//SEARCHAPPLICATION_H

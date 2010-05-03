@@ -28,7 +28,7 @@ VENDORID	  0x70000001
 
 APP_LAYER_SYSTEMINCLUDE
 USERINCLUDE   ../inc
-USERINCLUDE   ../../inc/monitorplugin
+USERINCLUDE   ../../inc/monitorplugin ../traces
 
 SOURCEPATH    ../src
 SOURCE        fastfindfileserverplugin.cpp 

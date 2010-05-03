@@ -20,7 +20,7 @@ TARGETTYPE    PLUGIN
  
 #include          <platform_paths.hrh>
 CAPABILITY   CAP_GENERAL_DLL -AllFiles -DRM
-#include "../../../harvesterplugins/inc/s60performance.h"
+#include "../../../../harvesterplugins/inc/s60performance.h"
 // ECom Dll recognition UID followed by the unique UID for this dll
 UID           0x10009D8D 0x2001F701 
 
@@ -31,7 +31,7 @@ SOURCE        cmessageharvester.cpp
 SOURCE        cmessagemonitor.cpp
 SOURCE        tproxy.cpp
 
-USERINCLUDE   ../inc
+USERINCLUDE   ../inc ../traces
 
 APP_LAYER_SYSTEMINCLUDE
 SYSTEMINCLUDE /epoc32/include/ecom

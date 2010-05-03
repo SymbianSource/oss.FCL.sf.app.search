@@ -20,7 +20,7 @@
 #include <QtCore>
 #include <qcoreapplication.h>
 #include <qdebug.h>
-#include "Search_global.h"
+#include "search_global.h"
 
 #ifdef BUILD_INDEVICEHANDLER
 #define SEARCH_INDEVICEHANDLER Q_DECL_EXPORT
@@ -113,12 +113,7 @@ public:
      */
     void getDocumentAsyncAtIndex(int aIndex);
 
-    /**
-     * initate the search synchronously.
-     * @since S60 ?S60_version.
-     * @param aSearchString search keyword 
-     */
-    void search(QString aSearchString);
+  
 
     /**
      * initate the search asynchronously.

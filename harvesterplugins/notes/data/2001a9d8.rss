@@ -36,7 +36,7 @@ RESOURCE REGISTRY_INFO theInfo
                                         {
                                         implementation_uid = 0x2001A9D8;
                                         version_no = 1;
-                                        display_name = "Notes harvester plugin";
+                                        display_name = "Notes";
                                         default_data = "Notes";
                                         opaque_data = "";
                                         }

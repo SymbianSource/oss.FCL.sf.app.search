@@ -18,9 +18,9 @@
 #ifndef SEARCH_RUNTIMES_DEFAULTRUNTIME_H
 #define SEARCH_RUNTIMES_DEFAULTRUNTIME_H
 
-#include "Search_global.h"
-#include "hsruntime.h"
+#include "search_global.h"
 #include <qhash.h>
+#include <qstatemachine.h>
 
 SEARCH_CLASS(SearchRuntimeProviderTest)
 
@@ -40,7 +40,7 @@ class HbMainWindow;
  * @lib ?library
  * @since S60 ?S60_version
  */
-class SearchRuntime : public HsRuntime
+class SearchRuntime : public QStateMachine
     {
 Q_OBJECT
 
@@ -64,19 +64,7 @@ private:
      * Copy constructor
      */
     Q_DISABLE_COPY(SearchRuntime)
-
-public slots:
-
-    /**
-     * @copydoc HsRuntime::start()
-     */
-    void start();
-
-    /**
-     * @copydoc HsRuntime::stop()
-     */
-    void stop();
-
+    
 private slots:
 
     /**
@@ -112,24 +100,12 @@ private:
      */
     void createStates();
 
-private:
-
-    /**
-     * Address of state machine instance.
-     * Ownership tranfered to application. Don't remove it.
-     */
-    QStateMachine *mStateMachine;
+private:  
 
     /**
      * Window to visualize scene
      */
-    HbMainWindow *mWindow;
-
-    /**
-     * Contains address of runtime service.
-     * Ownership transfered to application. Don't remove it.
-     */
-    QHash<QString, QObject*> mServices;
+    HbMainWindow *mWindow;   
 
 SEARCH_FRIEND_CLASS    (SearchRuntimeProviderTest)
 

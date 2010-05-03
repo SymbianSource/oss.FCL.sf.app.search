@@ -26,7 +26,7 @@
 #include <smuthdr.h>
 #include <smut.h>
 #include <miutset.h>
-#include <senduiconsts.h>
+#include <SendUiConsts.h>
 #include <mtclreg.h>
 #include <gsmuelem.h>
 #include <msventry.h>
@@ -37,6 +37,11 @@
 #include "cmessageharvester.h"
 #include "cmessagedatahandler.h"
 #include "harvesterserverlogger.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cmessagepluginTraces.h"
+#endif
+
 
 // maximum length that the fully qualified msg Plugin base app class descriptor can be
 // e.g. "@c:root msg"
@@ -49,8 +54,8 @@ namespace {
 _LIT(KCPixSearchServerPrivateDirectory, "\\Private\\2001f6f7\\");
 _LIT(KPathIndexDbPath, CPIX_INDEVICE_INDEXDB);
 
-_LIT(KPathTrailer, "\\root\\msg");
-_LIT(KMsgBaseAppClassGeneric, ":root msg");
+_LIT(KPathTrailer, "\\root\\msg\\smsmms");
+_LIT(KMsgBaseAppClassGeneric, ":root msg smsmms");
 _LIT(KAtSign, "@");
 _LIT(KColon, ":");
 
@@ -140,6 +145,7 @@ CMessagePlugin::~CMessagePlugin()
 void CMessagePlugin::ConstructL()
 {
     TInt err = iFs.Connect();
+    OstTrace1( TRACE_NORMAL, CMESSAGEPLUGIN_CONSTRUCTL, "CMessagePlugin::ConstructL;iFs Connect Error=%d", err );
     CPIXLOGSTRING2("CMessagePlugin::ConstructL, iFs.Connect: %i", err);
     User::LeaveIfError(err);
     iCurrentDrive = EDriveC; //Default drive is C drive
@@ -161,6 +167,7 @@ void CMessagePlugin::StartPluginL()
 	{
 	//Get the current Drive for storage
 	iCurrentDrive = iMsvSession->CurrentDriveL();
+	OstTrace1( TRACE_NORMAL, CMESSAGEPLUGIN_STARTPLUGINL, "CMessagePlugin::StartPluginL;Current Drive for Messaging =%d", iCurrentDrive );
 	CPIXLOGSTRING2("currentDrive from messaging app : %d", iCurrentDrive );
 	MountL(TDriveNumber(iCurrentDrive)); //Mount current drive
 	// Define this base application class, use default location
@@ -172,6 +179,7 @@ void CMessagePlugin::StartPluginL()
 //  
 void CMessagePlugin::StartHarvestingL(const TDesC& aQualifiedBaseAppClass)
 	{
+	OstTraceFunctionEntry0( CMESSAGEPLUGIN_STARTHARVESTINGL_ENTRY );
 	CPIXLOGSTRING("START CMessagePlugin::StartHarvestingL");
 	// Map base app class to a drive number
 	TDriveNumber drive ( EDriveA );//Initialize to silence compiler warnings.
@@ -188,6 +196,7 @@ void CMessagePlugin::StartHarvestingL(const TDesC& aQualifiedBaseAppClass)
     iStartTime.UniversalTime();
 #endif
     iMessageHarvester->StartHarvestingL();
+	OstTraceFunctionExit0( CMESSAGEPLUGIN_STARTHARVESTINGL_EXIT );
 	}
 
 // ---------------------------------------------------------------------------
@@ -196,6 +205,7 @@ void CMessagePlugin::StartHarvestingL(const TDesC& aQualifiedBaseAppClass)
 //
 void CMessagePlugin::MountL(TDriveNumber aMedia,TBool aForceReharvesting)
     {
+    OstTraceFunctionEntry0( CMESSAGEPLUGIN_MOUNTL_ENTRY );
     CPIXLOGSTRING("START CMessagePlugin::MountL");
     // Check if already exists
     if (iIndexer[aMedia])
@@ -212,12 +222,14 @@ void CMessagePlugin::MountL(TDriveNumber aMedia,TBool aForceReharvesting)
     
     // construct and open the database
     TRAPD(err,iIndexer[aMedia] = CCPixIndexer::NewL(iSearchSession));
+    OstTrace1( TRACE_NORMAL, CMESSAGEPLUGIN_MOUNTL, "CMessagePlugin::MountL;Indexer NewL return error=%d", err );
     CPIXLOGSTRING2("CCPixIndexer::NewL returned : %d", err );
     TRAP(err,iIndexer[aMedia]->OpenDatabaseL(baseAppClass));
 
     // Add to harvesting queue
     iObserver->AddHarvestingQueue(this, baseAppClass,aForceReharvesting);  
     CPIXLOGSTRING("END CMessagePlugin::MountL");
+    OstTraceFunctionExit0( CMESSAGEPLUGIN_MOUNTL_EXIT );
     }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +238,7 @@ void CMessagePlugin::MountL(TDriveNumber aMedia,TBool aForceReharvesting)
 //
 void CMessagePlugin::UnMount(TDriveNumber aMedia, TBool aUndefineAsWell)
     {
+    OstTraceFunctionEntry0( CMESSAGEPLUGIN_UNMOUNT_ENTRY );
     CPIXLOGSTRING("START CMessagePlugin::UnMount");
     // Check if already exists
     if (!iIndexer[aMedia])
@@ -250,6 +263,7 @@ void CMessagePlugin::UnMount(TDriveNumber aMedia, TBool aUndefineAsWell)
     // to be dropped.
     if (aUndefineAsWell)
         iSearchSession.UnDefineVolume(baseAppClass);
+    OstTraceFunctionExit0( CMESSAGEPLUGIN_UNMOUNT_EXIT );
     }
 
 
@@ -278,6 +292,7 @@ TInt CMessagePlugin::FormBaseAppClass(TDriveNumber aMedia, TDes& aBaseAppClass)
 //
 HBufC* CMessagePlugin::DatabasePathLC(TDriveNumber aMedia)
     {
+    OstTraceFunctionEntry0( CMESSAGEPLUGIN_DATABASEPATHLC_ENTRY );
     CPIXLOGSTRING("START CMessagePlugin::DatabasePathLC");
     // Allocate extra space for root path e.g. "C:\\Private\\2001f6f7\\"
     const TInt KRootPathMaxLength = 30;
@@ -304,6 +319,7 @@ HBufC* CMessagePlugin::DatabasePathLC(TDriveNumber aMedia)
     indexDbPathPtr.Append(KPathIndexDbPath);
     indexDbPathPtr.Append(KPathTrailer);
 
+    OstTraceFunctionExit0( CMESSAGEPLUGIN_DATABASEPATHLC_EXIT );
     return indexDbPath;
     }
 
@@ -337,7 +353,9 @@ void CMessagePlugin::HandleSessionEventL( TMsvSessionEvent aEvent,
 										  		 TAny* aArg2, 
 										  		 TAny* aArg3 )
 	{		
+	OstTraceFunctionEntry0( CMESSAGEPLUGIN_HANDLESESSIONEVENTL_ENTRY );
 	CPIXLOGSTRING("ENTER CMessagePlugin::HandleSessionEventL");
+	OstTrace1( TRACE_NORMAL, CMESSAGEPLUGIN_HANDLESESSIONEVENTL, "CMessagePlugin::HandleSessionEventL;aEvent=%d", aEvent );
 	CPIXLOGSTRING2("TMsvSessionEvent aEvent: %d", aEvent );			
 		
 	switch( aEvent )
@@ -395,6 +413,7 @@ void CMessagePlugin::HandleSessionEventL( TMsvSessionEvent aEvent,
 		case EMsvMediaChanged:
 		    {
 		    //Unmount old media drive
+		    OstTrace0( TRACE_NORMAL, DUP1_CMESSAGEPLUGIN_HANDLESESSIONEVENTL, "ENTER CMessagePlugin::HandleSessionEventL EMsvMediaChanged" );
 		    CPIXLOGSTRING("ENTER CMessagePlugin::HandleSessionEventL EMsvMediaChanged");
 		    TDriveNumber drive = *(reinterpret_cast<TDriveNumber*>(aArg1));
 		    UnMount(drive);
@@ -409,6 +428,7 @@ void CMessagePlugin::HandleSessionEventL( TMsvSessionEvent aEvent,
 		    //No need to handle as when drive will be removed EMsvMediaChanged event
 		    //will be received for default media drive can be handled there
 		    //Unmount old media drive
+		    OstTrace0( TRACE_NORMAL, DUP2_CMESSAGEPLUGIN_HANDLESESSIONEVENTL, "ENTER CMessagePlugin::HandleSessionEventL EMsvMediaUnavailable" );
 		    CPIXLOGSTRING("ENTER CMessagePlugin::HandleSessionEventL EMsvMediaUnavailable");
 		    TDriveNumber drive = *(reinterpret_cast<TDriveNumber*>(aArg1));
 		    UnMount(drive);
@@ -416,6 +436,7 @@ void CMessagePlugin::HandleSessionEventL( TMsvSessionEvent aEvent,
 		    break;
 		case EMsvMediaAvailable:
 			{
+			OstTrace0( TRACE_NORMAL, DUP3_CMESSAGEPLUGIN_HANDLESESSIONEVENTL, "ENTER CMessagePlugin::HandleSessionEventL EMsvMediaAvailable" );
 			CPIXLOGSTRING("ENTER CMessagePlugin::HandleSessionEventL EMsvMediaAvailable");
 			//Removed media drive available again mount media drive and unmount default
 			UnMount(TDriveNumber(iCurrentDrive)); //Unmount current drive
@@ -444,6 +465,7 @@ void CMessagePlugin::HandleSessionEventL( TMsvSessionEvent aEvent,
 		}	
 	CPIXLOGSTRING("END CMessagePlugin::HandleSessionEventL");	
 		
+	OstTraceFunctionExit0( CMESSAGEPLUGIN_HANDLESESSIONEVENTL_EXIT );
 	}	
 
 // ---------------------------------------------------------------------------
@@ -452,26 +474,32 @@ void CMessagePlugin::HandleSessionEventL( TMsvSessionEvent aEvent,
 //	    
 TMsgType CMessagePlugin::CalculateMessageType (const TMsvEntry& aEntry )
 {
+    OstTraceFunctionEntry0( CMESSAGEPLUGIN_CALCULATEMESSAGETYPE_ENTRY );
     CPIXLOGSTRING("ENTER CMessagePlugin::CalculateMessageType");
 	TMsgType ret = EMsgTypeInvalid;
+	OstTrace1( TRACE_NORMAL, CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin::CalculateMessageType;uid=%x", aEntry.iMtm.iUid );
 	CPIXLOGSTRING2("CMessagePlugin::CalculateMessageType uid: %x", aEntry.iMtm.iUid );
     if( aEntry.iMtm.iUid  == KUidMsgTypeMultimedia.iUid ) 
         {
+        OstTrace0( TRACE_NORMAL, DUP1_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ###  Mms Message ###" );
         CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ###  Mms Message ###");
         ret = EMsgTypeMms;
         }
     else if( aEntry.iMtm.iUid  == KUidMsgTypeSMTP.iUid )
 		{
+		OstTrace0( TRACE_NORMAL, DUP2_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ### ESmtpEmail ###" );
 		CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ### ESmtpEmail ###");
         ret = EMsgTypeEmailSmtp;
 		}
 	else if( aEntry.iMtm.iUid  == KUidMsgTypePOP3.iUid )
 		{
+		OstTrace0( TRACE_NORMAL, DUP3_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ### EPop3Email ###" );
 		CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ### EPop3Email ###");
         ret = EMsgTypeEmailPop3;
 		}
 	else if( aEntry.iMtm.iUid  == KUidMsgTypeIMAP4.iUid )
 		{
+		OstTrace0( TRACE_NORMAL, DUP4_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ### EImap4Email ###" );
 		CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ### EImap4Email ###");
         ret = EMsgTypeEmailImap4;
 		}
@@ -479,6 +507,7 @@ TMsgType CMessagePlugin::CalculateMessageType (const TMsvEntry& aEntry )
 #ifndef __SERIES60_30__ // Not supported before S60 3d FP1
    	else if ( aEntry.iMtm.iUid == KSenduiMtmUniMessageUid.iUid )
 	    {
+	    OstTrace0( TRACE_NORMAL, DUP5_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ### EDraftMessage ###" );
 	    CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ### EDraftMessage ###");
         ret = EMsgTypeDraft;
 	    }
@@ -486,15 +515,18 @@ TMsgType CMessagePlugin::CalculateMessageType (const TMsvEntry& aEntry )
     // else if we have a normal text based SMS it is valid    
  	else if ( aEntry.iMtm.iUid == KUidMsgTypeSMS.iUid )
  		{
+ 		OstTrace0( TRACE_NORMAL, DUP6_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ###  SMS Message ###" );
  		CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ###  SMS Message ###");
         ret = EMsgTypeSms;
  		}
    	else if ( aEntry.iMtm.iUid == KSenduiMtmSmsUid.iUid )
 		{
+		OstTrace0( TRACE_NORMAL, DUP7_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ### Sms Message ###" );
 		CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ### Sms Message ###");
         ret = EMsgTypeSms;
 		}
     CPIXLOGSTRING("END CMessagePlugin::CalculateMessageType");
+	OstTraceFunctionExit0( CMESSAGEPLUGIN_CALCULATEMESSAGETYPE_EXIT );
 	return ret;
 }
 

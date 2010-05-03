@@ -29,7 +29,7 @@ SOURCEPATH    ../src
 SOURCE        ccontactsplugin.cpp
 SOURCE        tproxy.cpp
 
-USERINCLUDE   ../inc
+USERINCLUDE   ../inc ../traces
 
 APP_LAYER_SYSTEMINCLUDE
 SYSTEMINCLUDE /epoc32/include/ecom

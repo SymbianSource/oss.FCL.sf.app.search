@@ -27,7 +27,12 @@
 #include <mmsconst.h>
 #include <mtclreg.h>
 #include <smsclnt.h>
-#include <senduiconsts.h>
+#include <SendUiConsts.h>
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cmessagemonitorTraces.h"
+#endif
+
 
 
 // DEFINES
@@ -59,11 +64,13 @@ CMessageMonitor::CMessageMonitor( CMessagePlugin& aMessagePlugin, CMsvSession& a
 	iMsvSession(aSession),
 	iMessagePlugin(aMessagePlugin)
 	{
+	OstTraceFunctionEntry0( CMESSAGEMONITOR_CMESSAGEMONITOR_ENTRY );
 	CPIXLOGSTRING("ENTER CMessageMonitor::CMessageMonitor");
 
 	CActiveScheduler::Add(this);
 
 	CPIXLOGSTRING("END CMessageMonitor::CMessageMonitor");
+	OstTraceFunctionExit0( CMESSAGEMONITOR_CMESSAGEMONITOR_EXIT );
 	}
 
 // -----------------------------------------------------------------------------
@@ -72,12 +79,14 @@ CMessageMonitor::CMessageMonitor( CMessagePlugin& aMessagePlugin, CMsvSession& a
 //
 void CMessageMonitor::ConstructL() 
 	{
+	OstTraceFunctionEntry0( CMESSAGEMONITOR_CONSTRUCTL_ENTRY );
 	CPIXLOGSTRING("ENTER CMessageMonitor::ConstructL");
 
 	// Create timer 
 	User::LeaveIfError(iTimer.CreateLocal());
 	
 	CPIXLOGSTRING("END CMessageMonitor::ConstructL");
+	OstTraceFunctionExit0( CMESSAGEMONITOR_CONSTRUCTL_EXIT );
 	}
 	
 
@@ -103,6 +112,7 @@ void CMessageMonitor::HandleMsgMovedL( const TMsvId aNewFolderId,
 									   const TMsvId /* aOldFolderId */, 
 								   	   const CMsvEntrySelection& aSelection )
 	{
+	OstTraceFunctionEntry0( CMESSAGEMONITOR_HANDLEMSGMOVEDL_ENTRY );
 	CPIXLOGSTRING("ENTER CMessageMonitor::HandleMsgMovedL");
 	
 	const TInt count( aSelection.Count() );
@@ -110,10 +120,12 @@ void CMessageMonitor::HandleMsgMovedL( const TMsvId aNewFolderId,
 	for ( TInt i=0; i < count; ++i )
 		{
 		TMsvId msgId = aSelection[i];
+		OstTrace1( TRACE_NORMAL, CMESSAGEMONITOR_HANDLEMSGMOVEDL, "CMessageMonitor::HandleMsgMovedL;msgId=%d", msgId );
 		CPIXLOGSTRING2("msgId: %d", msgId );
         MessageItemL( msgId, ECPixUpdateAction, aNewFolderId );
 		}
 	CPIXLOGSTRING("END CMessageMonitor::HandleMsgMovedL");
+	OstTraceFunctionExit0( CMESSAGEMONITOR_HANDLEMSGMOVEDL_EXIT );
 	}
 
 
@@ -125,6 +137,7 @@ void CMessageMonitor::HandleMsgCreatedChangedL( const CMsvEntrySelection& aSelec
                                           	    const TMsvId aFolderId,
                                           	    const MMsvSessionObserver::TMsvSessionEvent /*aEvent*/ )
 	{
+	OstTraceFunctionEntry0( CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL_ENTRY );
 	CPIXLOGSTRING("ENTER CMessageMonitor::HandleMsgCreatedChangedL");	
 	const TInt count( aSelection.Count() );
 	//MMsvSessionObserver::TMsvSessionEvent theEvent = aEvent;
@@ -133,6 +146,7 @@ void CMessageMonitor::HandleMsgCreatedChangedL( const CMsvEntrySelection& aSelec
 		{
 		// extract the message server entry from the parameters
 		TMsvId msgId = aSelection[i];
+		OstTrace1( TRACE_NORMAL, CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL, "CMessageMonitor::HandleMsgCreatedChangedL;msgId=%d", msgId );
 		CPIXLOGSTRING2("msgId: %d", msgId );							
         TMsvId service = 0;
         TMsvEntry entry;
@@ -142,17 +156,24 @@ void CMessageMonitor::HandleMsgCreatedChangedL( const CMsvEntrySelection& aSelec
             ( entry.Visible() && entry.Complete() && !entry.InPreparation() ) &&
             ( iMessagePlugin.CalculateMessageType( entry ) != EMsgTypeInvalid ) )
             {
+            OstTrace0( TRACE_NORMAL, DUP1_CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL, "CMessageMonitor::HandleMsgCreatedChangedL Called # MonitorEvent #" );
             CPIXLOGSTRING("CMessageMonitor::HandleMsgCreatedChangedL Called # MonitorEvent #");
             MessageItemL( msgId, ECPixUpdateAction, aFolderId );
             }   
-        CPIXLOGSTRING2(" Folder TYPE %x", aFolderId );	     
+        OstTrace1( TRACE_NORMAL, DUP2_CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL, "CMessageMonitor::HandleMsgCreatedChangedL;Folder Type=%x", aFolderId );
+        CPIXLOGSTRING2(" Folder TYPE %x", aFolderId );        
         CPIXLOGSTRING2(" Entry TYPE %x", entry.iType );	           
+        OstTrace1( TRACE_NORMAL, DUP4_CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL, "CMessageMonitor::HandleMsgCreatedChangedL;Entry Visible=%d", entry.Visible() );
         CPIXLOGSTRING2(" Entry VISIBLE %d", entry.Visible() );	          
+        OstTrace1( TRACE_NORMAL, DUP5_CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL, "CMessageMonitor::HandleMsgCreatedChangedL;Entry Complete=%d", entry.Complete() );
         CPIXLOGSTRING2(" Entry COMPLETE %d", entry.Complete() );
+        OstTrace1( TRACE_NORMAL, DUP6_CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL, "CMessageMonitor::HandleMsgCreatedChangedL;Entry InPreparation=%d", entry.InPreparation() );
         CPIXLOGSTRING2(" Entry INPREPARATION %d", entry.InPreparation() );
+        OstTrace1( TRACE_NORMAL, DUP7_CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL, "CMessageMonitor::HandleMsgCreatedChangedL;Message Type=%d", iMessagePlugin.CalculateMessageType( entry ) );
         CPIXLOGSTRING2(" Message TYPE %d", iMessagePlugin.CalculateMessageType( entry ));
         }
 	CPIXLOGSTRING("END CMessageMonitor::HandleMsgCreatedChangedL");	        
+	OstTraceFunctionExit0( CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL_EXIT );
 	}
 	
 // -----------------------------------------------------------------------------
@@ -161,6 +182,7 @@ void CMessageMonitor::HandleMsgCreatedChangedL( const CMsvEntrySelection& aSelec
 //
 void CMessageMonitor::HandleMsgDeletedL( const CMsvEntrySelection& aSelection )
 	{
+	OstTraceFunctionEntry0( CMESSAGEMONITOR_HANDLEMSGDELETEDL_ENTRY );
 	CPIXLOGSTRING("ENTER CMessageMonitor::HandleMsgDeletedL");
 	
 	const TInt count( aSelection.Count() );
@@ -168,10 +190,12 @@ void CMessageMonitor::HandleMsgDeletedL( const CMsvEntrySelection& aSelection )
 	for( TInt i = 0; i < count; ++i )
 		{
 		TMsvId msgId = aSelection[i];	
+		OstTrace1( TRACE_NORMAL, CMESSAGEMONITOR_HANDLEMSGDELETEDL, "CMessageMonitor::HandleMsgDeletedL;MsgId=%d", msgId );
 		CPIXLOGSTRING2("msgId: %d", msgId );								
 		MessageItemL( msgId, ECPixRemoveAction, NULL);
 		}
 	CPIXLOGSTRING("END CMessageMonitor::HandleMsgDeletedL");	
+	OstTraceFunctionExit0( CMESSAGEMONITOR_HANDLEMSGDELETEDL_EXIT );
 	}	
 
 

@@ -30,6 +30,12 @@
 #include <common.h>
 
 #include <ccpixindexer.h>
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cfilepluginTraces.h"
+#endif
+
+
 
 // local declarations and functions
 namespace {
@@ -37,10 +43,19 @@ namespace {
 _LIT(KCPixSearchServerPrivateDirectory, "\\Private\\2001f6f7\\");
 _LIT(KPathIndexDbPath, CPIX_INDEVICE_INDEXDB);
 
-_LIT(KPathTrailer, "\\root\\file");
-_LIT(KFileBaseAppClassGeneric, ":root file");
+_LIT(KPathFolder, "\\root\\file\\folder");
+_LIT(KPathFileContent, "\\root\\file\\content");
+_LIT(KFileBaseAppClassContent, "root file content");
+_LIT(KFileBaseAppClassFolder, "root file folder");
 _LIT(KFilePluginAtSign, "@");
 _LIT(KFilePluginColon, ":");
+_LIT(KNameField, "Name");
+_LIT(KExtensionField, "Extension");
+_LIT(KMimeTypeFile, FILE_MIMETYPE);
+_LIT(KMimeTypeFolder , FOLDER_MIMETYPE);
+_LIT(KMimeTypeField , CPIX_MIMETYPE_FIELD);
+
+#define CONSTANT_TO_PTR16(ptr, c) TPtrC16 ptr; ptr.Set((const TUint16*)c,User::StringLength(c) );
 
 /**
 * MapFileToDrive - returns the TDriveNumber that the file is located on.
@@ -91,6 +106,34 @@ TInt MapBaseAppClassToDrive(const TDesC& aBaseAppClass, TDriveNumber& aDrive)
 
 } // anonymous namespace
 
+
+TBool CFilePlugin::IsFileTypeMedia(const TDesC& aExt)
+    {
+    
+    const TText* KMediaExt[] = {_S("txt"),_S("pdf"), _S("jpg"),_S("mp3"), _S("jpeg"), _S("wma"), _S("3gp"), _S("mpg4"),
+                                _S("avi"), _S("jpf"), _S("mbm"), _S("png"), _S("gif"), _S("bmp"),  _S("mp4"), _S("mpeg4"),
+                                _S("m4v"), _S("m4a"), _S("3gpp"), _S("3g2"), _S("aac"), _S("amr"), _S("wmv"), _S("divx"),
+                                _S("awb"),_S("mid"), _S("midi"), _S("spmid"), _S("rng"), _S("mxmf"), _S("wav"),
+                                _S("au"), _S("nrt"), _S("mka"),_S("jp2"), _S("j2k"), _S("jpx"),
+                                _S("rm"), _S("rmvb"),_S("ota"), _S("wbmp"), _S("wmf"),_S("otb"),
+                                _S("rv"),  _S("mkv"), _S("ra"),_S("tif"), _S("tiff")};
+    
+    const TInt count = sizeof( KMediaExt ) / sizeof( TText* );
+    
+    TBool isValid = false;
+    
+    for (TInt i = 0; i < count; i++)
+        {
+        CONSTANT_TO_PTR16(type, KMediaExt[i]);
+        if(!aExt.Compare(type))
+            {
+            isValid = true;
+            break;
+            }
+        }    
+    return isValid;
+    }
+
 CFilePlugin* CFilePlugin::NewL()
     {
     CFilePlugin* instance = CFilePlugin::NewLC();
@@ -111,6 +154,7 @@ CFilePlugin::CFilePlugin()
     for (TInt i=EDriveA; i<=EDriveZ; i++)
         {
         iIndexer[i] = NULL; //Initialize to NULL
+        iFolderIndexer[i] = NULL;
         }
     }
 
@@ -138,10 +182,12 @@ void CFilePlugin::ConstructL()
 	{
     User::LeaveIfError( iFs.Connect() );
     TInt err = iFs.AddPlugin(KFastFindFSPluginFile);
+    OstTrace1( TRACE_NORMAL, CFILEPLUGIN_CONSTRUCTL, "CFilePlugin::ConstructL;iFs.AddPlugin=%d", err );
     CPIXLOGSTRING2("CFilePlugin::ConstructL, iFs.AddPlugin: %i", err);
     if ( err != KErrAlreadyExists )
     	{
     	err = iFs.MountPlugin(KFastFindFSPluginName);
+    	OstTrace1( TRACE_NORMAL, DUP1_CFILEPLUGIN_CONSTRUCTL, "CFilePlugin::ConstructL;iFs.MountPlugin=%d", err );
     	CPIXLOGSTRING2("CFilePlugin::ConstructL, iFs.MountPlugin: %i", err);
     	}
     // check if already up, unload and reload
@@ -149,15 +195,19 @@ void CFilePlugin::ConstructL()
     	{
     	// dismount
     	TInt err = iFs.DismountPlugin(KFastFindFSPluginName);
+	    OstTrace1( TRACE_NORMAL, DUP2_CFILEPLUGIN_CONSTRUCTL, "CFilePlugin::ConstructL;iFs.DismountPlugin=%d", err );
 	    CPIXLOGSTRING2("CFilePlugin::ConstructL(), iFs.DismountPlugin: %i", err);
 		err = iFs.RemovePlugin(KFastFindFSPluginName);
+		OstTrace1( TRACE_NORMAL, DUP3_CFILEPLUGIN_CONSTRUCTL, "CFilePlugin::ConstructL;iFs.RemovePlugin=%d", err );
 		CPIXLOGSTRING2("CFilePlugin::ConstructL(), iFs.RemovePlugin: %i", err);
 		// if no error reload
 		if ( err == KErrNone )
 			{
 			err = iFs.AddPlugin(KFastFindFSPluginFile);
+			OstTrace1( TRACE_NORMAL, DUP4_CFILEPLUGIN_CONSTRUCTL, "CFilePlugin::ConstructL;iFs.AddPlugin=%d", err );
 			CPIXLOGSTRING2("CFilePlugin::ConstructL, iFs.AddPlugin: %i", err);
 			err = iFs.MountPlugin(KFastFindFSPluginName);
+			OstTrace1( TRACE_NORMAL, DUP5_CFILEPLUGIN_CONSTRUCTL, "CFilePlugin::ConstructL;iFs.MountPlugin=%d", err );
 			CPIXLOGSTRING2("CFilePlugin::ConstructL, iFs.MountPlugin: %i", err);
 			}
     	}
@@ -174,6 +224,7 @@ void CFilePlugin::StartPluginL()
     if (!iIsMonitorInit)
         {
         error = iMonitor->Initialize();
+        OstTrace1( TRACE_NORMAL, CFILEPLUGIN_STARTPLUGINL, "CFilePlugin::StartPluginL;Monitor Error=%d", error );
         CPIXLOGSTRING2("CFilePlugin::StartMonitoring, error: %i", error );
         iIsMonitorInit = ETrue;
         }
@@ -182,11 +233,13 @@ void CFilePlugin::StartPluginL()
     if (error == KErrNone && iIsMonitorInit)
         {
         iMonitor->StartMonitoring();
+        OstTrace0( TRACE_NORMAL, DUP1_CFILEPLUGIN_STARTPLUGINL, "CFilePlugin::StartMonitoring - iFileMonitor->StartMonitoring " );
         CPIXLOGSTRING("CFilePlugin::StartMonitoring - iFileMonitor->StartMonitoring ");
         }
 
     iMmcMonitor->StartMonitoring();
 
+    OstTrace0( TRACE_NORMAL, DUP2_CFILEPLUGIN_STARTPLUGINL, "END CFilePlugin::StartMonitoring" );
     CPIXLOGSTRING("END CFilePlugin::StartMonitoring");
 
     // Add harvesters for each non removable drive
@@ -215,47 +268,65 @@ void CFilePlugin::StartPluginL()
 
 void CFilePlugin::MountL(TDriveNumber aMedia, TBool aForceReharvest)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_MOUNTL_ENTRY );
     CPIXLOGSTRING("ENTER CFilePlugin::MountL");
     // Check if already exists
-    if (iIndexer[aMedia])
+    if (iIndexer[aMedia] && iFolderIndexer[aMedia])
         return;
 
     // Add Notifications paths prior to opening IndexDB.
     AddNotificationPathsL(aMedia);
 
-    // Form the baseappclass for this media
-    TBuf<KFilePluginBaseAppClassMaxLen> baseAppClass;
-    FormBaseAppClass(aMedia, baseAppClass);
-
-    // Define this volume
-    HBufC* path = DatabasePathLC(aMedia);
-    User::LeaveIfError(iSearchSession.DefineVolume(baseAppClass, *path));
+    // Form the baseappclass for folder
+    TBuf<KFilePluginBaseAppClassMaxLen> baseFolderAppClass;
+    FormBaseAppClass(aMedia,KFileBaseAppClassFolder, baseFolderAppClass);
+    //Form the baseappclass for content
+    TBuf<KFilePluginBaseAppClassMaxLen> baseContentAppClass;
+    FormBaseAppClass(aMedia,KFileBaseAppClassContent, baseContentAppClass);
+    
+    // Define volume for folder and content index database
+    HBufC* path = DatabasePathLC(aMedia,KPathFolder);
+    User::LeaveIfError(iSearchSession.DefineVolume(baseFolderAppClass, *path));
     CleanupStack::PopAndDestroy(path);
+    
+    HBufC* contentpath = DatabasePathLC(aMedia,KPathFileContent);
+    User::LeaveIfError(iSearchSession.DefineVolume(baseContentAppClass, *contentpath));
+    CleanupStack::PopAndDestroy(contentpath);
     
     // construct and open the database
     iIndexer[aMedia] = CCPixIndexer::NewL(iSearchSession);
-    iIndexer[aMedia]->OpenDatabaseL(baseAppClass);
+    iIndexer[aMedia]->OpenDatabaseL(baseContentAppClass);
+    
+    iFolderIndexer[aMedia]= CCPixIndexer::NewL(iSearchSession);
+    iFolderIndexer[aMedia]->OpenDatabaseL(baseFolderAppClass);
 
     // Add to harvesting queue
-    iObserver->AddHarvestingQueue(this, baseAppClass, aForceReharvest);
+    iObserver->AddHarvestingQueue(this, baseContentAppClass, aForceReharvest);
+    
     CPIXLOGSTRING("END CFilePlugin::MountL");
+    OstTraceFunctionExit0( CFILEPLUGIN_MOUNTL_EXIT );
     }
 
 void CFilePlugin::UnMount(TDriveNumber aMedia, TBool aUndefineAsWell)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_UNMOUNT_ENTRY );
     CPIXLOGSTRING("ENTER CFilePlugin::UnMount ");
     // Check if already exists
-    if (!iIndexer[aMedia])
+    if (!iIndexer[aMedia] && !iFolderIndexer[aMedia])
         {
+        OstTraceFunctionExit0( CFILEPLUGIN_UNMOUNT_EXIT );
         return;
         }
 
-    // Form the baseappclass for this media
-    TBuf<KFilePluginBaseAppClassMaxLen> baseAppClass;
-    FormBaseAppClass(aMedia, baseAppClass);
+    // Form the baseappclass for folder
+    TBuf<KFilePluginBaseAppClassMaxLen> baseFolderAppClass;
+    FormBaseAppClass(aMedia,KFileBaseAppClassFolder, baseFolderAppClass);
+    //Form the baseappclass for content
+    TBuf<KFilePluginBaseAppClassMaxLen> baseContentAppClass;
+    FormBaseAppClass(aMedia,KFileBaseAppClassContent, baseContentAppClass);
 
     // Remove from harvesting queue
-    iObserver->RemoveHarvestingQueue(this, baseAppClass);
+    iObserver->RemoveHarvestingQueue(this, baseContentAppClass);
     
     // Delete the index object
     if (iIndexer[aMedia])
@@ -263,18 +334,26 @@ void CFilePlugin::UnMount(TDriveNumber aMedia, TBool aUndefineAsWell)
         delete iIndexer[aMedia];
         iIndexer[aMedia] = NULL;
         }
-
+    
+    if (iFolderIndexer[aMedia])
+        {
+        delete iFolderIndexer[aMedia];
+        iFolderIndexer[aMedia] = NULL;
+        }
     RemoveNotificationPaths(aMedia);
 
     if (aUndefineAsWell)
         {
-        iSearchSession.UnDefineVolume(baseAppClass);
+        iSearchSession.UnDefineVolume(baseFolderAppClass);
+        iSearchSession.UnDefineVolume(baseContentAppClass);
         }
     CPIXLOGSTRING("END CFilePlugin::UnMount ");
+    OstTraceFunctionExit0( DUP1_CFILEPLUGIN_UNMOUNT_EXIT );
     }
 
 void CFilePlugin::StartHarvestingL(const TDesC& aQualifiedBaseAppClass)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_STARTHARVESTINGL_ENTRY );
     CPIXLOGSTRING("ENTER CFilePlugin::StartHarvestingL ");
     // Map base app class to a drive number
     TDriveNumber drive(EDriveA); //Initialize to get rid of compiler warning.
@@ -284,7 +363,7 @@ void CFilePlugin::StartHarvestingL(const TDesC& aQualifiedBaseAppClass)
         }
 
     // Leave if no indexer for this drive
-    if (!iIndexer[drive])
+    if (!iIndexer[drive] && !iFolderIndexer[drive])
         {
         User::Leave(KErrGeneral);
         }
@@ -294,17 +373,20 @@ void CFilePlugin::StartHarvestingL(const TDesC& aQualifiedBaseAppClass)
 #endif
     // Reset the database
     iIndexer[drive]->ResetL();
-
+    iFolderIndexer[drive]->ResetL();
+    
     // Start the actual harvest
     iHarvester->StartL(drive);
     CPIXLOGSTRING("END CFilePlugin::StartHarvestingL ");
+    OstTraceFunctionExit0( CFILEPLUGIN_STARTHARVESTINGL_EXIT );
     }
 
-void CFilePlugin::CreateFileIndexItemL(const TDesC& aFilename, TCPixActionType aActionType)
+void CFilePlugin::CreateContentIndexItemL(const TDesC& aFilename, TCPixActionType aActionType)
     {
     TFileName lowerCaseFilename(aFilename);
     lowerCaseFilename.LowerCase();
 
+    OstTraceExt2( TRACE_NORMAL, DUP1_CFILEPLUGIN_CREATECONTENTINDEXITEML, "CFilePlugin::CreateContentIndexItemL;lowerCaseFilename=%S;aActionType=%d", lowerCaseFilename, aActionType );
     CPIXLOGSTRING3("CFilePlugin::CreateFileIndexItemL lowerCaseFilename = %S aActionType = %d ", 
 					&lowerCaseFilename, aActionType);
 
@@ -312,8 +394,10 @@ void CFilePlugin::CreateFileIndexItemL(const TDesC& aFilename, TCPixActionType a
 	User::LeaveIfError( MapFileToDrive( lowerCaseFilename, drive ) );
 
 	CCPixIndexer* indexer = iIndexer[drive];
+    
 	if (!indexer)
 		{
+		OstTrace0( TRACE_NORMAL, DUP2_CFILEPLUGIN_CREATECONTENTINDEXITEML, "CFilePlugin::CreateFileIndexItemL(): Could not map file to drive." );
 		CPIXLOGSTRING("CFilePlugin::CreateFileIndexItemL(): Could not map file to drive.");
 		return;
 		}
@@ -323,6 +407,7 @@ void CFilePlugin::CreateFileIndexItemL(const TDesC& aFilename, TCPixActionType a
 		{
 #ifdef _DEBUG
 		TRAPD(err, indexer->DeleteL(lowerCaseFilename));
+		OstTrace1( TRACE_NORMAL, CFILEPLUGIN_CREATECONTENTINDEXITEML, "CFilePlugin::CreateContentIndexItemL;DeleteL returned=%d", err );
 		CPIXLOGSTRING2("CFilePlugin::CreateFileIndexItemL(): DeleteL returned %d.", err);
 #else   
 		TRAP_IGNORE( indexer->DeleteL(lowerCaseFilename) );
@@ -338,6 +423,7 @@ void CFilePlugin::CreateFileIndexItemL(const TDesC& aFilename, TCPixActionType a
 			{
 #ifdef _DEBUG
 			TRAPD(err, indexer->AddL(*index_item));
+	        OstTrace1( TRACE_NORMAL, DUP3_CFILEPLUGIN_CREATECONTENTINDEXITEML, "CFilePlugin::CreateContentIndexItemL;AddL returned=%d", err );
 	        CPIXLOGSTRING2("CFilePlugin::CreateFileIndexItemL(): AddL returned %d.", err);
 #else
 			TRAP_IGNORE( indexer->AddL(*index_item) );
@@ -347,51 +433,144 @@ void CFilePlugin::CreateFileIndexItemL(const TDesC& aFilename, TCPixActionType a
 			{
 #ifdef _DEBUG		
 			TRAPD(err, indexer->UpdateL(*index_item));
+	        OstTrace1( TRACE_NORMAL, DUP4_CFILEPLUGIN_CREATECONTENTINDEXITEML, "CFilePlugin::CreateContentIndexItemL;UpdateL returned=%d", err );
 	        CPIXLOGSTRING2("CFilePlugin::CreateFileIndexItemL(): UpdateL returned %d.", err);
 #else
 			TRAP_IGNORE( indexer->UpdateL(*index_item) );
 #endif
 			}
 		CleanupStack::PopAndDestroy(index_item);
-		}
+		}    
+    }
+
+void CFilePlugin::CreateFolderFileIndexItemL(const TDesC& aFilename, TCPixActionType aActionType, TBool aIsDir)
+    {    
+    CSearchDocument* index_item = NULL;
+    TBool isMediaFile = false;
+    TFileName lowerCaseFilename(aFilename);    
+    lowerCaseFilename.LowerCase();        
+    
+    // Adding the file entry to folder index,check for file or folder entry,
+    //if file, extract the extension
+    if (!aIsDir)
+        {
+        TFileName extension; 
+        TInt pos = lowerCaseFilename.LocateReverse('.');
+        if (pos > 0)
+            {
+            extension.Copy(lowerCaseFilename.Mid(pos+1));
+            isMediaFile = IsFileTypeMedia(extension);
+            }
+        }
+    //Check for extension type, if media items do not index them
+    if(!isMediaFile)
+        {
+        OstTraceExt2( TRACE_NORMAL, CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML, "CFilePlugin::CreateFolderFileIndexItemL;lowerCaseFilename=%S;aActionType=%d", lowerCaseFilename, aActionType );
+        CPIXLOGSTRING3("CFilePlugin::CreateFolderFileIndexItemL lowerCaseFilename = %S aActionType = %d ", 
+                                                    &lowerCaseFilename, aActionType);
+
+        TDriveNumber drive(EDriveA);
+        User::LeaveIfError( MapFileToDrive( lowerCaseFilename, drive ) );    
+
+        CCPixIndexer* indexer = iFolderIndexer[drive];
+        if (!indexer)
+            {
+            OstTrace0( TRACE_NORMAL, DUP1_CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML, "CFilePlugin::CreateFolderFileIndexItemL(): Could not map file to drive." );
+            CPIXLOGSTRING("CFilePlugin::CreateFolderFileIndexItemL(): Could not map file to drive.");
+            return;
+            }
+        
+        if (aActionType == ECPixRemoveAction)
+            {
+    #ifdef _DEBUG
+            TRAPD(err, indexer->DeleteL(lowerCaseFilename));
+            OstTrace1( TRACE_NORMAL, DUP2_CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML, "CFilePlugin::CreateFolderFileIndexItemL;DeleteL returned=%d", err );
+            CPIXLOGSTRING2("CFilePlugin::CreateFolderFileIndexItemL(): DeleteL returned %d.", err);
+    #else
+            TRAP_IGNORE( indexer->DeleteL(lowerCaseFilename) );
+    #endif
+            }
+        else
+            {
+            index_item = CreateCpixDocumentL(lowerCaseFilename, aIsDir);
+            
+            if( aActionType == ECPixAddAction )
+                {
+    #ifdef _DEBUG
+                TRAPD(err, indexer->AddL(*index_item));
+                OstTrace1( TRACE_NORMAL, DUP3_CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML, "CFilePlugin::CreateFolderFileIndexItemL;AddL returned=%d", err );
+                CPIXLOGSTRING2("CFilePlugin::CreateFolderFileIndexItemL(): AddL returned %d.", err);
+    #else
+                TRAP_IGNORE( indexer->AddL(*index_item) );
+    #endif
+                }
+            else if( aActionType == ECPixUpdateAction )
+                {
+    #ifdef _DEBUG
+                TRAPD(err, indexer->UpdateL(*index_item));
+                OstTrace1( TRACE_NORMAL, DUP4_CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML, "CFilePlugin::CreateFolderFileIndexItemL;UpdateL returned=%d", err );
+                CPIXLOGSTRING2("CFilePlugin::CreateFolderFileIndexItemL(): UpdateL returned %d.", err);
+    #else
+                TRAP_IGNORE( indexer->UpdateL(*index_item) );
+    #endif
+                }
+            delete index_item;
+            }
+        }    
     }
 
 void CFilePlugin::HarvestingCompleted(TDriveNumber aDriveNumber, TInt aError)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_HARVESTINGCOMPLETED_ENTRY );
     CPIXLOGSTRING("ENTER CFilePlugin::HarvestingCompleted ");
 
     if (iIndexer[aDriveNumber])
         {
         Flush(*iIndexer[aDriveNumber]);
         }
-    TBuf<KFilePluginBaseAppClassMaxLen> baseAppClass;
-    FormBaseAppClass(TDriveNumber(aDriveNumber), baseAppClass);
+    if (iFolderIndexer[aDriveNumber])
+        {
+        Flush(*iFolderIndexer[aDriveNumber]);
+        }
+    
+    //Form baseapp class for folder and content database
+    TBuf<KFilePluginBaseAppClassMaxLen> baseContentAppClass;
+    FormBaseAppClass(TDriveNumber(aDriveNumber),KFileBaseAppClassContent, baseContentAppClass);    
+    
+    iObserver->HarvestingCompleted(this, baseContentAppClass, aError);    
+    
 #ifdef __PERFORMANCE_DATA
     TRAP_IGNORE( UpdatePerformaceDataL(aDriveNumber) );
 #endif
-    iObserver->HarvestingCompleted(this, baseAppClass, aError);
+
 
     CPIXLOGSTRING("END CFilePlugin::HarvestingCompleted ");
+    OstTraceFunctionExit0( CFILEPLUGIN_HARVESTINGCOMPLETED_EXIT );
     }
 
 void CFilePlugin::AddNotificationPathsL(const TDriveNumber aDriveNumber)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_ADDNOTIFICATIONPATHSL_ENTRY );
     CPIXLOGSTRING("ENTER CFilePlugin::AddNotificationPathsL ");
     iMonitor->AddNotificationPathsL(aDriveNumber);
     iHarvester->AddIgnorePathsL(aDriveNumber);
     CPIXLOGSTRING("END CFilePlugin::AddNotificationPathsL ");
+    OstTraceFunctionExit0( CFILEPLUGIN_ADDNOTIFICATIONPATHSL_EXIT );
     }
 
 void CFilePlugin::RemoveNotificationPaths(const TDriveNumber aDriveNumber)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_REMOVENOTIFICATIONPATHS_ENTRY );
     CPIXLOGSTRING("ENTER CFilePlugin::RemoveNotificationPaths");
     iMonitor->RemoveNotificationPaths(aDriveNumber);
     iHarvester->RemoveIgnorePaths(aDriveNumber);
     CPIXLOGSTRING("END CFilePlugin::RemoveNotificationPaths");
+    OstTraceFunctionExit0( CFILEPLUGIN_REMOVENOTIFICATIONPATHS_EXIT );
     }
 
-TInt CFilePlugin::FormBaseAppClass(TDriveNumber aMedia, TDes& aBaseAppClass)
+TInt CFilePlugin::FormBaseAppClass(TDriveNumber aMedia, const TDesC& aGenericAppClass, TDes& aBaseAppClass)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_FORMBASEAPPCLASS_ENTRY );
     CPIXLOGSTRING("ENTER CFilePlugin::FormBaseAppClass");
     TChar chr;
     const TInt ret = RFs::DriveToChar(aMedia, chr);
@@ -400,19 +579,22 @@ TInt CFilePlugin::FormBaseAppClass(TDriveNumber aMedia, TDes& aBaseAppClass)
         aBaseAppClass.Copy(KFilePluginAtSign);
         aBaseAppClass.Append(chr);
         aBaseAppClass.LowerCase();
-        aBaseAppClass.Append(KFileBaseAppClassGeneric);
+        aBaseAppClass.Append(KFilePluginColon);
+        aBaseAppClass.Append(aGenericAppClass);
         }
 
     CPIXLOGSTRING("END CFilePlugin::FormBaseAppClass");
+    OstTraceFunctionExit0( CFILEPLUGIN_FORMBASEAPPCLASS_EXIT );
     return ret;
     }
 
-HBufC* CFilePlugin::DatabasePathLC(TDriveNumber aMedia)
+HBufC* CFilePlugin::DatabasePathLC(TDriveNumber aMedia,const TDesC& aPath)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_DATABASEPATHLC_ENTRY );
     CPIXLOGSTRING("ENTER CFilePlugin::DatabasePathLC");
     // Allocate extra space for root path e.g. "C:\\Private\\2001f6f7\\"
     const TInt KRootPathMaxLength = 30;
-    HBufC* indexDbPath = HBufC::NewLC(KRootPathMaxLength + KPathIndexDbPath().Length() + KPathTrailer().Length());
+    HBufC* indexDbPath = HBufC::NewLC(KRootPathMaxLength + KPathIndexDbPath().Length() + aPath.Length());
     TPtr indexDbPathPtr = indexDbPath->Des();
 
     // Data caging implementation
@@ -428,10 +610,51 @@ HBufC* CFilePlugin::DatabasePathLC(TDriveNumber aMedia)
     indexDbPathPtr.Append(KCPixSearchServerPrivateDirectory);
 
     indexDbPathPtr.Append(KPathIndexDbPath);
-    indexDbPathPtr.Append(KPathTrailer);
+    indexDbPathPtr.Append(aPath);
 
     CPIXLOGSTRING("END CFilePlugin::DatabasePathLC");
+    OstTraceFunctionExit0( CFILEPLUGIN_DATABASEPATHLC_EXIT );
     return indexDbPath;
+    }
+
+CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool aIsDir)
+    {
+    
+    CSearchDocument* index_item = CSearchDocument::NewLC(aFilePath, KFileBaseAppClassFolder);
+        
+    TParse file;
+    file.Set(aFilePath, NULL, NULL);
+    
+    TFileName fileFoldername; 
+    TInt pos = aFilePath.LocateReverse('\\');
+    if (pos > 0)
+        {
+        fileFoldername.Copy(aFilePath.Mid(pos+1));
+        index_item->AddFieldL(KNameField, fileFoldername);
+        }
+    
+    //check for the extension, for folders names store the extension field as NULL
+    //adding Mimetype and Extension field
+    if(!aIsDir)
+       {
+        if( file.ExtPresent())
+            {
+            TPtrC extension = file.Ext();
+            index_item->AddFieldL(KExtensionField, extension);
+            }
+        index_item->AddFieldL(KMimeTypeField, KMimeTypeFile, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+       }
+    else
+        {
+        index_item->AddFieldL(KExtensionField, KNullDesC);
+        index_item->AddFieldL(KMimeTypeField, KMimeTypeFolder, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+        }   
+    
+    //Add excerpt field
+    index_item->AddExcerptL(aFilePath);
+    
+    CleanupStack::Pop(index_item);
+    return index_item;
     }
 
 #ifdef __PERFORMANCE_DATA
@@ -446,7 +669,7 @@ void CFilePlugin::UpdatePerformaceDataL(TDriveNumber aDriveNumber)
     RFs fileSession;
     RFile perfFile;
     User::LeaveIfError( fileSession.Connect () );
-	RFs::DriveToChar((TInt)aDriveNumber, aChar);	
+	RFs::DriveToChar((TInt)aDriveNumber, aChar);
     
     
     /* Open file if it exists, otherwise create it and write content in it */

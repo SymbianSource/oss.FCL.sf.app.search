@@ -16,6 +16,7 @@
 
 TEMPLATE = lib
 
+DEFINES += BUILD_SEARCHSTATEPROVIDER
 
 symbian {
     CONFIG(debug, debug|release) {
@@ -32,9 +33,6 @@ win32 {
       SUBDIRPART = release
     }
     DESTDIR = $$PWD/../../../bin/$$SUBDIRPART/searchresources/plugins/stateproviders
-    INCLUDEPATH += \              
-              $$PWD/../../../homescreensrv/homescreensrv_plat/ftuwizardmodel_api/inc \
-              $$PWD/../../../homescreensrv/homescreensrv_plat/statemodel_api
     LIBS += -L$$PWD/../../../bin/debug
 }
 
@@ -50,13 +48,12 @@ LIBS += -lapgrfx
 LIBS += -lbitgdi
 
 
-CONFIG += plugin debug_and_release
-
 coverage:DEFINES += COVERAGE_MEASUREMENT
 
 CONFIG += hb
 
-QT += xml
+QT += sql xml
+
 
 nft:DEFINES += NFT
 
@@ -75,10 +72,10 @@ symbian {
     TARGET.EPOCALLOWDLLDATA=1
     TARGET.CAPABILITY = ALL -TCB -DRM
     INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE 
-    include(searchstateprovider_installs_symbian.pri)
+    #include(searchstateprovider_installs_symbian.pri)
+   # BLD_INF_RULES.prj_exports += "./inc/searchstateprovider.h |../../inc/"
 
 }
-
+win32:include(searchstateprovider_installs_win32.pri)
 symbian:unix:include(searchstateprovider_installs_unix.pri)
 include(searchstateprovider.pri)
-

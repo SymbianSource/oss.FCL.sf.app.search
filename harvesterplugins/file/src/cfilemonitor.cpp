@@ -22,6 +22,11 @@
 #include "cfilemonitor.h"
 #include "cfolderrenamedharvester.h"
 #include "harvesterserverlogger.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cfilemonitorTraces.h"
+#endif
+
 
 // -----------------------------------------------------------------------------
 // CFileMonitor::NewL
@@ -44,10 +49,12 @@ CFileMonitor::CFileMonitor( CFilePlugin& aFilePlugin, RFs* aFsSession ) :
                             CActive(CActive::EPriorityStandard),
                             iFilePlugin( aFilePlugin )
     {
+    OstTraceFunctionEntry0( CFILEMONITOR_CFILEMONITOR_ENTRY );
     CPIXLOGSTRING("ENTER CFileMonitor::CFileMonitor");
     CActiveScheduler::Add(this);
     iFsSession = aFsSession;
     CPIXLOGSTRING("END CFileMonitor::CFileMonitor");
+    OstTraceFunctionExit0( CFILEMONITOR_CFILEMONITOR_EXIT );
     }
 
 // -----------------------------------------------------------------------------
@@ -79,6 +86,7 @@ void CFileMonitor::ConstructL( CFilePlugin& aFilePlugin, RFs* aFsSession )
 //
 TInt CFileMonitor::RunError( TInt aError )
 	{
+	OstTrace1( TRACE_NORMAL, CFILEMONITOR_RUNERROR, "CFileMonitor::RunError;aError=%d", aError );
 	CPIXLOGSTRING2( "CFileMonitor::RunError %d", aError );
 	return KErrNone;
 	}
@@ -98,6 +106,7 @@ void CFileMonitor::DoCancel()
 //	
 void CFileMonitor::RunL()
     {
+    OstTraceFunctionEntry0( CFILEMONITOR_RUNL_ENTRY );
     CPIXLOGSTRING("ENTER CFileMonitor::RunL");
     Deque();
     CActiveScheduler::Add( this );
@@ -118,15 +127,19 @@ void CFileMonitor::RunL()
     * Rename of whole directory happens as change to every file in dir.
     * We get an event of every file in dir.
     */
+    OstTrace1( TRACE_NORMAL, DUP1_CFILEMONITOR_RUNL, "CFileMonitor::RunL;status.iFileEventType=%d", status.iFileEventType );
     CPIXLOGSTRING2("CFileMonitor::RunL, status.iFileEventType: %i", status.iFileEventType );    
     switch(status.iFileEventType)
 		{
 		case EFastFindFileCreated:
 			{
+			OstTraceExt1( TRACE_NORMAL, DUP4_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileCreated old=%S", fileNameOld );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileCreated old = %S", &fileNameOld);
+			OstTraceExt1( TRACE_NORMAL, DUP2_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileCreated new=%S", fileNameNew );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileCreated new = %S", &fileNameNew);
-            // File creation (for example over PC suite) gives fileNameOld as the created files, fileNameOld is empty.
-            iFilePlugin.CreateFileIndexItemL(fileNameOld, ECPixAddAction);
+            // File creation (for example over PC suite) gives fileNameOld as the created files, fileNameOld is empty.			
+            iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixAddAction);
+            iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixAddAction, false);
 			}
 		break;
 		
@@ -142,16 +155,21 @@ void CFileMonitor::RunL()
 			// new active object state into the CFileMonitor.
 			User::After(50000); // 0.05 seconds
 			
+			OstTraceExt1( TRACE_NORMAL, DUP3_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileModified old=%S", fileNameOld );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileModified old = %S", &fileNameOld);
+			OstTraceExt1( TRACE_NORMAL, DUP5_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileModified new=%S", fileNameNew );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileModified new = %S", &fileNameNew);
 			// File copy, fileNameOld contains the file name, fileNameNew is empty
-			iFilePlugin.CreateFileIndexItemL(fileNameOld, ECPixUpdateAction);
+			iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixUpdateAction);
+			iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixUpdateAction, false);
 			}
 		break;
 		
 		case EFastFindFileRenamed:
 			{
+			OstTraceExt1( TRACE_NORMAL, DUP6_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileRenamed old=%S", fileNameOld );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileRenamed old = %S", &fileNameOld);
+			OstTraceExt1( TRACE_NORMAL, DUP7_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileRenamed new=%S", fileNameNew );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileRenamed new = %S", &fileNameNew);
 			TEntry entry; 
 			if ( iFsSession->Entry( fileNameNew, entry ) == KErrNone ) 
@@ -160,9 +178,11 @@ void CFileMonitor::RunL()
 					{
 					if (fileNameOld.Length()>0 && fileNameOld.Compare(fileNameNew)!=0)
 						{
-						iFilePlugin.CreateFileIndexItemL(fileNameOld, ECPixRemoveAction);
+						iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixRemoveAction);
+						iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction, false);
 						}
-					iFilePlugin.CreateFileIndexItemL(fileNameNew, ECPixUpdateAction);
+					iFilePlugin.CreateContentIndexItemL(fileNameNew, ECPixUpdateAction);
+					iFilePlugin.CreateFolderFileIndexItemL(fileNameNew, ECPixUpdateAction, false);
 					}
 				else
 					{
@@ -174,27 +194,49 @@ void CFileMonitor::RunL()
 		
 		case EFastFindFileReplaced:
 			{
+			OstTraceExt1( TRACE_NORMAL, DUP8_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileReplaced old=%S", fileNameOld );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileReplaced old = %S", &fileNameOld);
+			OstTraceExt1( TRACE_NORMAL, DUP9_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileReplaced new=%S", fileNameNew );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileReplaced new = %S", &fileNameNew);
 			// File rename (funnily), fileNameOld contains the old file name, fileNameNew the new name
 			if (fileNameOld.Length()>0 && fileNameOld.Compare(fileNameNew)!=0)
-				iFilePlugin.CreateFileIndexItemL(fileNameOld, ECPixRemoveAction);
-			iFilePlugin.CreateFileIndexItemL(fileNameNew, ECPixUpdateAction);
+			    {
+				iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixRemoveAction);
+				iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction, false);
+			    }
+			iFilePlugin.CreateContentIndexItemL(fileNameNew, ECPixUpdateAction);
+			iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixUpdateAction, false);
 			}
 		break;
 				
 		case EFastFindFileDeleted:
 			{
+			OstTraceExt1( TRACE_NORMAL, DUP10_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileDeleted old=%S", fileNameOld );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileDeleted old = %S", &fileNameOld);
+			OstTraceExt1( TRACE_NORMAL, DUP11_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileDeleted new=%S", fileNameNew );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileDeleted new = %S", &fileNameNew);
 			// File delete, fileNameOld contains the name of the deleted file
-			iFilePlugin.CreateFileIndexItemL(fileNameOld, ECPixRemoveAction);
+			iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixRemoveAction);
+			iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction, false);
 			}
 		break;
+		
+		case EFastFindDirCreated:
+            {
+            iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixAddAction);
+            }
+            break;
 
+		case EFastFindDirDeleted:
+            {
+            iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction);
+            }
+            break;
 		default:
 			{
+			OstTraceExt1( TRACE_NORMAL, DUP12_CFILEMONITOR_RUNL, "CFileMonitor::RunL;unknown event old=%S", fileNameOld );
 			CPIXLOGSTRING2("CFileMonitor::RunL, unknown event old = %S", &fileNameOld);
+			OstTraceExt1( TRACE_NORMAL, DUP13_CFILEMONITOR_RUNL, "CFileMonitor::RunL;unknown event new=%S", fileNameNew );
 			CPIXLOGSTRING2("CFileMonitor::RunL, unknown event new = %S", &fileNameNew);
 			}
 		break;
@@ -202,7 +244,8 @@ void CFileMonitor::RunL()
     ResetStatus();
     iEngine.RegisterNotification(iPckg, iStatus);
     CPIXLOGSTRING("END CFileMonitor::RunL");
-    SetActive();
+    OstTraceFunctionExit0( CFILEMONITOR_RUNL_EXIT );
+    SetActive();    
     }
 
 // -----------------------------------------------------------------------------
@@ -211,11 +254,13 @@ void CFileMonitor::RunL()
 //
 TBool CFileMonitor::StartMonitoring()
 	{
-	CPIXLOGSTRING("ENTER CFileMonitor::StartMonitoring")
+	OstTraceFunctionEntry0( CFILEMONITOR_STARTMONITORING_ENTRY );
+	CPIXLOGSTRING("ENTER CFileMonitor::StartMonitoring");
     
     if ( !IsActive() )
 		{
-		CPIXLOGSTRING("CFileMonitor::StartMonitoring - IF ")
+		OstTrace0( TRACE_NORMAL, CFILEMONITOR_STARTMONITORING, "CFileMonitor::StartMonitoring - IF" );
+		CPIXLOGSTRING("CFileMonitor::StartMonitoring - IF ");
 		iEngine.Enable();
 		ResetStatus();
 	    iEngine.RegisterNotification( iPckg, iStatus );
@@ -224,6 +269,7 @@ TBool CFileMonitor::StartMonitoring()
     
 	CPIXLOGSTRING("END CFileMonitor::StartMonitoring");	
 		
+	OstTraceFunctionExit0( CFILEMONITOR_STARTMONITORING_EXIT );
 	return ETrue;
 	}
 
@@ -233,6 +279,7 @@ TBool CFileMonitor::StartMonitoring()
 //
 void CFileMonitor::ResetStatus()
     {
+    OstTrace0( TRACE_NORMAL, CFILEMONITOR_RESETSTATUS, "CFileMonitor::ResetStatus" );
     CPIXLOGSTRING( "CFileMonitor::ResetStatus" );
     
     TFastFindFSPStatus& status = iPckg();
@@ -250,16 +297,21 @@ void CFileMonitor::ResetStatus()
 //	
 TInt CFileMonitor::Initialize()
     {
+    OstTraceFunctionEntry0( CFILEMONITOR_INITIALIZE_ENTRY );
     CPIXLOGSTRING("ENTER CFileMonitor::Initialize");
     TInt err = OpenEngine();
+    OstTrace1( TRACE_NORMAL, CFILEMONITOR_INITIALIZE, "CFileMonitor::Initialize;OpenEngine=%d", err );
     CPIXLOGSTRING2("CFileMonitor::Initialize - OpenEngine: %i", err );
 	if ( err != KErrNone )
 		{
+		OstTrace0( TRACE_NORMAL, DUP1_CFILEMONITOR_INITIALIZE, "CFileMonitor::Initialize if( err != KErrNone )" );
 		CPIXLOGSTRING("CFileMonitor::Initialize if( err != KErrNone ) ");
+		OstTraceFunctionExit0( CFILEMONITOR_INITIALIZE_EXIT );
 		return err;
 		}
 	
 	CPIXLOGSTRING("END CFileMonitor::Initialize");
+	OstTraceFunctionExit0( DUP1_CFILEMONITOR_INITIALIZE_EXIT );
 	return err;
     }
 
@@ -298,6 +350,7 @@ void CFileMonitor::AddNotificationPathsL( const TDriveNumber aDriveNumber )
     notificationPath.Append( chr );
     notificationPath.Append( KExcludePathSystem );
     iEngine.AddIgnorePath( notificationPath );
+	OstTraceExt1( TRACE_NORMAL, CFILEMONITOR_ADDNOTIFICATIONPATHSL, "CFileMonitor::AddNotificationPathsL;AddIgnorePath=%S", notificationPath );
 	CPIXLOGSTRING2("CFileMonitor::AddNotificationPathsL - AddIgnorePath: %S", &notificationPath );
 
     notificationPath.Zero();
@@ -307,6 +360,7 @@ void CFileMonitor::AddNotificationPathsL( const TDriveNumber aDriveNumber )
     notificationPath.Append( chr );
     notificationPath.Append( KExcludePathPrivate );
     iEngine.AddIgnorePath( notificationPath );
+    OstTraceExt1( TRACE_NORMAL, DUP1_CFILEMONITOR_ADDNOTIFICATIONPATHSL, "CFileMonitor::AddNotificationPathsL;AddIgnorePath=%S", notificationPath );
     CPIXLOGSTRING2("CFileMonitor::AddNotificationPathsL - AddIgnorePath: %S", &notificationPath );
 
     notificationPath.Zero();
@@ -315,12 +369,14 @@ void CFileMonitor::AddNotificationPathsL( const TDriveNumber aDriveNumber )
     notificationPath.Append( chr );
     notificationPath.Append( KExcludePathMapsCities );
     iEngine.AddIgnorePath( notificationPath );
+    OstTraceExt1( TRACE_NORMAL, DUP2_CFILEMONITOR_ADDNOTIFICATIONPATHSL, "CFileMonitor::AddNotificationPathsL;AddIgnorePath=%S", notificationPath );
     CPIXLOGSTRING2("CFileMonitor::AddNotificationPathsL - AddIgnorePath: %S", &notificationPath );
 
     notificationPath.Zero();
 
     User::LeaveIfError( PathInfo::GetRootPath( notificationPath, aDriveNumber ) );
     iEngine.AddNotificationPath( notificationPath );
+    OstTraceExt1( TRACE_NORMAL, DUP3_CFILEMONITOR_ADDNOTIFICATIONPATHSL, "CFileMonitor::AddNotificationPathsL;AddIgnorePath=%S", notificationPath );
     CPIXLOGSTRING2("CFileMonitor::AddNotificationPathsL - AddNotificationPath: %S", &notificationPath );
     }
 
@@ -337,6 +393,7 @@ void CFileMonitor::RemoveNotificationPaths( const TDriveNumber aDriveNumber )
     ignorePath.Append( chr );
     ignorePath.Append( KExcludePathSystem );
     iEngine.RemoveIgnorePath( ignorePath );
+    OstTraceExt1( TRACE_NORMAL, CFILEMONITOR_REMOVENOTIFICATIONPATHS, "CFileMonitor::RemoveNotificationPaths;RemoveIgnorePath=%S", ignorePath );
     CPIXLOGSTRING2("CFileMonitor::RemoveNotificationPaths - RemoveIgnorePath: %S", &ignorePath );
 
     ignorePath.Zero();
@@ -346,6 +403,7 @@ void CFileMonitor::RemoveNotificationPaths( const TDriveNumber aDriveNumber )
     ignorePath.Append( chr );
     ignorePath.Append( KExcludePathPrivate );
     iEngine.RemoveIgnorePath( ignorePath );
+    OstTraceExt1( TRACE_NORMAL, DUP1_CFILEMONITOR_REMOVENOTIFICATIONPATHS, "CFileMonitor::RemoveNotificationPaths;RemoveIgnorePath=%S", ignorePath );
     CPIXLOGSTRING2("CFileMonitor::RemoveNotificationPaths - RemoveIgnorePath: %S", &ignorePath );
 
     ignorePath.Zero();
@@ -354,12 +412,14 @@ void CFileMonitor::RemoveNotificationPaths( const TDriveNumber aDriveNumber )
     ignorePath.Append( chr );
     ignorePath.Append( KExcludePathMapsCities );
     iEngine.RemoveIgnorePath( ignorePath );
+    OstTraceExt1( TRACE_NORMAL, DUP2_CFILEMONITOR_REMOVENOTIFICATIONPATHS, "CFileMonitor::RemoveNotificationPaths;RemoveIgnorePath=%S", ignorePath );
     CPIXLOGSTRING2("CFileMonitor::RemoveNotificationPaths - RemoveIgnorePath: %S", &ignorePath );
 
     ignorePath.Zero();
 
     PathInfo::GetRootPath( ignorePath, aDriveNumber );
     iEngine.RemoveNotificationPath( ignorePath );
+    OstTraceExt1( TRACE_NORMAL, DUP3_CFILEMONITOR_REMOVENOTIFICATIONPATHS, "CFileMonitor::RemoveNotificationPaths;RemoveIgnorePath=%S", ignorePath );
     CPIXLOGSTRING2("CFileMonitor::RemoveNotificationPaths - RemoveNotificationPath: %S", &ignorePath );
     }
 

@@ -30,6 +30,7 @@ PRJ_TESTEXPORTS
 ../conf/notesalphanumerictest.txt  /epoc32/winscw/c/TestFramework/notesalphanumerictest.txt
 ../conf/noteslongtest.txt          /epoc32/winscw/c/TestFramework/noteslongtest.txt
 ../conf/testattachment.txt         /epoc32/winscw/c/TestFramework/testattachment.txt
+../conf/testfile.txt				/epoc32/winscw/c/data/testfile.txt
 ../conf/eagle_landed.mp3           /epoc32/winscw/c/data/eagle_landed.mp3
 ../conf/niagara.wmv           	  /epoc32/winscw/c/data/niagara.wmv
 
@@ -40,6 +41,7 @@ PRJ_TESTEXPORTS
 ../conf/notesalphanumerictest.txt z:/ids/notesalphanumerictest.txt
 ../conf/noteslongtest.txt         z:/ids/noteslongtest.txt
 ../conf/testattachment.txt        z:/ids/testattachment.txt
+../conf/testfile.txt        	  z:/ids/testfile.txt
 ../conf/eagle_landed.mp3          z:/ids/eagle_landed.mp3
 ../conf/niagara.wmv           	  z:/ids/niagara.wmv
 PRJ_EXPORTS

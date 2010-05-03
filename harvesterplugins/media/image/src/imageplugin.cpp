@@ -31,6 +31,11 @@
 #include "mmcmonitor.h"
 #include "cpixmdedbmanager.h"
 #include "mdsitementity.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "imagepluginTraces.h"
+#endif
+
 
 //Constants
 _LIT(KPathTrailer, "\\root\\media\\image");
@@ -96,6 +101,7 @@ void CImagePlugin::ConstructL()
 // -----------------------------------------------------------------------------
 void CImagePlugin::StartPluginL()
 	{
+    OstTraceFunctionEntry0( CIMAGEPLUGIN_STARTPLUGINL_ENTRY );
     CPIXLOGSTRING("CImagePlugin::StartPluginL");
 	// Define this base application class, use default location
 	iIndexerUtil = CCPixIndexerUtils::NewL(iSearchSession);
@@ -120,6 +126,7 @@ void CImagePlugin::StartPluginL()
 	TUid uidOfPlugin = {0x20029ABB};
 	iDBManager = CCPIXMDEDbManager::NewL(uidOfPlugin);
 	iMdsItem = CMDSEntity::NewL();
+	OstTraceFunctionExit0( CIMAGEPLUGIN_STARTPLUGINL_EXIT );
 	}
 
 void CImagePlugin::HarvestingCompletedL()
@@ -132,6 +139,7 @@ void CImagePlugin::HarvestingCompletedL()
 // -----------------------------------------------------------------------------
 void CImagePlugin::StartHarvestingL( const TDesC& /*aMedia*/ )
     {
+    OstTraceFunctionEntry0( CIMAGEPLUGIN_STARTHARVESTINGL_ENTRY );
     //iIndexer->ResetL();//reset any indexes if exist already
     CPIXLOGSTRING("CImagePlugin::StartHarvestingL");
     iDBManager->ResetL();
@@ -141,6 +149,7 @@ void CImagePlugin::StartHarvestingL( const TDesC& /*aMedia*/ )
     iStartTime.UniversalTime();
 #endif  
     iMdeHarvester->DoHarvesetL(MdeConstants::Image::KImageObject);//Start Harvesting
+    OstTraceFunctionExit0( CIMAGEPLUGIN_STARTHARVESTINGL_EXIT );
     }
 
 //handle MMC event for the Drive
@@ -168,6 +177,7 @@ void CImagePlugin::HandleMMCEventL(const TDriveNumber aDrive,const TBool aMMCIns
 void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
     {
     //Get the object from object utils and get the CPIX document and add delete or update
+    OstTrace1( TRACE_NORMAL, CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL;aObjId=%d", aObjId );
     CPIXLOGSTRING2("CImagePlugin::HandleMdeItemL(): aObjId = %d ", aObjId );
     // creating CSearchDocument object with unique ID for this application
     TBuf<KMaxFileName> docid_str;
@@ -176,6 +186,7 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
         //The caller should always handle leave of HandleMdeItemL
         if(iDBManager->IsAlreadyExistL(aObjId) && aActionType == ECPixAddAction)//Avoid reharvesting
             {
+            OstTrace0( TRACE_NORMAL, DUP1_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL(): Already harvested returning" );
             CPIXLOGSTRING("CImagePlugin::HandleMdeItemL(): Already harvested returning");
             return;
             }
@@ -187,6 +198,7 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
         if(!iIndexer)
             {
             delete index_item;
+            OstTrace0( TRACE_NORMAL, DUP2_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL(): Indexer not found" );
             CPIXLOGSTRING("CImagePlugin::HandleMdeItemL(): Indexer not found");
             return;
             }
@@ -196,6 +208,7 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
 #ifdef __PERFORMANCE_DATA
             ++count;
 # endif
+            OstTrace0( TRACE_NORMAL, DUP3_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL(): Indexer found calling AddL" );
             CPIXLOGSTRING("CImagePlugin::HandleMdeItemL(): Indexer found calling AddL");
             //First check if it already exist in database
             TRAPD(err, iIndexer->UpdateL(*index_item)); //Always Update to avoid reharvesting
@@ -209,10 +222,12 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                     iIndexerUtil->GetDriveFromMediaId(object.MediaId(),drive);
                     iMdsItem->SetDrive(drive);
                     iDBManager->AddL(aObjId,*iMdsItem);//Add to SyncDB
+                OstTrace0( TRACE_NORMAL, DUP4_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL(): Added." );
                 CPIXLOGSTRING("CImagePlugin::HandleMdeItemL(): Added.");
                 }
             else
                 {
+                OstTrace1( TRACE_NORMAL, DUP5_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL;Error %d in adding", err );
                 CPIXLOGSTRING2("CImagePlugin::HandleMdeItemL(): Error %d in adding.", err);
                 }
             }
@@ -233,6 +248,7 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                     CCPixIndexer *tempIndexer;            
                     tempIndexer = iIndexerUtil->GetIndexerFromDrive(iMdsItem->DriveNumber());
                     tempIndexer->DeleteL(iMdsItem->Uri());
+                    OstTrace0( TRACE_NORMAL, DUP6_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL(): Deleted existing URI for update" );
                     CPIXLOGSTRING("CImagePlugin::HandleMdeItemL(): Deleted existing URI for update");
                     }
                 TRAPD(error, iIndexer->UpdateL(*index_item));
@@ -244,10 +260,12 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                     iIndexerUtil->GetDriveFromMediaId(object.MediaId(),drive);
                     iMdsItem->Set(aObjId,iImageDocument->GetUri(),drive);
                     iDBManager->UpdateL(aObjId,*iMdsItem);//Add to SyncDB
+                    OstTrace0( TRACE_NORMAL, DUP7_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL(): Updated." );
                     CPIXLOGSTRING("CImagePlugin::HandleMdeItemL(): Updated.");
                     }
                 else
                     {
+                    OstTrace1( TRACE_NORMAL, DUP8_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL;Error %d in updating", err );
                     CPIXLOGSTRING2("CImagePlugin::HandleMdeItemL(): Error %d in updating.", error);
                     }
                 }
@@ -267,6 +285,7 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                     iIndexerUtil->GetDriveFromMediaId(object.MediaId(),drive);
                     iMdsItem->SetDrive(drive);
                     iDBManager->AddL(aObjId,*iMdsItem);//Add to SyncDB
+                    OstTrace0( TRACE_NORMAL, DUP9_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL(): Added Item before Update." );
                     CPIXLOGSTRING("CImagePlugin::HandleMdeItemL(): Added Item before Update.");
                     }
                 }                       
@@ -291,10 +310,12 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                TRAPD(err, iIndexer->DeleteL(docid_str));//Delete it
                if (err == KErrNone)
                    {
+                    OstTrace0( TRACE_NORMAL, DUP10_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL(): Deleted." );
                     CPIXLOGSTRING("CImagePlugin::HandleMdeItemL(): Deleted.");
                    }
                else
                    {
+                    OstTrace1( TRACE_NORMAL, DUP11_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::HandleMdeItemL;Error %d in deleting", err );
                     CPIXLOGSTRING2("CImagePlugin::HandleMdeItemL(): Error %d in deleting.", err);
                    }
                }

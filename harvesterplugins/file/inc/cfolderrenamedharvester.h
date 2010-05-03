@@ -117,6 +117,8 @@ class CFolderRenamedHarvester : public CActive
         * @return ETrue, if ready.
         */
         void SetNextRequest( TFileHarvesterState aState );
+        
+        void HandleFolderRenameL();
 
     private:
         // File plugin for observing

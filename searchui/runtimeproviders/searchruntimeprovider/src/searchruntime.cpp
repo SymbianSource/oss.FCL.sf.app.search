@@ -16,8 +16,8 @@
  */
 
 #include "searchruntime.h"
-#include "Search_global.h"
-#include "hsstatefactory.h"
+#include "search_global.h"
+#include "searchstateprovider.h"
 
 #include <qstatemachine.h>
 #include <qstate.h>
@@ -26,10 +26,7 @@
 
 #include <hbmainwindow.h>
 
-// plugin factory const
-const char factoryManifestDir[] = "searchresources/plugins/stateproviders";
-const char factoryPluginDir[] = "searchresources/plugins/stateproviders";
-const char stateLibrary[] = "searchstateprovider.dll";
+
 
 // states
 const char wizardProgressiveStateUri[] =
@@ -42,9 +39,8 @@ const char wizardSettingStateUri[] =
 // ---------------------------------------------------------------------------
 //
 SearchRuntime::SearchRuntime(QObject* aParent) :
-    HsRuntime(aParent), mStateMachine(0), mWindow(0)
+QStateMachine(aParent),mWindow(0)
     {
-    mStateMachine = new QStateMachine(this);
     createGuiServiceParts();
     createStates();
     }
@@ -56,25 +52,7 @@ SearchRuntime::SearchRuntime(QObject* aParent) :
 SearchRuntime::~SearchRuntime()
     {
     delete mWindow;
-    delete mStateMachine;
-    }
-
-// ---------------------------------------------------------------------------
-// SearchRuntime::start()
-// ---------------------------------------------------------------------------
-//
-void SearchRuntime::start()
-    {
-    mStateMachine->start();
-    }
-
-// ---------------------------------------------------------------------------
-// SearchRuntime::stop()
-// ---------------------------------------------------------------------------
-//
-void SearchRuntime::stop()
-    {
-    mStateMachine->stop();
+  //  delete mStateMachine;
     }
 
 // ---------------------------------------------------------------------------
@@ -83,7 +61,7 @@ void SearchRuntime::stop()
 //
 void SearchRuntime::handleStateMachineStarted()
     {
-    emit started();
+   // emit started();
     }
 
 // ---------------------------------------------------------------------------
@@ -111,15 +89,15 @@ void SearchRuntime::createGuiServiceParts()
 //
 void SearchRuntime::createStates()
     {
-    HsStateFactory factory(factoryManifestDir, factoryPluginDir);
-    HsStateToken token;
 
+    SearchStateProvider stateProvider;
+    
     QFinalState* finalState = new QFinalState();
-    mStateMachine->addState(finalState);
+    this->addState(finalState);
 
     // parallel state activates all children states
     QState* parallel = new QState(QState::ParallelStates);
-    mStateMachine->addState(parallel);
+    this->addState(parallel);
     parallel->addTransition(this, SIGNAL(stopStateMachine()), finalState);
 
     // root GUI state
@@ -127,18 +105,16 @@ void SearchRuntime::createStates()
 
     QState* searchRootState = new QState(guiRootState);
 
-    // create state based on token
-    token.mLibrary = stateLibrary;
-    token.mUri = wizardProgressiveStateUri;
-    QState* wizardProgressiveState = factory.createState(token);
+
+    QState* wizardProgressiveState = stateProvider.createState(wizardProgressiveStateUri);
     // set state specific data
     wizardProgressiveState->setParent(searchRootState);
-    wizardProgressiveState->setObjectName(token.mUri);
-    token.mUri = wizardSettingStateUri;
+    wizardProgressiveState->setObjectName(wizardProgressiveStateUri);
 
-    QState* wizardSettingState = factory.createState(token);
+
+    QState* wizardSettingState = stateProvider.createState(wizardSettingStateUri);
     wizardSettingState->setParent(searchRootState);
-    wizardSettingState->setObjectName(token.mUri);
+    wizardSettingState->setObjectName(wizardSettingStateUri);
 
     wizardProgressiveState->addTransition(wizardProgressiveState,
             SIGNAL(settingsState()), wizardSettingState);
@@ -159,13 +135,13 @@ void SearchRuntime::createStates()
     // set initial state for statemachine
     searchRootState->setInitialState(wizardProgressiveState);
     guiRootState->setInitialState(searchRootState);
-    mStateMachine->setInitialState(parallel);
+    this->setInitialState(parallel);
 
-    connect(mStateMachine, SIGNAL(started()),
+    connect(this, SIGNAL(started()),
             SLOT(handleStateMachineStarted()));
-    connect(mStateMachine, SIGNAL(stopped()),
+    connect(this, SIGNAL(stopped()),
             SLOT(handleStateMachineStopped()));
-    connect(mStateMachine, SIGNAL(finished()),
+    connect(this, SIGNAL(finished()),
             SLOT(handleStateMachineStopped()));
 
     }

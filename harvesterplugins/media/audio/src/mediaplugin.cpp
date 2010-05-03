@@ -33,6 +33,11 @@
 #include "mmcmonitor.h"
 #include "cpixmdedbmanager.h"
 #include "mdsitementity.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "mediapluginTraces.h"
+#endif
+
 
 //Constants
 _LIT(KPathTrailer, "\\root\\media\\audio");
@@ -98,6 +103,7 @@ void CAudioPlugin::ConstructL()
 // -----------------------------------------------------------------------------
 void CAudioPlugin::StartPluginL()
 	{
+    OstTraceFunctionEntry0( CAUDIOPLUGIN_STARTPLUGINL_ENTRY );
     CPIXLOGSTRING("CAudioPlugin::StartPluginL");
 	// Define this base application class, use default location
 	iIndexerUtil = CCPixIndexerUtils::NewL(iSearchSession);
@@ -122,6 +128,7 @@ void CAudioPlugin::StartPluginL()
 	TUid uidOfPlugin = {0x20029AB9};
 	iDBManager = CCPIXMDEDbManager::NewL(uidOfPlugin);
 	iMdsItem = CMDSEntity::NewL();
+	OstTraceFunctionExit0( CAUDIOPLUGIN_STARTPLUGINL_EXIT );
 	}
 
 void CAudioPlugin::HarvestingCompletedL()
@@ -134,6 +141,7 @@ void CAudioPlugin::HarvestingCompletedL()
 // -----------------------------------------------------------------------------
 void CAudioPlugin::StartHarvestingL( const TDesC& /*aMedia*/ )
     {
+    OstTraceFunctionEntry0( CAUDIOPLUGIN_STARTHARVESTINGL_ENTRY );
     //iIndexer->ResetL();//reset any indexes if exist already
     CPIXLOGSTRING("CAudioPlugin::StartHarvestingL");
     iDBManager->ResetL();
@@ -143,6 +151,7 @@ void CAudioPlugin::StartHarvestingL( const TDesC& /*aMedia*/ )
     iStartTime.UniversalTime();
 #endif  
     iMdeHarvester->DoHarvesetL(MdeConstants::Audio::KAudioObject);//Start Harvesting
+    OstTraceFunctionExit0( CAUDIOPLUGIN_STARTHARVESTINGL_EXIT );
     }
 
 //handle MMC event for the Drive
@@ -170,6 +179,7 @@ void CAudioPlugin::HandleMMCEventL(const TDriveNumber aDrive,const TBool aMMCIns
 void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
     {
     //Get the object from object utils and get the CPIX document and add delete or update
+    OstTrace1( TRACE_NORMAL, CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL;aObjId=%d", aObjId );
     CPIXLOGSTRING2("CAudioPlugin::HandleMdeItemL(): aObjId = %d ", aObjId );
     // creating CSearchDocument object with unique ID for this application
     TBuf<KMaxFileName> docid_str;
@@ -179,6 +189,7 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
         //and we already have in our database just return in case of update move forward
         if(iDBManager->IsAlreadyExistL(aObjId) && aActionType == ECPixAddAction)//Avoid reharvesting
             {
+            OstTrace0( TRACE_NORMAL, DUP1_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL(): Already harvested returning" );
             CPIXLOGSTRING("CAudioPlugin::HandleMdeItemL(): Already harvested returning");
             return;
             }
@@ -191,6 +202,7 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
         if(!iIndexer)
             {
             delete index_item;//Remove
+            OstTrace0( TRACE_NORMAL, DUP2_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL(): Indexer not found" );
             CPIXLOGSTRING("CAudioPlugin::HandleMdeItemL(): Indexer not found");
             return;
             }
@@ -200,6 +212,7 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
 #ifdef __PERFORMANCE_DATA
             ++count;
 #endif
+            OstTrace0( TRACE_NORMAL, DUP3_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL(): Indexer found calling AddL" );
             CPIXLOGSTRING("CAudioPlugin::HandleMdeItemL(): Indexer found calling AddL");
             //First check if it already exist in database
             TRAPD(err, iIndexer->UpdateL(*index_item)); //Always Update to avoid reharvesting
@@ -213,10 +226,12 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                 iIndexerUtil->GetDriveFromMediaId(object.MediaId(),drive);
                 iMdsItem->SetDrive(drive);
                 iDBManager->AddL(aObjId,*iMdsItem);//Add to SyncDB
+                OstTrace0( TRACE_NORMAL, DUP4_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL(): Added." );
                 CPIXLOGSTRING("CAudioPlugin::HandleMdeItemL(): Added.");
                 }
             else
                 {
+                OstTrace1( TRACE_NORMAL, DUP5_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL;Error %d in adding", err );
                 CPIXLOGSTRING2("CAudioPlugin::HandleMdeItemL(): Error %d in adding.", err);
                 }
             }
@@ -237,6 +252,7 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                    CCPixIndexer *tempIndexer;            
                    tempIndexer = iIndexerUtil->GetIndexerFromDrive(iMdsItem->DriveNumber());
                    tempIndexer->DeleteL(iMdsItem->Uri());
+                   OstTrace0( TRACE_NORMAL, DUP6_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL(): Deleted existing URI for update" );
                    CPIXLOGSTRING("CAudioPlugin::HandleMdeItemL(): Deleted existing URI for update");
                    }
                 TRAPD(error, iIndexer->UpdateL(*index_item));
@@ -248,10 +264,12 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                     iIndexerUtil->GetDriveFromMediaId(object.MediaId(),drive);
                     iMdsItem->Set(aObjId,iAudioDocument->GetUri(),drive);
                     iDBManager->UpdateL(aObjId,*iMdsItem);//Add to SyncDB
+                    OstTrace0( TRACE_NORMAL, DUP7_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL(): Updated." );
                     CPIXLOGSTRING("CAudioPlugin::HandleMdeItemL(): Updated.");
                     }
                 else
                     {
+                    OstTrace1( TRACE_NORMAL, DUP8_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL;Error %d in Updating", err );
                     CPIXLOGSTRING2("CAudioPlugin::HandleMdeItemL(): Error %d in updating.", error);
                     }
                }
@@ -271,6 +289,7 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                     iIndexerUtil->GetDriveFromMediaId(object.MediaId(),drive);
                     iMdsItem->SetDrive(drive);
                     iDBManager->AddL(aObjId,*iMdsItem);//Add to SyncDB
+                    OstTrace0( TRACE_NORMAL, DUP9_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL(): Added Item before Update." );
                     CPIXLOGSTRING("CAudioPlugin::HandleMdeItemL(): Added Item before Update.");
                     }
                 }            
@@ -293,10 +312,12 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                 TRAPD(err, iIndexer->DeleteL(docid_str));//Delete it
                 if (err == KErrNone)
                     {
+                    OstTrace0( TRACE_NORMAL, DUP10_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL(): Deleted." );
                     CPIXLOGSTRING("CAudioPlugin::HandleMdeItemL(): Deleted.");
                     }
                 else
                     {
+                    OstTrace1( TRACE_NORMAL, DUP11_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL;Error %d in deleting", err );
                     CPIXLOGSTRING2("CAudioPlugin::HandleMdeItemL(): Error %d in deleting.", err);
                     }
                 }

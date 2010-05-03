@@ -45,15 +45,12 @@ private slots:
     void testCreateProgressiveState();
     void testCreateSettingsState();
     void testCreateinitState();
-    void testCreateInvalidState();
-
-    /**
+     /**
      * t_searchprogressivestate.cpp
      */
 
     void testProgressiveStateConstruction();
     void testProgressiveStateOnEntryAndExitSignalled();
-    void testonSearchComplete();
     void testonAsyncSearchComplete();
     void testonGetDocumentComplete();
     void testgetSettingCategory();
@@ -63,10 +60,15 @@ private slots:
     void testclear();
     void testsearchOnCategory();
     void teststartNewSearch();
-    void testsetHistory();
     void testsetSettings();
-    void testaboutToCloseView();
     void test_CustomizeGoButton();
+    void testgetAppIconFromAppId();
+    void testsettingsaction();
+    void testcancelsearch();
+    void testhandleokanderror();
+    void testTDisplayMode2Format();
+    void testsetSelectedCategories();
+    void testfilterdoc();
 
     /**
      * t_searchsettingsstate.cpp
@@ -87,20 +89,25 @@ private slots:
      */
 
     void testsettingswizardConstruction();
-    void testenableDefaultSettings();
+    void teststoreDefaultSettings();
     void teststoreSettingsToiniFile();
-    void testloadSettingsFrominiFile();
-
+    void testloadDeviceSettings();
+    void testloadBaseSettings();
     void testlaunchSettingWidget();
     void testisInternetSearchOptionSelected();
     void testunCheckSubCategories();
     void testcheckSubCategories();
-    void testsetActionVisibility();
-
+  
     void testcheckBoxOkEvent();
     void testcheckBoxCancelEvent();
     void testitemChecked();
-    void testchangeDeviceInternetCheck();
+    void testcreateGui();
+    void testpreparecategories();
+    void testq_currentIndexChanged();
+  
+    void selectedItemCategory();
+    
+    
 
     /* void testOnWizardAddedSignalledNoWizardInCS();
      void testProgressUpdated();
@@ -117,7 +124,7 @@ private:
      * @return True if state was created successfully, false otherwise.
      * @since S60 ?S60_version.
      */
-    bool verifyStateCreation(const QString& library, const QString& uri);
+    bool verifyStateCreation(const QString& uri);
 
     /**
      * Helper method testing existence of state

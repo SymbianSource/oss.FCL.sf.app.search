@@ -28,6 +28,11 @@
 #include <calentryview.h>
 #include <e32std.h>
 #include <centralrepository.h>
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "notespluginTraces.h"
+#endif
+
 
 _LIT(KMimeTypeNotes , NOTES_MIMETYPE);
 _LIT(KMimeTypeField , CPIX_MIMETYPE_FIELD);
@@ -125,6 +130,7 @@ void CNotesPlugin::ConstructL()
 //  
 void CNotesPlugin::StartPluginL()
 	{
+    OstTraceFunctionEntry0( CNOTESPLUGIN_STARTPLUGINL_ENTRY );
     CPIXLOGSTRING("CNotesPlugin::StartPluginL: Enter");
 	// Define this base application class, use default location
 	User::LeaveIfError(iSearchSession.DefineVolume( _L(NOTES_QBASEAPPCLASS), KNullDesC ));
@@ -152,6 +158,7 @@ void CNotesPlugin::StartPluginL()
 	iSession->StartChangeNotification( *this, *filter );
 	delete filter;
 	CPIXLOGSTRING("CNotesPlugin::StartPluginL: Exit");
+	OstTraceFunctionExit0( CNOTESPLUGIN_STARTPLUGINL_EXIT );
 	}	
 
 // ---------------------------------------------------------------------------
@@ -160,6 +167,7 @@ void CNotesPlugin::StartPluginL()
 //  
 void CNotesPlugin::StartHarvestingL(const TDesC& /*aQualifiedBaseAppClass*/)
     {
+    OstTraceFunctionEntry0( CNOTESPLUGIN_STARTHARVESTINGL_ENTRY );
     CPIXLOGSTRING("CNotesPlugin::StartHarvestingL: Enter");
     iIndexer->ResetL();
     //Have taken start time and end time reference from calender plugin
@@ -171,12 +179,14 @@ void CNotesPlugin::StartHarvestingL(const TDesC& /*aQualifiedBaseAppClass*/)
     //Create an instance for list of Notes items in the system
     iNotesInstanceView->FindInstanceL( iNotesInstanceArray , CalCommon::EIncludeNotes , CalCommon::TCalTimeRange( startTimeCal, endTimeCal ));    
     iNoteCount = iNotesInstanceArray.Count();
+    OstTrace1( TRACE_NORMAL, CNOTESPLUGIN_STARTHARVESTINGL, "CNotesPlugin::StartHarvestingL;Notes Count=%d", iNoteCount );
     CPIXLOGSTRING2("CNotesPlugin::StartHarvestingL(): Notes count =%d.", iNoteCount);
 #ifdef __PERFORMANCE_DATA
     iStartTime.UniversalTime();
 #endif
     iAsynchronizer->Start( 0, this, KHarvestingDelay );
     CPIXLOGSTRING("CNotesPlugin::StartHarvestingL: Exit");
+    OstTraceFunctionExit0( CNOTESPLUGIN_STARTHARVESTINGL_EXIT );
     }
 
 // -----------------------------------------------------------------------------
@@ -185,10 +195,12 @@ void CNotesPlugin::StartHarvestingL(const TDesC& /*aQualifiedBaseAppClass*/)
 //
 void CNotesPlugin::DelayedCallbackL( TInt /*aCode*/ )
     {
+    OstTraceFunctionEntry0( CNOTESPLUGIN_DELAYEDCALLBACKL_ENTRY );
     // Harvest items on each call
     CPIXLOGSTRING("CNotesPlugin::DelayedCallbackL: Enter");
     if( iNoteCount )
         {
+        OstTrace1( TRACE_NORMAL, CNOTESPLUGIN_DELAYEDCALLBACKL, "CNotesPlugin::DelayedCallbackL;Remaining Notes Count=%d", iNoteCount );
         CPIXLOGSTRING2("CNotesPlugin::DelayedCallbackL(): remaining Note count=%d.", iNoteCount);
         // Retrieve the calendar entry for the calinstance and update the CPix database.
         CCalEntry& noteentry =  iNotesInstanceArray[iNoteCount - 1]->Entry();        
@@ -199,6 +211,7 @@ void CNotesPlugin::DelayedCallbackL( TInt /*aCode*/ )
         }
 	else
 		{
+        OstTrace0( TRACE_NORMAL, DUP1_CNOTESPLUGIN_DELAYEDCALLBACKL, "CNotesPlugin::DelayedCallbackL: Completed Harvesting" );
         CPIXLOGSTRING("CNotesPlugin::DelayedCallbackL: Completed Harvesting");
 		// Harvesting was successfully completed		
 		Flush(*iIndexer);
@@ -207,6 +220,7 @@ void CNotesPlugin::DelayedCallbackL( TInt /*aCode*/ )
 #endif
 		iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrNone);		
 		}
+	OstTraceFunctionExit0( CNOTESPLUGIN_DELAYEDCALLBACKL_EXIT );
 	}
 
 // ---------------------------------------------------------------------------
@@ -226,14 +240,17 @@ void CNotesPlugin::DelayedError(TInt aError)
 //  
 void CNotesPlugin::CalChangeNotification( RArray< TCalChangeEntry >& aChangeItems )
 	{
+    OstTraceFunctionEntry0( CNOTESPLUGIN_CALCHANGENOTIFICATION_ENTRY );
     CPIXLOGSTRING("CNotesPlugin::CalChangeNotification: Enter");
 	const TInt count(aChangeItems.Count());
+	OstTrace1( TRACE_NORMAL, CNOTESPLUGIN_CALCHANGENOTIFICATION, "CNotesPlugin::CalChangeNotification;Changed Item Count=%d", count );
 	CPIXLOGSTRING2("CNotesPlugin::CalChangeNotification(): changed item count =%d.", count);
 	for( TInt i = 0; i < count; ++i )
 		{
         TRAP_IGNORE(HandleNoteChangedEntryL( aChangeItems[ i ] ));
 		}
 	CPIXLOGSTRING("CNotesPlugin::CalChangeNotification: Exit");
+	OstTraceFunctionExit0( CNOTESPLUGIN_CALCHANGENOTIFICATION_EXIT );
 	}
 
 // ---------------------------------------------------------------------------
@@ -246,6 +263,7 @@ void CNotesPlugin::HandleNoteChangedEntryL(const TCalChangeEntry& changedEntry)
 		{		
 		case EChangeAdd:
 			{
+			OstTrace1( TRACE_NORMAL, CNOTESPLUGIN_HANDLENOTECHANGEDENTRYL, "CNotesPlugin::HandleNoteChangedEntryL;Monitored add id=%d", changedEntry.iEntryId );
 			CPIXLOGSTRING2("CNotesPlugin::HandleNoteChangedEntryL(): Monitored add id=%d.", changedEntry.iEntryId);
 			CreateNoteEntryL( changedEntry.iEntryId, ECPixAddAction );
 			break;
@@ -253,6 +271,7 @@ void CNotesPlugin::HandleNoteChangedEntryL(const TCalChangeEntry& changedEntry)
 
 		case EChangeDelete:
 			{	
+			OstTrace1( TRACE_NORMAL, DUP1_CNOTESPLUGIN_HANDLENOTECHANGEDENTRYL, "CNotesPlugin::HandleNoteChangedEntryL;Monitored delete id=%d", changedEntry.iEntryId );
 			CPIXLOGSTRING2("CNotesPlugin::HandleNoteChangedEntryL(): Monitored delete id=%d.", changedEntry.iEntryId);
 			CreateNoteEntryL( changedEntry.iEntryId, ECPixRemoveAction );
 			break;
@@ -260,6 +279,7 @@ void CNotesPlugin::HandleNoteChangedEntryL(const TCalChangeEntry& changedEntry)
 
 		case EChangeModify:
 			{
+			OstTrace1( TRACE_NORMAL, DUP2_CNOTESPLUGIN_HANDLENOTECHANGEDENTRYL, "CNotesPlugin::HandleNoteChangedEntryL;Monitored update id=%d", changedEntry.iEntryId );
 			CPIXLOGSTRING2("CNotesPlugin::HandleNoteChangedEntryL(): Monitored update id=%d.", changedEntry.iEntryId);
 			CreateNoteEntryL( changedEntry.iEntryId, ECPixUpdateAction );
 			break;
@@ -267,6 +287,7 @@ void CNotesPlugin::HandleNoteChangedEntryL(const TCalChangeEntry& changedEntry)
 
 		case EChangeUndefined:
 			{
+			OstTrace0( TRACE_NORMAL, DUP3_CNOTESPLUGIN_HANDLENOTECHANGEDENTRYL, "CNotesPlugin::HandleNoteChangedEntryL(): EChangeUndefined." );
 			CPIXLOGSTRING("CNotesPlugin::HandleNoteChangedEntryL(): EChangeUndefined.");
 			// This event could be related to synchronization.
 			// Mark harvesting as cancelled.
@@ -295,6 +316,7 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 	if (!iIndexer)
     	return;
 
+	OstTrace1( TRACE_NORMAL, CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL;uid=%d", aLocalUid );
 	CPIXLOGSTRING2("CNotesPlugin::CreateNoteEntryL():  Uid = %d.", aLocalUid);
 	
 	
@@ -311,10 +333,12 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 	    
 	    if( CCalEntry::ENote != entry->EntryTypeL() )
 	        {
+            OstTrace0( TRACE_NORMAL, DUP1_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL(): return as not a Note entry." );
             CPIXLOGSTRING("CNotesPlugin::CreateNoteEntryL(): return as not a Note entry.");
 	        CleanupStack::PopAndDestroy(entry);
 	        return;
 	        }
+	    OstTrace0( TRACE_NORMAL, DUP2_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL(): Creating document." );
 	    CPIXLOGSTRING("CNotesPlugin::CreateNoteEntryL(): Creating document.");
 		CSearchDocument* index_item = CSearchDocument::NewLC(docid_str, _L(NOTESAPPCLASS));
 		// Add Description fields		
@@ -344,10 +368,12 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 			TRAPD( err, iIndexer->AddL(*index_item) );
 			if ( err == KErrNone )
 				{
+				OstTrace0( TRACE_NORMAL, DUP3_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL(): Added." );
 				CPIXLOGSTRING("CNotesPlugin::CreateNoteEntryL(): Added.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP4_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL;Error while adding=%d", err );
 				CPIXLOGSTRING2("CNotesPlugin::CreateNoteEntryL(): Error %d in adding.", err);
 				}
 #endif
@@ -360,10 +386,12 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 			TRAPD( err, iIndexer->UpdateL(*index_item) );
 			if ( err == KErrNone )
 				{
+				OstTrace0( TRACE_NORMAL, DUP5_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL(): Updated." );
 				CPIXLOGSTRING("CNotesPlugin::CreateNoteEntryL(): Updated.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP6_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL;Error while updating=%d", err );
 				CPIXLOGSTRING2("CNotesPlugin::CreateNoteEntryL(): Error %d in updating.", err);
 				}
 #endif
@@ -379,10 +407,12 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 		TRAPD( err, iIndexer->DeleteL(docid_str) );
 		if (err == KErrNone)
 			{
+			OstTrace0( TRACE_NORMAL, DUP7_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL(): Deleted." );
 			CPIXLOGSTRING("CNotesPlugin::CreateNoteEntryL(): Deleted.");
 			}
 		else
 			{
+			OstTrace1( TRACE_NORMAL, DUP8_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL;Error while deleting=%d", err );
 			CPIXLOGSTRING2("CNotesPlugin::CreateNoteEntryL(): Error %d in deleting.", err);				
 			}
 #endif
@@ -395,6 +425,7 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 //  
 void CNotesPlugin::InitTimeValuesL( TTime& aStartTime, TTime& aEndTime )
     {
+    OstTraceFunctionEntry0( CNOTESPLUGIN_INITTIMEVALUESL_ENTRY );
     CPIXLOGSTRING("CNotesPlugin::InitTimeValuesL: Enter");
     //Open the cpix common repository
     CRepository* cpixrepo = CRepository::NewL( KCPIXrepoUidMenu );    
@@ -423,6 +454,7 @@ void CNotesPlugin::InitTimeValuesL( TTime& aStartTime, TTime& aEndTime )
     TDateTime enddate(year,(TMonth)(month-1),day , 0 , 0 , 0 , 0);
     aEndTime = enddate;
     CPIXLOGSTRING2("CNotesPlugin::InitTimeValuesL: Exit with Error = %d", error);     
+    OstTraceFunctionExit0( CNOTESPLUGIN_INITTIMEVALUESL_EXIT );
     }
 
 #ifdef __PERFORMANCE_DATA

@@ -102,10 +102,14 @@ CSearchDocument* CCPIXDocFetcher::GetCpixDocumentL(const CMdEObject& aObject,
         {
         SetAbsoluteURI(aObject.Uri());//Convert URI to absolute path 
         index_item = CSearchDocument::NewLC(GetUri(), aAppClass);
+        
+        TInt slashpos = GetUri().LocateReverse('\\');
+        
+        TPtrC name = GetUri().Mid( (slashpos+1) );
         //Uri is our Document ID
         AddFiledtoDocumentL(*index_item,
                                KNameField, //URI as Name field
-                               GetUri());
+                               name);
         //Store media ID for client to generate path and launch corresponding Item
         TBuf<KMaxMediaLength> mediaBuf;        
         

@@ -18,8 +18,16 @@
 #ifndef SEARCH_RUNTIMEPROVIDERS_DEFAULTRUNTIMEPROVIDER_H
 #define SEARCH_RUNTIMEPROVIDERS_DEFAULTRUNTIMEPROVIDER_H
 
-#include "hsiruntimeprovider.h"
-#include "hsistateprovider.h"
+#include <qobject.h>
+
+#ifdef BUILD_SEARCHRUNTIMEPROVIDER
+#define SEARCH_RUNTIMEPROVIDER Q_DECL_EXPORT
+#else
+#define SEARCH_RUNTIMEPROVIDER Q_DECL_IMPORT
+#endif
+
+
+class SearchRuntime;
 
 /**
  * @ingroup group_Searchruntimeprovider
@@ -30,46 +38,12 @@
  *
  * @since S60 ?S60_version.
  */
-class SearchRuntimeProvider : public QObject, public IHsRuntimeProvider
+class SEARCH_RUNTIMEPROVIDER  SearchRuntimeProvider : public QObject
     {
 Q_OBJECT
 
-Q_INTERFACES(IHsRuntimeProvider)
-
 public:
-
-    /**
-     * Default constructor.
-     *
-     * @since S60 ?S60_version.
-     */
-    SearchRuntimeProvider();
-
-public:
-
-    /**
-     * Returns contained runtimes as a list of tokens.
-     *
-     * @return Contained runtimes as a list of tokens.
-     * @since S60 ?S60_version.
-     */
-    QList<HsRuntimeToken> runtimes();
-
-    /**
-     * Creates a runtime based on the given token.
-     *
-     * @param aToken Identifies the runtime to be created.
-     * @since S60 ?S60_version.
-     */
-    HsRuntime* createRuntime(const HsRuntimeToken& aToken);
-
-private:
-
-    /**
-     * Token that describes the default runtime.
-     */
-    HsRuntimeToken mRuntimeToken;
-
-    };
+    SearchRuntime* createPlugin() const;    
+};
 
 #endif //SEARCH_RUNTIMEPROVIDERS_DEFAULTRUNTIMEPROVIDER_H

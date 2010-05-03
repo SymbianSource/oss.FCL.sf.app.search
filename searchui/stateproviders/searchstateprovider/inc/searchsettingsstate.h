@@ -20,7 +20,7 @@
 
 #include <qstate.h>
 #include <qabstractitemmodel.h>
-#include "Search_global.h"
+#include "search_global.h"
 
 SEARCH_CLASS( SearchStateProviderTest)
 
@@ -31,7 +31,6 @@ class HbStackedWidget;
 class HbView;
 class HbDocumentLoader;
 class HbAction;
-class HbGridView;
 class QGraphicsLinearLayout;
 class SettingsWidget;
 
@@ -86,20 +85,18 @@ protected:
 
 private:
 
+   
     /**
-     * Returns the main window handle.
-     * @since S60 ?S60_version.
-     * @return The pointer to the main window.
-     */
-    //  HbMainWindow* mainWindow();
-
-    /**
-     * Connects signals and slots for active wizard.
+     * checking whether internet search is selected 
      * @since S60 ?S60_version.
      */
 
     void isInternetOn();
 public slots:
+   /**
+    * Called when it receive the selected category information from the settingwidget class
+    * @since S60 ?S60_version.
+    */
 
     void getItemCategory(int, bool);
 
@@ -109,11 +106,6 @@ public slots:
      */
     void handleBackEvent(bool);
 
-    /**
-     * Function to customize the progressive state.
-     * @since S60 ?S60_version.
-     */
-    //  void customizeGoButton();
 signals:
 
     /**

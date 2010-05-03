@@ -33,7 +33,7 @@ SOURCE        cfilemonitor.cpp
 SOURCE        cmmcmonitor.cpp
 
 USERINCLUDE   ../inc
-USERINCLUDE   ../inc/monitorplugin
+USERINCLUDE   ../inc/monitorplugin ../traces
 
 APP_LAYER_SYSTEMINCLUDE
 SYSTEMINCLUDE /epoc32/include/ecom

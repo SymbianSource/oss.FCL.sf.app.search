@@ -26,7 +26,12 @@
 #include <calentry.h>
 #include <caliterator.h>
 #include <calentryview.h>
-#include <mmfcontrollerpluginresolver.h> // CleanupResetAndDestroyPushL
+#include <mmfcontrollerpluginresolver.h>
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "ccalendarpluginTraces.h"
+#endif
+ // CleanupResetAndDestroyPushL
 
 _LIT(KMimeTypeField, CPIX_MIMETYPE_FIELD);
 _LIT(KMimeTypeCalendar, CALENDAR_MIMETYPE);
@@ -213,6 +218,7 @@ void CCalendarPlugin::DelayedCallbackL( TInt /*aCode*/ )
 		if( entryArray.Count() > 0 )
 			{
 			CCalEntry* entry = (CCalEntry*)entryArray[ 0 ];
+			OstTrace1( TRACE_NORMAL, CCALENDARPLUGIN_DELAYEDCALLBACKL, "CCalendarPlugin::DelayedCallbackL();Harvesting id=%d", entry->LocalUidL() );
 			CPIXLOGSTRING2("CCalendarPlugin::DelayedCallbackL(): Harvesting id=%d.", entry->LocalUidL());
 			CreateEntryL( entry->LocalUidL(), ECPixAddAction );
 			}
@@ -252,6 +258,7 @@ void CCalendarPlugin::DelayedError(TInt aError)
 void CCalendarPlugin::CalChangeNotification( RArray< TCalChangeEntry >& aChangeItems )
 	{
 	const TInt count(aChangeItems.Count());
+	OstTrace1( TRACE_NORMAL, CCALENDARPLUGIN_CALCHANGENOTIFICATION, "CCalendarPlugin::CalChangeNotification();changed item count=%d", count );
 	CPIXLOGSTRING2("CCalendarPlugin::CalChangeNotification(): changed item count =%d.", count);
 	for( TInt i = 0; i < count; ++i )
 		{
@@ -270,6 +277,7 @@ void CCalendarPlugin::HandleChangedEntryL(const TCalChangeEntry& changedEntry)
 		{		
 		case EChangeAdd:
 			{
+			OstTrace1( TRACE_NORMAL, CCALENDARPLUGIN_HANDLECHANGEDENTRYL, "CCalendarPlugin::HandleChangedEntryL();Monitored add id=%d", changedEntry.iEntryId );
 			CPIXLOGSTRING2("CCalendarPlugin::HandleChangedEntryL(): Monitored add id=%d.", changedEntry.iEntryId);
 #ifdef __PERFORMANCE_DATA
             iStartTime.UniversalTime();
@@ -283,6 +291,7 @@ void CCalendarPlugin::HandleChangedEntryL(const TCalChangeEntry& changedEntry)
 
 		case EChangeDelete:
 			{	
+			OstTrace1( TRACE_NORMAL, DUP1_CCALENDARPLUGIN_HANDLECHANGEDENTRYL, "CCalendarPlugin::HandleChangedEntryL();Monitored delete id=%d", changedEntry.iEntryId );
 			CPIXLOGSTRING2("CCalendarPlugin::HandleChangedEntryL(): Monitored delete id=%d.", changedEntry.iEntryId);
 #ifdef __PERFORMANCE_DATA
             iStartTime.UniversalTime();
@@ -296,6 +305,7 @@ void CCalendarPlugin::HandleChangedEntryL(const TCalChangeEntry& changedEntry)
 
 		case EChangeModify:
 			{
+			OstTrace1( TRACE_NORMAL, DUP2_CCALENDARPLUGIN_HANDLECHANGEDENTRYL, "CCalendarPlugin::HandleChangedEntryL();Monitored update id=%d", changedEntry.iEntryId );
 			CPIXLOGSTRING2("CCalendarPlugin::HandleChangedEntryL(): Monitored update id=%d.", changedEntry.iEntryId);
 #ifdef __PERFORMANCE_DATA
             iStartTime.UniversalTime(); 
@@ -313,6 +323,7 @@ void CCalendarPlugin::HandleChangedEntryL(const TCalChangeEntry& changedEntry)
 		 */
 		case EChangeUndefined:
 			{
+			OstTrace0( TRACE_NORMAL, DUP3_CCALENDARPLUGIN_HANDLECHANGEDENTRYL, "CCalendarPlugin::HandleChangedEntryL(): EChangeUndefined." );
 			CPIXLOGSTRING("CCalendarPlugin::HandleChangedEntryL(): EChangeUndefined.");
 			// This event could be related to synchronization.
 			// Mark harvesting as cancelled.
@@ -342,6 +353,7 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 	if (!iIndexer)
     	return;
 
+	OstTrace1( TRACE_NORMAL, CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Uid=%d", aLocalUid );
 	CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL():  Uid = %d.", aLocalUid);
 	
 	// creating CSearchDocument object with unique ID for this application
@@ -362,6 +374,7 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 		    {
             CleanupStack::PopAndDestroy(entry);
             CleanupStack::PopAndDestroy(index_item);
+            OstTrace0( TRACE_NORMAL, DUP1_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL(): Donot harvest Note item." );
             CPIXLOGSTRING("CCalendarPlugin::CreateEntryL(): Donot harvest Note item.");
             return;
 		    }
@@ -413,10 +426,12 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 			TRAPD(err, iIndexer->AddL(*index_item));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP2_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL(): Added." );
 				CPIXLOGSTRING("CCalendarPlugin::CreateEntryL(): Added.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP3_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Error %d in adding", err );
 				CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL(): Error %d in adding.", err);
 				}			
 			}
@@ -425,10 +440,12 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 			TRAPD(err, iIndexer->UpdateL(*index_item));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP4_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL(): Updated." );
 				CPIXLOGSTRING("CCalendarPlugin::CreateEntryL(): Updated.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP5_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Error %d in updating", err );
 				CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL(): Error %d in updating.", err);
 				}			
 			}
@@ -439,10 +456,12 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 		TRAPD(err, iIndexer->DeleteL(docid_str));
 		if (err == KErrNone)
 			{
+			OstTrace0( TRACE_NORMAL, DUP6_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL(): Deleted." );
 			CPIXLOGSTRING("CCalendarPlugin::CreateEntryL(): Deleted.");
 			}
 		else
 			{
+			OstTrace1( TRACE_NORMAL, DUP7_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Error %d in deleting", err );
 			CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL(): Error %d in deleting.", err);				
 			}
 		}

@@ -42,11 +42,13 @@
 #include <harvesterclient.h>
 #include "mdsitementity.h"
 #include "cpixmdedbmanager.h"
+#include "cfolderrenamedharvester.h"
 //#include "CBlacklistMgr.h"
 #include "videoplugin.h"
 #include "imageplugin.h"
 
-_LIT(KAppBasePath,"@c:root file");
+_LIT(KAppBasePath,"@c:root file content");
+_LIT(KAppBaseFolderFilePath,"@c:root file folder");
 const TInt KMsgPluginBaseAppClassMaxLen = 64;
 
 // For Notes --Start
@@ -87,13 +89,14 @@ TInt CHarvesterPluginTester::RunMethodL(
         // Copy this line for every implemented function.
         // First string is the function name used in TestScripter script file.
         // Second is the actual implementation member function. 
-        ENTRY( "TestStartHarvester", CHarvesterPluginTester::TestStartHarvesterL ),
-        ENTRY( "TestFolderRename", CHarvesterPluginTester::TestFolderRenamingL ),
+        ENTRY( "TestStartHarvester", CHarvesterPluginTester::TestStartHarvesterL ),        
         ENTRY( "TestFormBaseAppClass", CHarvesterPluginTester::TestFormBaseAppClass ),
         ENTRY( "TestDatabasePath", CHarvesterPluginTester::TestDatabasePathL ),
         ENTRY( "TestCreateIndexItemL_Add", CHarvesterPluginTester::TestCreateIndexItemL ),
         ENTRY( "TestCreateIndexItemL_Update", CHarvesterPluginTester::TestCreateIndexItemL ),
         ENTRY( "TestCreateIndexItemL_Delete", CHarvesterPluginTester::TestCreateIndexItemL ),
+        ENTRY( "TestFolderCreate", CHarvesterPluginTester::TestFolderCreateL ),
+        ENTRY( "TestFolderRename", CHarvesterPluginTester::TestFolderRenameL ),
         ENTRY( "TestMessaging", CHarvesterPluginTester::TestMessageHarvesterL ),
         ENTRY( "TestMessageHarvesting", CHarvesterPluginTester::TestMessageHarvesterWithMessageL ),
         ENTRY( "TestMessageDriveChange", CHarvesterPluginTester::TestMessageHarvesterChangeDriveL ),
@@ -172,35 +175,12 @@ TInt CHarvesterPluginTester::TestStartHarvesterL( CStifItemParser& /*aItem*/ )
     return KErrNone;
     }
 
-//Same as before, except we rename a directory before calling wait->Start()
-TInt CHarvesterPluginTester::TestFolderRenamingL( CStifItemParser& /*aItem*/ )
-    {
-    CFilePlugin* filePlugin = CFilePlugin::NewL();
-    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
-    filePlugin->StartPluginL(); //Calls Add
-    filePlugin->StartHarvestingL( KAppBasePath );
-    
-    _LIT( KDirectoryToRenameFrom, "C:\\data\\FileToTestRename" );
-    _LIT( KDirectoryToRenameTo, "C:\\data\\FileToTestRenamed" );
-    RFs fs;
-    fs.Connect();
-    TInt error = fs.Rename( KDirectoryToRenameFrom, KDirectoryToRenameTo );
-    iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
-    //rename it back to what it was.
-    error = fs.Rename( KDirectoryToRenameTo, KDirectoryToRenameFrom );
-
-    delete filePlugin;
-    delete iPluginTester;
-    doLog( iLog, error, _L("Error: TestFolderRename.") );
-    
-    return error;
-    }
-
 TInt CHarvesterPluginTester::TestFormBaseAppClass( CStifItemParser& aItem )
     {
     // Print to UI
     _LIT( KFilePluginBaseAppClass, "FormBaseAppClass" );
     _LIT( KExample, "In TestFormBaseAppClass" );
+    
     TestModuleIf().Printf( 0, KFilePluginBaseAppClass, KExample );
     
     TInt driveNumber;
@@ -213,12 +193,13 @@ TInt CHarvesterPluginTester::TestFormBaseAppClass( CStifItemParser& aItem )
 
     TInt error = KErrNone;
     TInt errorNumber = 0;
-    _LIT( KBaseAppClassFormatString, "@%c:root file");
+    _LIT( KFileBaseAppClassFolder, "root file folder");
+    _LIT( KBaseAppClassFormatString, "@%c:root file folder");
     _LIT( KTestFormBaseAppClassNoError, "TestFormBaseAppClass: No Error" );
     
     if( aItem.GetNextInt ( driveNumber ) == KErrNone  && error == KErrNone )
         {
-        filePlugin->FormBaseAppClass(  static_cast<TDriveNumber>( driveNumber ), formedBaseAppClass  );
+        filePlugin->FormBaseAppClass(  static_cast<TDriveNumber>( driveNumber ),KFileBaseAppClassFolder, formedBaseAppClass );
         if( aItem.GetNextChar ( driveChar ) == KErrNone )
             {
             expectedBaseAppClass.Format( KBaseAppClassFormatString, driveChar );
@@ -248,11 +229,11 @@ TInt CHarvesterPluginTester::TestDatabasePathL( CStifItemParser& aItem )
     TInt errorNumber;
     TChar driveChar;
     _LIT( KTestDatabasePathNoError, "TestDatabasePathL: No Error" );
-    
-    _LIT( KDbFormatString, "%c:\\Private\\2001f6f7\\indexing\\indexdb\\root\\file" );
+    _LIT(KPathFileContent, "\\root\\file\\content");
+    _LIT( KDbFormatString, "%c:\\Private\\2001f6f7\\indexing\\indexdb\\root\\file\\content" );
     if( aItem.GetNextInt ( driveNumber ) == KErrNone  && error == KErrNone )
         {
-        buffer = filePlugin->DatabasePathLC( static_cast<TDriveNumber>( driveNumber ) );
+        buffer = filePlugin->DatabasePathLC( static_cast<TDriveNumber>( driveNumber ), KPathFileContent );
         returnedDbPath.Copy( *buffer );
         if( aItem.GetNextChar ( driveChar ) == KErrNone )
             {
@@ -306,7 +287,7 @@ TInt CHarvesterPluginTester::TestCreateIndexItemL( CStifItemParser& aItem )
     CFilePlugin* filePlugin = CFilePlugin::NewL();
     CHarvesterObserver* observer = CHarvesterObserver::NewL( filePlugin );
     filePlugin->StartPluginL();
-    _LIT( KFileNameFormat, "C:\\TestFramework\\" );
+    _LIT( KFileNameFormat, "C:\\Data\\" );
     _LIT( KActionAdd, "add" );
     _LIT( KActionDelete, "delete" );
     _LIT( KActionUpdate, "update" );
@@ -321,13 +302,14 @@ TInt CHarvesterPluginTester::TestCreateIndexItemL( CStifItemParser& aItem )
             if( aItem.GetNextString ( fileName ) == KErrNone  && error == KErrNone )
                 {
                 filePathName.Append( fileName );
-                filePlugin->CreateFileIndexItemL( filePathName, ECPixAddAction );
+                filePlugin->CreateContentIndexItemL( filePathName, ECPixAddAction );
+                User::After( (TTimeIntervalMicroSeconds32)35000000 );
                 TPtrC searchString;
                 while( aItem.GetNextString ( searchString ) == KErrNone  && error == KErrNone )
                     {
-                    error = doSearch( searchString, _L(FILE_QBASEAPPCLASS), ESearchTypeResultsExpected );
+                    error = doSearch( searchString, KAppBasePath, ESearchTypeResultsExpected );
                     }
-                filePlugin->CreateFileIndexItemL( filePathName, ECPixRemoveAction );
+                filePlugin->CreateContentIndexItemL( filePathName, ECPixRemoveAction );
                 }
             }
         if( createIndexAction.Compare( KActionDelete ) == 0 )
@@ -335,11 +317,11 @@ TInt CHarvesterPluginTester::TestCreateIndexItemL( CStifItemParser& aItem )
             if( aItem.GetNextString ( fileName ) == KErrNone  && error == KErrNone )
                 {
                 filePathName.Append( fileName );
-                filePlugin->CreateFileIndexItemL( filePathName, ECPixRemoveAction );
+                filePlugin->CreateContentIndexItemL( filePathName, ECPixRemoveAction );
                 TPtrC searchString;
                 while( aItem.GetNextString ( searchString ) == KErrNone  && error == KErrNone )
                     {
-                    error = doSearch( searchString, _L(FILE_QBASEAPPCLASS), ESearchTypeNoResultsExpected );
+                    error = doSearch( searchString, KAppBasePath, ESearchTypeNoResultsExpected );
                     }
                 }
             }
@@ -348,11 +330,12 @@ TInt CHarvesterPluginTester::TestCreateIndexItemL( CStifItemParser& aItem )
             if( aItem.GetNextString ( fileName ) == KErrNone  && error == KErrNone )
                 {
                 filePathName.Append( fileName );
-                filePlugin->CreateFileIndexItemL( filePathName, ECPixUpdateAction );
+                filePlugin->CreateContentIndexItemL( filePathName, ECPixUpdateAction );
+                User::After( (TTimeIntervalMicroSeconds32)35000000 );
                 TPtrC searchString;
                 while( aItem.GetNextString ( searchString ) == KErrNone  && error == KErrNone )
                     {
-                    error = doSearch( searchString, _L(FILE_QBASEAPPCLASS), ESearchTypeResultsExpected );
+                    error = doSearch( searchString, KAppBasePath, ESearchTypeResultsExpected );
                     }
                 }
             }
@@ -362,7 +345,89 @@ TInt CHarvesterPluginTester::TestCreateIndexItemL( CStifItemParser& aItem )
     doLog( iLog, error, KCreateIndexItemNoError );
     return error;
     }
-	
+
+TInt CHarvesterPluginTester::TestFolderCreateL( CStifItemParser& /*aItem*/ )
+    {
+    TInt error = KErrNone;
+    CFilePlugin* filePlugin = CFilePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    filePlugin->StartPluginL();
+    filePlugin->StartHarvestingL( KAppBasePath );
+    
+    _LIT( KDirectoryToCreate, "C:\\data\\TestFolder\\" );    
+    RFs fs;
+    fs.Connect();
+    TBool folderExists = BaflUtils::FolderExists(fs, KDirectoryToCreate);
+    if(!folderExists)
+        {
+        error = fs.MkDir(KDirectoryToCreate);
+        }    
+    iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    
+    if(error == KErrNone)
+        {
+        error = doSearch( _L("TestFolder"), KAppBaseFolderFilePath, ESearchTypeResultsExpected );
+        fs.RmDir(KDirectoryToCreate);
+        }
+    fs.Close();
+    delete filePlugin;
+    delete iPluginTester;
+    doLog( iLog, error, _L("Error: TestFolderCreateL") );
+    
+    return error;
+    }
+
+TInt CHarvesterPluginTester::TestFolderRenameL( CStifItemParser& /*aItem*/ )
+    {
+    TInt error = KErrNone;
+    RFs fs;
+    fs.Connect();
+    
+    CFilePlugin* filePlugin = CFilePlugin::NewL();
+    CFolderRenamedHarvester* iFolderRenameHarvester = CFolderRenamedHarvester::NewL( *filePlugin, fs);
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    filePlugin->StartPluginL();
+    filePlugin->StartHarvestingL( KAppBasePath );    
+    
+    _LIT( KDirectoryToCreate, "C:\\data\\TestRenameFolder\\" );
+    _LIT( KDirectoryRenamed, "C:\\data\\TestFolderRenamed\\" );
+    
+    TFileName oldFolderName(KDirectoryToCreate);
+    TFileName newFolderName(KDirectoryRenamed);    
+    
+    if(!BaflUtils::FolderExists(fs, KDirectoryToCreate))
+        {
+        User::LeaveIfError(fs.MkDir(KDirectoryToCreate));        
+        }
+    if(BaflUtils::FolderExists(fs, KDirectoryRenamed))
+        {
+        User::LeaveIfError(fs.RmDir(KDirectoryRenamed));
+        }
+    iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    
+    error = doSearch( _L("TestRenameFolder"), KAppBaseFolderFilePath, ESearchTypeResultsExpected );        
+  
+    if(error == KErrNone)
+        {
+           fs.Rename(KDirectoryToCreate, KDirectoryRenamed);
+           iFolderRenameHarvester->StartL( oldFolderName, newFolderName );           
+        }    
+    
+    User::After( (TTimeIntervalMicroSeconds32)35000000 );
+    
+    //Search for the renamed directory
+    error = doSearch( _L("TestFolderRenamed"), KAppBaseFolderFilePath, ESearchTypeNoResultsExpected );    
+    
+    fs.RmDir(KDirectoryRenamed);    
+    
+    delete filePlugin;
+    delete iFolderRenameHarvester;
+    delete iPluginTester;
+    fs.Close();
+    doLog( iLog, error, _L("Error: TestFolderRenameL") );
+    
+    return error;
+    }
 /**
 * Message harvester test method.
 * @since ?Series60_version
@@ -709,29 +774,28 @@ TInt CHarvesterPluginTester::PerformNotesTestL( TPtrC aString1 , TPtrC aString2)
 TInt CHarvesterPluginTester::TestDeleteNoteL( CStifItemParser& aItem )
     {	
     TInt error = KErrNone;
-    _LIT( KSearchError, "Search Failed" );
-    
+    _LIT( KSearchError, "Search Failed" );   
     CNotesPlugin* plugin = CNotesPlugin::NewL();
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();   
     
     CCalendarObserver* session = CCalendarObserver::NewL();
     plugin->StartHarvestingL( _L(NOTES_QBASEAPPCLASS) );
+    iPluginTester->iWaitForHarvester->Start();
     // Add a Note entry
     TPtrC searchstring;
     error = aItem.GetNextString( searchstring );
     HBufC8* buf8 = HBufC8::NewL(2*searchstring.Length());
     buf8->Des().Copy(searchstring);
     session->AddNoteL( buf8->Des());
-    delete buf8;
-    iPluginTester->iWaitForHarvester->Start();
+    User::After( (TTimeIntervalMicroSeconds32)35000000 );
+    delete buf8;    
     error = doSearch( _L("TestNote"), _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );
     doLog( iLog, error, KSearchError );    
     if( error == KErrNone)
         {
         session->DeleteNoteEntryL();
-        plugin->StartHarvestingL( _L(NOTES_QBASEAPPCLASS) );
-        iPluginTester->iWaitForHarvester->Start();
+        User::After( (TTimeIntervalMicroSeconds32)35000000 );
         //Delete the Note entry added previously and search for result    
         error = doSearch( _L("TestNote"), _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );             
         //If the entery is succesfully deleted, make error to KErrNone.To show testcase success

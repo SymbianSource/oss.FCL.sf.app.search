@@ -88,9 +88,9 @@ SOURCE  cfolderrenamedharvester.cpp
 //---------------End of additions for testing FilePlugin-------------------
 
 //------------------Added for testing Messaging plugin-------------------
-USERINCLUDE ./../../../messaging/inc
+USERINCLUDE ./../../../messaging/smsmms/inc
 
-SOURCEPATH ./../../../messaging/src
+SOURCEPATH ./../../../messaging/smsmms/src
 SOURCE        cmessageplugin.cpp cmessagedatahandler.cpp cmessageharvester.cpp cmessagemonitor.cpp
 
 SOURCEPATH ../src
@@ -205,4 +205,15 @@ SOURCEPATH  ./../../../media/image/src
 SOURCE        cpixmediaimagedoc.cpp
 SOURCE        imageplugin.cpp
 //------------------End for image plugin -----------------------------
+
+USERINCLUDE ../../../applications/traces 
+USERINCLUDE ../../../bookmarks/traces 
+USERINCLUDE ../../../calendar/traces 
+USERINCLUDE ../../../contacts/traces 
+USERINCLUDE ../../../file/traces 
+USERINCLUDE ../../../media/audio/traces 
+USERINCLUDE ../../../media/image/traces 
+USERINCLUDE ../../../media/video/traces 
+USERINCLUDE ../../../messaging/smsmms/traces 
+USERINCLUDE ../../../notes/traces
 // End of File

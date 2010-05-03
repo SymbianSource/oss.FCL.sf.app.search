@@ -42,19 +42,7 @@ void SearchInDeviceHandlerTest::testCreateAndDestructIndeviceHandler()
 
     delete indevicehandler;
     }
-void SearchInDeviceHandlerTest::testhandleSearchResult()
-    {
-    InDeviceHandler* indevicehandler = new InDeviceHandler();
-    indevicehandler->setCategory("file");
-    QSignalSpy spy(indevicehandler, SIGNAL(handleSearchResult(int, int)));
-    indevicehandler->search("txt");
-    QCOMPARE(spy.count(), 1);
-    delete indevicehandler;
 
-    //wait for signal to be emitted.
-    //QTest::qWait(200);
-
-    }
 void SearchInDeviceHandlerTest::testhandleAsyncSearchResult()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
@@ -72,7 +60,7 @@ void SearchInDeviceHandlerTest::testhandleDocument()
     InDeviceHandler* indevicehandler = new InDeviceHandler();
     indevicehandler->setCategory("file");
 
-    indevicehandler->searchAsync("txt");
+    indevicehandler->searchAsync("a");
     QTest::qWait(200);
 
     QSignalSpy spy(indevicehandler,
@@ -91,23 +79,14 @@ void SearchInDeviceHandlerTest::testgetDocumentAsync()
     {
     testhandleDocument();
     }
-void SearchInDeviceHandlerTest::testgetDocumentAtIndex()
-    {
-    InDeviceHandler* indevicehandler = new InDeviceHandler();
-    indevicehandler->setCategory("file");
-    indevicehandler->search("txt");
-    QCPixDocument* iDoc = NULL;
-    iDoc = indevicehandler->getDocumentAtIndex(0);
-    QVERIFY(iDoc);
-    delete iDoc;
-    delete indevicehandler;
-    }
+
 void SearchInDeviceHandlerTest::testgetDocumentAsyncAtIndex()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
     indevicehandler->setCategory("file");
 
-    indevicehandler->search("txt");
+    indevicehandler->searchAsync("txt");
+    QTest::qWait(200);
     QSignalSpy spy(indevicehandler,
             SIGNAL(handleDocument(int, QCPixDocument*)));
     indevicehandler->getDocumentAsyncAtIndex(0);
@@ -115,17 +94,7 @@ void SearchInDeviceHandlerTest::testgetDocumentAsyncAtIndex()
     QCOMPARE(spy.count(), 1);
     delete indevicehandler;
     }
-void SearchInDeviceHandlerTest::testsearch()
-    {
-    InDeviceHandler* indevicehandler = new InDeviceHandler();
-    indevicehandler->setCategory("file");
-    QSignalSpy spy(indevicehandler, SIGNAL(handleSearchResult(int,int)));
-    indevicehandler->search(NULL);
-    QCOMPARE(spy.count(), 0);
-    indevicehandler->search("txt");
-    QCOMPARE(spy.count(), 1);
-    delete indevicehandler;
-    }
+
 void SearchInDeviceHandlerTest::testsearchAsync()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
@@ -143,7 +112,7 @@ void SearchInDeviceHandlerTest::testcancelLastSearch()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
     indevicehandler->setCategory("file");
-    indevicehandler->search("txt");
+    indevicehandler->searchAsync("txt");
     indevicehandler->cancelLastSearch();
     delete indevicehandler;
     }
@@ -152,7 +121,8 @@ void SearchInDeviceHandlerTest::testgetSearchResultCount()
     InDeviceHandler* indevicehandler = new InDeviceHandler();
     QCOMPARE(indevicehandler->getSearchResultCount(),0);
     indevicehandler->setCategory("file");
-    indevicehandler->search("txt");
+    indevicehandler->searchAsync("txt");
+    QTest::qWait(200);
     QVERIFY(indevicehandler->getSearchResultCount());
     delete indevicehandler;
 
@@ -162,8 +132,8 @@ void SearchInDeviceHandlerTest::testsetCategory()
     InDeviceHandler* indevicehandler = new InDeviceHandler();
     indevicehandler->setCategory("file");
     QVERIFY(indevicehandler->mSearchInterface);
-    indevicehandler->setCategory(NULL);
-    QVERIFY(indevicehandler->mSearchInterface == NULL);
+    indevicehandler->setCategory("");
+    QVERIFY(indevicehandler->mSearchInterface);
     delete indevicehandler;
     }
 void SearchInDeviceHandlerTest::testisPrepared()
@@ -171,11 +141,15 @@ void SearchInDeviceHandlerTest::testisPrepared()
     InDeviceHandler* indevicehandler = new InDeviceHandler();
     indevicehandler->setCategory("file");
     QVERIFY(indevicehandler->isPrepared());
-    indevicehandler->setCategory(NULL);
-    QVERIFY(indevicehandler->isPrepared() == false);
+    indevicehandler->setCategory("");
+    QVERIFY(indevicehandler->isPrepared());
     delete indevicehandler;
 
     }
+#ifdef Q_OS_SYMBIAN
+
+//QTEST_MAIN corrected since crashes if TRAP not in correct place.
+//Will be corrected in later (estimate 4.6.0) Qt release for Symbian.
 int main(int argc, char *argv[])
     {
     QApplication app(argc, argv);
@@ -186,3 +160,7 @@ int main(int argc, char *argv[])
             error = QTest::qExec(&tc, argc, argv););
     return error;
     }
+#else //Q_OS_SYMBIAN
+QTEST_MAIN(SearchInDeviceHandlerTest)
+#endif //Q_OS_SYMBIAN    
+    

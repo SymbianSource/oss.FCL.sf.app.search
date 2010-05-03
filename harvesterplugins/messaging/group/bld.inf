@@ -15,8 +15,5 @@
 *
 */
 
-
 PRJ_MMPFILES
-
-messageplugin.mmp
-
+#include "../smsmms/group/bld.inf"

@@ -31,8 +31,6 @@
 #include <qdir.h>
 #include"settingswidget.h"
 
-const char *WIZARD_VIEW = "tocView";
-
 // ---------------------------------------------------------------------------
 // SearchSettingsState::SearchSettingsState
 // ---------------------------------------------------------------------------
@@ -43,21 +41,13 @@ SearchSettingsState::SearchSettingsState(QState *parent) :
     minitialCount = true;
     mWidget = new SettingsWidget();
 
-    connect(mWidget, SIGNAL(settingsEvent(bool)), this, SLOT(handleBackEvent(bool)));
+    connect(mWidget, SIGNAL(settingsEvent(bool)), this,
+            SLOT(handleBackEvent(bool)));
 
     connect(mWidget, SIGNAL(selectedItemCategory(int, bool)), this,
             SLOT(getItemCategory(int, bool)));
 
     }
-// ---------------------------------------------------------------------------
-// SearchSettingsState::_selectedcategory
-// ---------------------------------------------------------------------------
-//
-void SearchSettingsState::getItemCategory(int str, bool avalue)
-    {
-    emit publishSelectedCategory(str, avalue);
-    }
-
 // ---------------------------------------------------------------------------
 // SearchSettingsState::~SearchSettingsState
 // ---------------------------------------------------------------------------
@@ -65,10 +55,17 @@ void SearchSettingsState::getItemCategory(int str, bool avalue)
 SearchSettingsState::~SearchSettingsState()
     {
     delete mDocumentLoader;
-    //  delete mWidget;
+    delete mWidget;
 
     }
-
+// ---------------------------------------------------------------------------
+// SearchSettingsState::getItemCategory
+// ---------------------------------------------------------------------------
+//
+void SearchSettingsState::getItemCategory(int str, bool avalue)
+    {
+    emit publishSelectedCategory(str, avalue);
+    }
 // ---------------------------------------------------------------------------
 // SearchSettingsState::onEntry
 // ---------------------------------------------------------------------------
@@ -79,7 +76,8 @@ void SearchSettingsState::onEntry(QEvent *event)
     QState::onEntry(event);
     if (minitialCount)
         {
-        mWidget->loadSettingsFrominiFile();
+        mWidget->loadBaseSettings();
+        mWidget->loadDeviceSettings();
         isInternetOn();
         minitialCount = false;
         emit backEventTriggered();
@@ -90,7 +88,6 @@ void SearchSettingsState::onEntry(QEvent *event)
         mWidget->launchSettingWidget();
         }
     }
-
 // ---------------------------------------------------------------------------
 // SearchSettingsState::onExit
 // ---------------------------------------------------------------------------
@@ -100,15 +97,18 @@ void SearchSettingsState::onExit(QEvent *event)
     QState::onExit(event);
 
     }
-
+// ---------------------------------------------------------------------------
+// SearchSettingsState::handleBackEvent
+// ---------------------------------------------------------------------------
+//
 void SearchSettingsState::handleBackEvent(bool aStatus)
     {
     emit backEventTriggered();
     if (mWidget)
         {
         isInternetOn();
-       emit clickstatus(aStatus);
-        }   
+        emit clickstatus(aStatus);
+        }
     }
 // ---------------------------------------------------------------------------
 // SearchSettingsState::isInternetOn
@@ -125,4 +125,3 @@ void SearchSettingsState::isInternetOn()
         emit customizeGoButton(false);
         }
     }
-

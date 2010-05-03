@@ -23,6 +23,11 @@
 #include <mdeconstants.h>
 #include <mdeobjectdef.h>
 #include "harvesterserverlogger.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cpixmediaaudiodocTraces.h"
+#endif
+
 
 // -----------------------------------------------------------------------------
 // CCPIXDocFetcher::NewL()
@@ -83,6 +88,7 @@ CSearchDocument* CCPIXMediaAudioDoc::GetCpixDocumentL(const CMdEObject& aObject,
                                               const TDesC& aAppClass,
                                               CMdEObjectDef& aObjectDef)
     {
+    OstTraceFunctionEntry0( CCPIXMEDIAAUDIODOC_GETCPIXDOCUMENTL_ENTRY );
     CPIXLOGSTRING("START CCPIXMediaAudioDoc::GetCpixDocumentL");
     //Get basic document
     CSearchDocument* index_item = CCPIXDocFetcher::GetCpixDocumentL(aObject,aAppClass,aObjectDef);
@@ -134,6 +140,7 @@ CSearchDocument* CCPIXMediaAudioDoc::GetCpixDocumentL(const CMdEObject& aObject,
                              textProperty->Value());
        }   
     CPIXLOGSTRING("END CCPIXMediaAudioDoc::GetCpixDocumentL");
+    OstTraceFunctionExit0( CCPIXMEDIAAUDIODOC_GETCPIXDOCUMENTL_EXIT );
     return index_item;
     }
 //End of life

@@ -147,7 +147,7 @@ void CCalendarObserver::DeleteNoteEntryL()
         if ( entry->EntryTypeL() == CCalEntry::ENote )
             {
             iCalEntryView->DeleteL(*entry);
-            break;
+            continue;
             }
         }
     CleanupStack::PopAndDestroy(&entryarray);

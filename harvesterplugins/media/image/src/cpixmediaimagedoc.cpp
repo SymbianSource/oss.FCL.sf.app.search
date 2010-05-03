@@ -23,6 +23,11 @@
 #include <mdeconstants.h>
 #include <mdeobjectdef.h>
 #include "harvesterserverlogger.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cpixmediaimagedocTraces.h"
+#endif
+
 
 _LIT( KFormatDateTime, "%04d-%02d-%02dT%02d:%02d:%02dZ");    // yyyy-mm-ddThh:mm:ssZ
 
@@ -85,6 +90,7 @@ CSearchDocument* CCPIXMediaImageDoc::GetCpixDocumentL(const CMdEObject& aObject,
                                               const TDesC& aAppClass,
                                               CMdEObjectDef& aObjectDef)
     {
+    OstTraceFunctionEntry0( CCPIXMEDIAIMAGEDOC_GETCPIXDOCUMENTL_ENTRY );
     //Get basic document
     CPIXLOGSTRING("START CCPIXMediaImageDoc::GetCpixDocumentL");
     CSearchDocument* index_item = CCPIXDocFetcher::GetCpixDocumentL(aObject,aAppClass,aObjectDef);
@@ -176,6 +182,7 @@ CSearchDocument* CCPIXMediaImageDoc::GetCpixDocumentL(const CMdEObject& aObject,
       }
       */
     CPIXLOGSTRING("END CCPIXMediaImageDoc::GetCpixDocumentL");
+    OstTraceFunctionExit0( CCPIXMEDIAIMAGEDOC_GETCPIXDOCUMENTL_EXIT );
     return index_item;
     }
 //End of life

@@ -50,6 +50,8 @@ enum TFastFindFileEventType
 	EFastFindFileDeleted,
 	EFastFindDriveFormatted,
 	EFastFindFileUnknown,
+	EFastFindDirCreated,
+	EFastFindDirDeleted,
 	};
 
 typedef TPckgBuf<TFastFindFSPStatus> TFastFindFSPStatusPckg;

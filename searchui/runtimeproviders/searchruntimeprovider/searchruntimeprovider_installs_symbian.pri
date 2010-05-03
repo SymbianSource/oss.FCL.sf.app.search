@@ -14,7 +14,7 @@
 # Description: 
 #
 
-export.sources = resource/*.manifest
+export.sources = resource/*.xml
 export.path = /searchresources/plugins/runtimeproviders
 
 pluginstub.sources = searchruntimeprovider.dll

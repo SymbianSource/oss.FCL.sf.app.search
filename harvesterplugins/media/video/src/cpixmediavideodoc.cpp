@@ -23,6 +23,11 @@
 #include <mdeconstants.h>
 #include <mdeobjectdef.h>
 #include "harvesterserverlogger.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cpixmediavideodocTraces.h"
+#endif
+
 
 // -----------------------------------------------------------------------------
 // CCPIXDocFetcher::NewL()
@@ -83,6 +88,7 @@ CSearchDocument* CCPIXMediaVideoDoc::GetCpixDocumentL(const CMdEObject& aObject,
                                               const TDesC& aAppClass,
                                               CMdEObjectDef& aObjectDef)
     {
+    OstTraceFunctionEntry0( CCPIXMEDIAVIDEODOC_GETCPIXDOCUMENTL_ENTRY );
     //Get basic document
     CPIXLOGSTRING("CCPIXMediaVideoDoc::GetCpixDocumentL()");
     CSearchDocument* index_item = CCPIXDocFetcher::GetCpixDocumentL(aObject,aAppClass,aObjectDef);
@@ -133,6 +139,7 @@ CSearchDocument* CCPIXMediaVideoDoc::GetCpixDocumentL(const CMdEObject& aObject,
                    MdeConstants::MediaObject::KCommentProperty,
                    textProperty->Value());
        }
+    OstTraceFunctionExit0( CCPIXMEDIAVIDEODOC_GETCPIXDOCUMENTL_EXIT );
     return index_item;
     }
 

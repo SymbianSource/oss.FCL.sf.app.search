@@ -21,7 +21,12 @@
 #include <csearchdocument.h>
 
 #include <ccpixindexer.h>
-#include <e32base.h> 
+#include <e32base.h>
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "ccontactspluginTraces.h"
+#endif
+ 
 
 _LIT(KMimeTypeField, CPIX_MIMETYPE_FIELD);
 _LIT(KMimeTypeContact, CONTACT_MIMETYPE);
@@ -145,6 +150,7 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 		{
 		case EContactDbObserverEventContactChanged:
 		case EContactDbObserverEventGroupChanged:
+			OstTrace1( TRACE_NORMAL, DUP3_CCONTACTSPLUGIN_HANDLEDATABASEEVENTL, "CContactsPlugin::HandleDatabaseEventL;Monitored update id=%d", aEvent.iContactId );			
 			CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Monitored update id=%d.", aEvent.iContactId);
 #ifdef __PERFORMANCE_DATA
             iStartTime.UniversalTime();
@@ -157,6 +163,7 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 
 		case EContactDbObserverEventContactDeleted:
 		case EContactDbObserverEventGroupDeleted:
+			OstTrace1( TRACE_NORMAL, CCONTACTSPLUGIN_HANDLEDATABASEEVENTL, "CContactsPlugin::HandleDatabaseEventL();Monitored delete id=%d", aEvent.iContactId );
 			CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Monitored delete id=%d.", aEvent.iContactId);
 #ifdef __PERFORMANCE_DATA
             iStartTime.UniversalTime();			
@@ -169,6 +176,7 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 
 		case EContactDbObserverEventContactAdded:
 		case EContactDbObserverEventGroupAdded:
+			OstTrace1( TRACE_NORMAL, DUP1_CCONTACTSPLUGIN_HANDLEDATABASEEVENTL, "CContactsPlugin::HandleDatabaseEventL();Monitored add id=%d", aEvent.iContactId );
 			CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Monitored add id=%d.", aEvent.iContactId);
 #ifdef __PERFORMANCE_DATA
             iStartTime.UniversalTime();			
@@ -205,6 +213,7 @@ void CContactsPlugin::DelayedCallbackL( TInt /*aCode*/ )
 			break;
 		
 		// Create index item
+		OstTrace1( TRACE_NORMAL, CCONTACTSPLUGIN_DELAYEDCALLBACKL, "CContactsPlugin::DelayedCallbackL();Harvesting id=%d", (*iContacts)[iCurrentIndex] );
 		CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Harvesting id=%d.", (*iContacts)[iCurrentIndex]);
 		CreateContactIndexItemL((*iContacts)[iCurrentIndex], ECPixAddAction);
 		iCurrentIndex++;
@@ -301,6 +310,7 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 	if (!iIndexer)
     	return;
     
+	OstTrace1( TRACE_NORMAL, CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, "CContactsPlugin::CreateContactIndexItemL();aContentId=%d", aContentId );
 	CPIXLOGSTRING2("CContactsPlugin::CreateContactIndexItemL(): aContentId = %d ", aContentId );
     
 	// creating CSearchDocument object with unique ID for this application
@@ -317,6 +327,7 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 		if( contact->Type() == KUidContactGroup )
 		    {
             index_item->AddFieldL(KContactsGivenNameField, static_cast<CContactGroup*>( contact )->GetGroupLabelL(), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized);
+            OstTraceExt1( TRACE_NORMAL, DUP1_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, ";Adding Contact Group=%S", ( static_cast<CContactGroup*>( contact )->GetGroupLabelL() ) );
             CPIXLOGSTRING2("Adding Contact Group %S", &( static_cast<CContactGroup*>( contact )->GetGroupLabelL() ) );
             index_item->AddExcerptL( static_cast<CContactGroup*>( contact )->GetGroupLabelL() );
 		    }
@@ -381,10 +392,12 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 			TRAPD(err, iIndexer->AddL(*index_item));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP2_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, "CContactsPlugin::CreateContactIndexItemL(): Added." );
 				CPIXLOGSTRING("CContactsPlugin::CreateContactIndexItemL(): Added.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP3_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, "CContactsPlugin::CreateContactIndexItemL();Error %d in adding", err );
 				CPIXLOGSTRING2("CContactsPlugin::CreateContactIndexItemL(): Error %d in adding.", err);
 				}			
 			}
@@ -393,10 +406,12 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 			TRAPD(err, iIndexer->UpdateL(*index_item));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP4_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, "CContactsPlugin::CreateContactIndexItemL(): Updated." );
 				CPIXLOGSTRING("CContactsPlugin::CreateContactIndexItemL(): Updated.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP5_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, "CContactsPlugin::CreateContactIndexItemL();Error %d in updating", err );
 				CPIXLOGSTRING2("CContactsPlugin::CreateContactIndexItemL(): Error %d in updating.", err);
 				}			
 			}
@@ -408,10 +423,12 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 		TRAPD(err, iIndexer->DeleteL(docid_str));
 		if (err == KErrNone)
 			{
+			OstTrace0( TRACE_NORMAL, DUP6_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, "CContactsPlugin::CreateContactIndexItemL(): Deleted." );
 			CPIXLOGSTRING("CContactsPlugin::CreateContactIndexItemL(): Deleted.");
 			}
 		else
 			{
+			OstTrace1( TRACE_NORMAL, DUP7_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, "CContactsPlugin::CreateContactIndexItemL();Error %d in deleting", err );
 			CPIXLOGSTRING2("CContactsPlugin::CreateContactIndexItemL(): Error %d in deleting.", err);
 			}			
 		}

@@ -15,13 +15,12 @@ EXPORTS
 	_ZN15InDeviceHandler20getSearchResultCountEv @ 14 NONAME
 	_ZN15InDeviceHandler23getDocumentAsyncAtIndexEi @ 15 NONAME
 	_ZN15InDeviceHandler23handleAsyncSearchResultEii @ 16 NONAME
-	_ZN15InDeviceHandler6searchE7QString @ 17 NONAME
-	_ZN15InDeviceHandlerC1Ev @ 18 NONAME
-	_ZN15InDeviceHandlerC2Ev @ 19 NONAME
-	_ZN15InDeviceHandlerD0Ev @ 20 NONAME
-	_ZN15InDeviceHandlerD1Ev @ 21 NONAME
-	_ZN15InDeviceHandlerD2Ev @ 22 NONAME
-	_ZNK15InDeviceHandler10metaObjectEv @ 23 NONAME
-	_ZTI15InDeviceHandler @ 24 NONAME
-	_ZTV15InDeviceHandler @ 25 NONAME
+	_ZN15InDeviceHandlerC1Ev @ 17 NONAME
+	_ZN15InDeviceHandlerC2Ev @ 18 NONAME
+	_ZN15InDeviceHandlerD0Ev @ 19 NONAME
+	_ZN15InDeviceHandlerD1Ev @ 20 NONAME
+	_ZN15InDeviceHandlerD2Ev @ 21 NONAME
+	_ZNK15InDeviceHandler10metaObjectEv @ 22 NONAME
+	_ZTI15InDeviceHandler @ 23 NONAME
+	_ZTV15InDeviceHandler @ 24 NONAME
 

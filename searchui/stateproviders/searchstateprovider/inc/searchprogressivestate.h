@@ -25,7 +25,42 @@
 #include <qpixmap.h>
 #include <hbicon.h>
 #include <displaymode.h>
-#include "Search_global.h"
+#include <xqappmgr.h>
+#include <xqaiwrequest.h>
+#include "search_global.h"
+
+//Uncomment to enable performance measurements.
+//#define OST_TRACE_COMPILER_IN_USE
+
+#ifdef OST_TRACE_COMPILER_IN_USE
+
+#define PERF_CAT_API_TIME_RESTART  m_categorySearchApiTime.restart();
+#define PERF_CAT_UI_TIME_RESTART  m_categorySearchUiTime.restart();
+#define PERF_CAT_TOTAL_TIME_RESTART  m_totalSearchUiTime.restart();
+#define PERF_CAT_API_ENDLOG qDebug() << "Search on category (API): " << mTemplist.at( mDatabasecount-1 ) << "took "<< m_categorySearchApiTime.elapsed() << " msec";
+#define PERF_CAT_UI_ENDLOG qDebug() << "Search on category (UI): " << mTemplist.at( mDatabasecount-1 ) << "took "<< m_categorySearchUiTime.elapsed() << " msec";
+#define PERF_TOTAL_UI_ENDLOG qDebug() << "Search on total (UI): took "<< m_totalSearchUiTime.elapsed() << " msec";
+#define PERF_CAT_HITS_ENDLOG qDebug() << "Hits on category: " << mTemplist.at( mDatabasecount-1 ) << ": "<< aResultCount;
+#define PERF_CAT_GETDOC_TIME_RESTART m_categoryGetDocumentApiTime.restart();
+#define PERF_CAT_GETDOC_TIME_ACCUMULATE m_getDocumentCatergoryTimeAccumulator += m_categoryGetDocumentApiTime.elapsed();
+#define PERF_CAT_GETDOC_ACCUMULATOR_RESET m_getDocumentCatergoryTimeAccumulator = 0;
+#define PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG qDebug() << "Get Doc on category (API): " << mTemplist.at( mDatabasecount-1 ) << "took " << m_getDocumentCatergoryTimeAccumulator << "msec";
+
+#else
+
+#define PERF_CAT_API_TIME_RESTART  
+#define PERF_CAT_UI_TIME_RESTART  
+#define PERF_CAT_TOTAL_TIME_RESTART
+#define PERF_CAT_API_ENDLOG
+#define PERF_CAT_UI_ENDLOG
+#define PERF_TOTAL_UI_ENDLOG
+#define PERF_CAT_HITS_ENDLOG
+#define PERF_CAT_GETDOC_TIME_RESTART
+#define PERF_CAT_GETDOC_TIME_ACCUMULATE 
+#define PERF_CAT_GETDOC_ACCUMULATOR_RESET
+#define PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG
+
+#endif //OST_TRACE_COMPILER_IN_USE
 
 class HbMainWindow;
 class HbView;
@@ -33,10 +68,7 @@ class HbListView;
 class HbDocumentLoader;
 class QStandardItemModel;
 class HbSearchPanel;
-class QSortFilterProxyModel;
-
 class CFbsBitmap;
-
 class InDeviceHandler;
 class QCPixDocument;
 
@@ -104,15 +136,21 @@ private:
      * @since S60 ?S60_version.
      */
     CFbsBitmap *copyBitmapLC(CFbsBitmap *input);
-public slots:
 
     /**
-     * slot connects to CSearchHandler to get the status of search result synchronously 
+     * Constructing cpix handlers  .
      * @since S60 ?S60_version.
-     * @param aError error code.
-     * @param aResultCount number of results
      */
-    void onSearchComplete(int aError, int aResultCount);
+    void constructHandlers();
+
+    /**
+     * setting the categories .
+     * @since S60 ?S60_version.
+     */
+    void setSelectedCategories();
+public slots:
+
+   
 
     /**
      * slot connects to CSearchHandler to get the status of search result asynchronously 
@@ -165,7 +203,8 @@ public slots:
     void _customizeGoButton(bool avalue);
 
     /**
-     * slot connects to search state  for internet search
+     * slot implemented to avoid repeated search for the same category 
+     * selection when user search for mutiple times
      * @since S60 ?S60_version.
      */
     void settingsaction(bool avalue);
@@ -175,7 +214,38 @@ public slots:
      * @since S60 ?S60_version.
      */
     void cancelSearch();
+    /**
+     * slot connects to model  for rows insert completion
+     * @since S60 ?S60_version.
+     */
+    void getrowsInserted();
 
+    /**
+     * slot connects to model  for rows delete completion
+     * @since S60 ?S60_version.
+     */
+    void getrowsRemoved();
+    /**
+        * slot added for Application manager
+        * @since S60 ?S60_version.
+        */
+
+    void handleOk(const QVariant& var);
+    
+    /**
+      * slot added for Application manager
+      * @since S60 ?S60_version.
+      */
+
+    void handleError(int ret, const QString& var);
+    
+    /**
+      * Slot implemented for particular category search 
+      * @since S60 ?S60_version.
+      */
+
+    
+    QString filterDoc(const QCPixDocument* aDoc,const QString& filter);
 private:
 
     /**
@@ -252,12 +322,7 @@ private:
      * Own.
      */
     HbSearchPanel* mSearchPanel;
-    /**
-     * proxymodel for list view
-     * Own.
-     */
-    QSortFilterProxyModel *proxyModel;
-
+  
     /**
      * model for list view
      * Own.
@@ -268,6 +333,8 @@ private:
      * qt interface for CPix engine
      * Own.
      */
+    QList<InDeviceHandler*> mSearchHandlerList;
+
     InDeviceHandler* mSearchHandler;
 
     /**
@@ -326,6 +393,19 @@ private:
     bool loadSettings;
     QList<HbIcon> mIconArray;
     HbIcon mIcon;
+	
+private:
+    XQApplicationManager* mAiwMgr;
+    XQAiwRequest* mRequest;
+	
+#ifdef OST_TRACE_COMPILER_IN_USE
+    QTime m_totalSearchUiTime;
+    QTime m_categorySearchUiTime;
+    QTime m_categorySearchApiTime;
+    QTime m_categoryGetDocumentApiTime;
+    //use long to safeguard overflow from long running operations.
+    long m_getDocumentCatergoryTimeAccumulator; 
+#endif
 
 SEARCH_FRIEND_CLASS    (SearchStateProviderTest)
 

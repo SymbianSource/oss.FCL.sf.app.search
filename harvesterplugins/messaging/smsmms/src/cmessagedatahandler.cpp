@@ -35,6 +35,11 @@
 #include <common.h>
 
 #include <ccpixindexer.h>
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cmessagedatahandlerTraces.h"
+#endif
+
 
 /** Number of symbols from MsgBody taken to excerpt */
 const TInt KMsgBodyExcerptSymbols = 90;
@@ -71,6 +76,7 @@ _LIT(KSubjectField, SUBJECT_FIELD);
 CMessageDataHandler* CMessageDataHandler::NewL(CMessagePlugin& aMessagePlugin,
 		CMsvSession& aSession)
 	{
+		OstTraceFunctionEntry0( CMESSAGEDATAHANDLER_NEWL_ENTRY );
 		CPIXLOGSTRING( "CMessageDataHandler::NewL() - enter" );
 
 	CMessageDataHandler* self = new (ELeave) CMessageDataHandler(
@@ -80,6 +86,7 @@ CMessageDataHandler* CMessageDataHandler::NewL(CMessagePlugin& aMessagePlugin,
 	CleanupStack::Pop(self);
 
 		CPIXLOGSTRING( "CMessageDataHandler::NewL() - return" );
+	OstTraceFunctionExit0( CMESSAGEDATAHANDLER_NEWL_EXIT );
 	return self;
 	}
 
@@ -120,8 +127,10 @@ void CMessageDataHandler::ConstructL()
 	User::LeaveIfError(iFs.Connect());
 	iMtmReg = CClientMtmRegistry::NewL(iMsvSession);
 	TRAPD(err,iSmsMtm = static_cast<CSmsClientMtm*> (iMtmReg->NewMtmL(KUidMsgTypeSMS)));
+	OstTrace1( TRACE_NORMAL, CMESSAGEDATAHANDLER_CONSTRUCTL, "CMessageDataHandler::ConstructL;iSmsMtm err=%d",err );
 	CPIXLOGSTRING2( "CMessageDataHandler::ConstructL() iSmsMtm err = %d",err);
 	TRAP(err,iMmsMtm = static_cast<CMmsClientMtm*> (iMtmReg->NewMtmL(KUidMsgTypeMultimedia)));
+	OstTrace1( TRACE_NORMAL, DUP1_CMESSAGEDATAHANDLER_CONSTRUCTL, "CMessageDataHandler::ConstructL;iMmsMtm err=%d", err );
 	CPIXLOGSTRING2( "CMessageDataHandler::ConstructL() iMmsMtm err = %d",err);
 	/*
 	TRAP(err,iSmtpMtm = static_cast<CSmtpClientMtm*> (iMtmReg->NewMtmL(KUidMsgTypeSMTP)));
@@ -152,17 +161,21 @@ void CMessageDataHandler::GatherDataL(TMsvId& aMessageId,
 TInt CMessageDataHandler::IsValidMessageType(TMsvId aIdToCheck,
 		TMsgType& aMessageType)
 	{
+		OstTraceFunctionEntry0( CMESSAGEDATAHANDLER_ISVALIDMESSAGETYPE_ENTRY );
 		CPIXLOGSTRING("ENTER CMessageDataHandler::IsValidMessageType");
 	TMsvEntry entry;
 	TMsvId service = 0;
 	TInt err = iMsvSession.GetEntry(aIdToCheck, service, entry);
+		OstTrace1( TRACE_NORMAL, CMESSAGEDATAHANDLER_ISVALIDMESSAGETYPE, "CMessageDataHandler::IsValidMessageType;GetEntry Error=%d", err );
 		CPIXLOGSTRING2("CMessageDataHandler::IsValidMessageType GetEntry: %d", err);
 	if (!err)
 		{
 		aMessageType = iMessagePlugin.CalculateMessageType(entry);
+			OstTrace1( TRACE_NORMAL, DUP1_CMESSAGEDATAHANDLER_ISVALIDMESSAGETYPE, "CMessageDataHandler::IsValidMessageType;Message Type=%d", aMessageType );
 			CPIXLOGSTRING2("CMessageDataHandler::IsValidMessageType type: %d", aMessageType );
 		}
 		CPIXLOGSTRING("END CMessageDataHandler::IsValidMessageType");
+	OstTraceFunctionExit0( CMESSAGEDATAHANDLER_ISVALIDMESSAGETYPE_EXIT );
 	return err;
 	}
 
@@ -173,6 +186,7 @@ TInt CMessageDataHandler::IsValidMessageType(TMsvId aIdToCheck,
 void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 		TCPixActionType aActionType, const TMsvId& aFolderId)
 	{
+	OstTrace1( TRACE_NORMAL, CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;aMsvId=%d", aMsvId );
 	CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): aMsvId = %d ", aMsvId );
 
 	// Index an empty item if removal action
@@ -185,10 +199,12 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 			TRAPD(err, iMessagePlugin.GetIndexer()->DeleteL(docid_str));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP1_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): Document deleted." );
 				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): Document deleted.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP2_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in deleting the doc=%d", err );
 				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in deleting the document.", err);				
 				}
 			}
@@ -209,10 +225,12 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 			TRAPD(err, index_item = CreateSmsDocumentL(aMsvId, aFolderId));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP3_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): SMS document created." );
 				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): SMS document created.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP4_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in creating the sms doc=%d", err );
 				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in creating SMS document.", err);
 				}
 			break;
@@ -222,10 +240,12 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 			TRAPD(err, index_item = CreateMmsDocumentL(aMsvId, aFolderId));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP5_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): MMS document created." );
 				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): MMS document created.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP6_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in creating the mms doc=%d", err );
 				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in creating MMS document.", err);
 				}
 			break;
@@ -237,10 +257,12 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 			TRAPD(err, index_item = CreateEmailDocumentL(aMsvId, aFolderId));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP7_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): E-mail document created." );
 				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): E-mail document created.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP8_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in ccreating the email doc=%d", err );
 				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in creating e-mail document.", err);
 				}
 			break;
@@ -257,6 +279,7 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 	// Exit if wrong message type
 	if (index_item == NULL)
 		{
+		OstTrace0( TRACE_NORMAL, DUP9_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): Document was not created." );
 		CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): Document was not created.");
 		return;
 		}
@@ -280,10 +303,12 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 			TRAPD(err, iMessagePlugin.GetIndexer()->AddL(*index_item));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP10_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): Added." );
 				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): Added.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP11_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in Adding=%d", err );
 				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in adding.", err);
 				}
 			}
@@ -292,16 +317,19 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 			TRAPD(err, iMessagePlugin.GetIndexer()->UpdateL(*index_item));
 			if (err == KErrNone)
 				{
+				OstTrace0( TRACE_NORMAL, DUP12_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): Updated." );
 				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): Updated.");
 				}
 			else
 				{
+				OstTrace1( TRACE_NORMAL, DUP13_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in Updating=%d", err );
 				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in updating.", err);
 				}
 			}
 		}
 	else
 		{
+		OstTrace0( TRACE_NORMAL, DUP14_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "END CMessageDataHandler::CreateMessageIndexItemL(): No indexer present." );
 		CPIXLOGSTRING("END CMessageDataHandler::CreateMessageIndexItemL(): No indexer present.");
 		}
 		
@@ -835,6 +863,7 @@ void CMessageDataHandler::DoCancel()
 //   
 void CMessageDataHandler::RunL()
 	{
+		OstTrace1( TRACE_NORMAL, CMESSAGEDATAHANDLER_RUNL, "CMessageDataHandler::RunL;status=%d", iStatus.Int() );
 		CPIXLOGSTRING2( "CMessageDataHandler::RunL status %d",iStatus.Int() );
 
 	// Implement round robin for the CActives
@@ -862,6 +891,7 @@ void CMessageDataHandler::RunL()
 //   
 TInt CMessageDataHandler::RunError(TInt aError)
 	{
+		OstTrace1( TRACE_NORMAL, CMESSAGEDATAHANDLER_RUNERROR, "CMessageDataHandler::RunError;Error=%d", aError );
 		CPIXLOGSTRING2( "CMessageDataHandler::RunError err %d", aError );
 	if (iMessageArray.Count() > 0)
 		{

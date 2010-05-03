@@ -16,6 +16,7 @@
 
 TEMPLATE = lib
 
+DEFINES += BUILD_SEARCHRUNTIMEPROVIDER
 
 symbian {
     CONFIG(debug, debug|release) {
@@ -31,41 +32,40 @@ win32 {
     } else {
       SUBDIRPART = release
     }
-    DESTDIR = $$PWD/../../../bin/$$SUBDIRPART/searchresources/plugins/runtimeproviders
-    INCLUDEPATH += \
-              $$PWD/../../../homescreensrv/homescreensrv_plat/appruntimemodel_api \
-              $$PWD/../../../homescreensrv/homescreensrv_plat/statemodel_api
+    DESTDIR = $$PWD/../../../bin/$$SUBDIRPART/searchresources/plugins/runtimeproviders    
     LIBS += -L$$PWD/../../../bin/debug
 }
 
-LIBS +=  -lappruntimemodel
-LIBS +=  -lstatemodel
-
+LIBS +=  -lsearchstateprovider
     
-CONFIG += plugin debug_and_release
+
 
 CONFIG += hb
 
+
 QT += xml sql
 
-DEFINES += SEARCHRUNTIMEPROVIDER_LIB
+
 
 coverage:DEFINES += COVERAGE_MEASUREMENT
 
 DEPENDPATH +=   ./inc \
-                ./src
-
+                ./src 
+                
 INCLUDEPATH += ./inc \
-               ../../inc \
+               ../../inc  \
+                ../../stateproviders/searchstateprovider/inc 
+               
 
 symbian {
     TARGET.UID3 = 0x2002C37D
     TARGET.EPOCALLOWDLLDATA=1
-    TARGET.CAPABILITY = ALL -TCB
+    TARGET.CAPABILITY = ALL -TCB -DRM
     appkey:DEFINES += S60APP_KEY
     INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE
-
-    include(searchruntimeprovider_installs_symbian.pri)
+    #include(searchruntimeprovider_installs_symbian.pri)
+   # BLD_INF_RULES.prj_exports += "./inc/searchruntimeprovider.h |../../inc/" \
+    #                             "./inc/searchruntime.h |../../inc/"
 }
 
 win32 {

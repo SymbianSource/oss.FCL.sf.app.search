@@ -18,11 +18,15 @@
 #ifndef SEARCH_STATEPROVIDERS_STATEPROVIDER_H
 #define SEARCH_STATEPROVIDERS_STATEPROVIDER_H
 
-#include "Search_global.h"
+#include "search_global.h"
 
-#include "hsistateprovider.h"
+SEARCH_CLASS( SearchStateProviderTest)
 
-class SearchStateProviderTest;
+#ifdef BUILD_SEARCHSTATEPROVIDER
+#define SEARCH_STATEPROVIDER Q_DECL_EXPORT
+#else
+#define SEARCH_STATEPROVIDER Q_DECL_IMPORT
+#endif
 
 class QState;
 
@@ -36,11 +40,10 @@ class QState;
  * @lib Searchstateprovider
  * @since S60 ?S60_version.
  */
-class SearchStateProvider : public QObject, public IHsStateProvider
+class SEARCH_STATEPROVIDER SearchStateProvider : public QObject
     {
 
 Q_OBJECT
-Q_INTERFACES(IHsStateProvider)
 
 public:
 
@@ -49,24 +52,10 @@ public:
      *
      * @since S60 ?S60_version.
      */
-    SearchStateProvider();
+    SearchStateProvider(QObject *parent=NULL);    
+    
 
-    /**
-     * Destructor.
-     *
-     * @since S60 ?S60_version.
-     */
-    virtual ~SearchStateProvider();
-
-public:
-
-    /**
-     * Returns contained states as a list of tokens.
-     *
-     * @return Contained states as a list of tokens.
-     * @since S60 ?S60_version.
-     */
-    QList<HsStateToken> states();
+public:   
 
     /**
      * Creates a state based on the given token.
@@ -74,20 +63,11 @@ public:
      * @param aToken Identifies the state to be created.
      * @since S60 ?S60_version.
      */
-    QState* createState(const HsStateToken& aToken);
+    QState* createState(const QString& uri);
 
-private:
+private:   
 
-    /**
-     * Token that describes the wizard menu state.
-     */
-    HsStateToken mInitStateToken;
-
-    HsStateToken mWizardMenuStateToken;
-
-    HsStateToken mWizardActivatedStateToken;
-
-    friend class SearchStateProviderTest;
+    SEARCH_FRIEND_CLASS    ( SearchStateProviderTest)
     };
 
 #endif //SEARCH_STATEPROVIDERS_STATEPROVIDER_H

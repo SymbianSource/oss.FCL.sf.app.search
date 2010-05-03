@@ -17,17 +17,16 @@
 
 #include "searchstateprovider.h"
 #include "searchprogressivestate.h"
-
 #include "searchinitstate.h"
 #include "searchsettingsstate.h"
 
 #include <qstate.h>
 #include <qdebug.h>
 
-// constants
-const char providerFileName[] = "searchstateprovider.dll";
-const char initStateFileUri[] = "search.nokia.com/state/initstate";
+
 // states
+const char initStateFileUri[] = "search.nokia.com/state/initstate";
+
 const char wizardProgressiveStateUri[] =
         "search.nokia.com/state/wizardprogressivestate";
 const char wizardSettingStateUri[] =
@@ -37,66 +36,30 @@ const char wizardSettingStateUri[] =
 // searchStateProvider::searchStateProvider()
 // ---------------------------------------------------------------------------
 //
-SearchStateProvider::SearchStateProvider()
-    {
-    mInitStateToken.mLibrary = providerFileName;
-    mInitStateToken.mUri = initStateFileUri;
-
-    mWizardMenuStateToken.mLibrary = providerFileName;
-    mWizardMenuStateToken.mUri = wizardProgressiveStateUri;
-
-    mWizardActivatedStateToken.mLibrary = providerFileName;
-    mWizardActivatedStateToken.mUri = wizardSettingStateUri;
-    }
-
-// ---------------------------------------------------------------------------
-// SearchStateProvider::~SearchStateProvider()
-// ---------------------------------------------------------------------------
-//
-SearchStateProvider::~SearchStateProvider()
+SearchStateProvider::SearchStateProvider(QObject *parent) :
+    QObject(parent)
     {
     }
-
-// ---------------------------------------------------------------------------
-// SearchStateProvider::states()
-// ---------------------------------------------------------------------------
-//
-QList<HsStateToken> SearchStateProvider::states()
-    {
-    return QList<HsStateToken> () << mInitStateToken << mWizardMenuStateToken
-            << mWizardActivatedStateToken;
-    }
-
 // ---------------------------------------------------------------------------
 // SearchStateProvider::createState(const StateToken& aToken)
 // ---------------------------------------------------------------------------
 //
-QState* SearchStateProvider::createState(const HsStateToken& aToken)
+QState* SearchStateProvider::createState(const QString& uri)
     {
 
-    if (aToken.mUri == mWizardMenuStateToken.mUri)
+    if (uri == wizardProgressiveStateUri)
         {
         return new SearchProgressiveState();
         }
-    else if (aToken.mUri == mWizardActivatedStateToken.mUri)
+    else if (uri == wizardSettingStateUri)
         {
         return new SearchSettingsState();
         }
-    else if (aToken.mUri == mInitStateToken.mUri)
+    else if (uri == initStateFileUri)
         {
         return new SearchInitState();
         }
 
-    qDebug() << "SEARCH: No state found for mUri: " << aToken.mUri;
+    qDebug() << "SEARCH: No state found for mUri: " << uri;
     return NULL;
-
     }
-
-#ifdef COVERAGE_MEASUREMENT
-#pragma CTC SKIP
-#endif //COVERAGE_MEASUREMENT
-Q_EXPORT_PLUGIN2(SearchStateProvider, SearchStateProvider)
-#ifdef COVERAGE_MEASUREMENT
-#pragma CTC ENDSKIP
-#endif //COVERAGE_MEASUREMENT
-

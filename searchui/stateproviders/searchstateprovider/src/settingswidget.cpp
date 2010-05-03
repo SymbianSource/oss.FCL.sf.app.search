@@ -24,118 +24,308 @@
 #include <hbtooltip.h>
 #include <qsettings.h>
 #include <hbinputdialog.h>
-#include<hbscrollarea.h>
+#include <hbscrollarea.h>
 #include <qgraphicswidget.h>
 #include <hbglobal.h>
+#include <hbdataform.h>
+#include <hbdataformmodel.h>
+#include <hbdocumentloader.h>
+#include <hbcombobox.h>
+#include <hbdataformviewitem.h>
+#include <hbradiobuttonlist.h>
+#include <qdir.h>
+#include <qsql.h>
+#include <qsqldatabase.h>
+#include <qsqlquery.h>
+#include <cpixcontentinfocommon.h>
+const char *DELIMETER_DOCML = ":/xml/delimeterscreen.docml";
+const char *DIALOG = "dialog";
+const char *DATAFORM = "dataForm";
 
 //----------------------------------------------------------------------------------------------------------------------------
 //SettingsWidget::SettingsWidget()
 //
 //----------------------------------------------------------------------------------------------------------------------------
 SettingsWidget::SettingsWidget() :
-    HbWidget()
+    signalMapper(NULL), popup(NULL), mDocumentLoader(NULL), dataform(NULL),
+            mModel(NULL),mSelectedScope(0),mSelectedProvider(0)
     {
-    deviceCategoryList = (QStringList() << hbTrId("txt_search_list_device")
-            << hbTrId("txt_search_list_contatcs") << hbTrId(
-            "txt_search_list_media") << hbTrId("txt_search_list_messagemail")
-            << hbTrId("txt_search_list_calendarnotes") << hbTrId(
-            "txt_search_list_applications") << hbTrId(
-            "txt_search_list_all_other_files"));
-    internetCategoryList = (QStringList() << hbTrId(
-            "txt_search_list_internet") << "Google" << "Bing");
+    for (int i = 0; i < 8; i++)
+        {
+        mDeviceMapping.append(false);
+        }
 
-    QGraphicsLinearLayout *linearLayout = new QGraphicsLinearLayout(
-            Qt::Vertical);
+    mDeviceCategoryRefList = (QStringList() << "first" << "second" << "third"
+            << "fourth" << "fifth" << "sixth" << "seventh" << "eigth");
 
-    setLayout(linearLayout);
+    mchangestate = true;
+    mInstialize = true;
+    isInternetSelected = false;
+    storeDefaultSettings();
+    }
+//----------------------------------------------------------------------------------------------------------------------------
+//SettingsWidget::intialize()
+//
+//----------------------------------------------------------------------------------------------------------------------------
+void SettingsWidget::initialize()
+    {
+    bool ok = false;
+    if (!mDocumentLoader)
+        {
+        mDocumentLoader = new HbDocumentLoader();        
+        mDocumentLoader->load(DELIMETER_DOCML, &ok);
+        }
+    QGraphicsWidget *widget = NULL;
+    if (!popup)
+        {
+        widget = mDocumentLoader->findWidget(DIALOG);
+        Q_ASSERT_X(ok && (widget != 0), "DIALOG", "invalid view");
 
-    popup = new HbDialog();
+        popup = qobject_cast<HbDialog*> (widget);
+        }
+    if (!dataform)
+        {
+        widget = mDocumentLoader->findWidget(DATAFORM);
+        Q_ASSERT_X(ok && (widget != 0), "DATAFORM", "invalid view");
+        dataform = qobject_cast<HbDataForm*> (widget);
+        }
+    if (!mModel)
+        {
+        mModel = new HbDataFormModel();
+        }
+    if (!signalMapper)
+        {
+        signalMapper = new QSignalMapper(this);
+        }
+
+    createGui();
+    }
+//----------------------------------------------------------------------------------------------------------------------------
+//SettingsWidget::createGui()
+//
+//----------------------------------------------------------------------------------------------------------------------------
+void SettingsWidget::createGui()
+    {
     popup->setDismissPolicy(HbDialog::NoDismiss);
-
     popup->setTimeout(HbDialog::NoTimeout);
 
     HbAction * action = new HbAction(hbTrId("txt_common_button_ok"), popup);
     connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
-    popup->setPrimaryAction(action);
+    mActions.append(action);
 
     action = new HbAction(hbTrId("txt_common_button_cancel"), popup);
     connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
-    popup->setSecondaryAction(action);
+    mActions.append(action);
 
-    //device category creation
+    popup->addActions(mActions);
 
-    HbCheckBox *checkboxitem = NULL;
+    dataform->setModel(mModel);
 
-    signalMapper = new QSignalMapper(this);
-
-    for (int i = 0; i < deviceCategoryList.count(); i++)
-        {
-        checkboxitem = new HbCheckBox(deviceCategoryList.at(i));
-
-        mDeviceCheckBoxList.append(checkboxitem);
-
-        signalMapper->setMapping(mDeviceCheckBoxList.at(i), i);
-
-        connect(mDeviceCheckBoxList.at(i), SIGNAL(stateChanged(int)),
-                signalMapper, SLOT(map()));
-
-        if (i == 0)
-            {
-            //arrange device search &internet search
-            linearLayout->addItem(mDeviceCheckBoxList.at(i));
-            }
-        else
-            {
-            //arrange other subcategoriess
-            mDeviceCheckBoxList.at(i)->setContentsMargins(20, 0, 0, 0);
-            linearLayout->addItem(mDeviceCheckBoxList.at(i));
-            }
-        }
-    int j = 0;
-    for (int i = deviceCategoryList.count(); i < internetCategoryList.count()
-            + deviceCategoryList.count(); i++)
-        {
-
-        checkboxitem = new HbCheckBox(internetCategoryList.at(j));
-
-        mInternetCheckBoxList.append(checkboxitem);
-
-        signalMapper->setMapping(mInternetCheckBoxList.at(j), i);
-
-        connect(mInternetCheckBoxList.at(j), SIGNAL(stateChanged(int)),
-                signalMapper, SLOT(map()));
-
-        if (i == deviceCategoryList.count())
-            {
-            //arrange device search &internet search
-            linearLayout->addItem(mInternetCheckBoxList.at(j));
-            }
-        else
-            {
-            //arrange other subcategoriess
-            mInternetCheckBoxList.at(j)->setContentsMargins(20, 0, 0, 0);
-            linearLayout->addItem(mInternetCheckBoxList.at(j));
-
-            }
-        j++;
-        }
-
-    connect(signalMapper, SIGNAL(mapped(int)), this, SLOT(itemChecked(int)));
-
-    //Heading label
-
-    HbLabel *label = new HbLabel(hbTrId(
-            "txt_search_qtl_dialog_pri_heading_delimiter"));
+    HbLabel *label = new HbLabel(hbTrId("txt_search_title_search_scope"));
     popup->setHeadingWidget(label);
 
-    HbScrollArea* scrollArea = new HbScrollArea(popup);
-    scrollArea->setScrollDirections(Qt::Vertical);
-    scrollArea->setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
-    scrollArea->setContentWidget(this);
-    popup->setContentWidget(scrollArea);
+    preparecategories();
 
-    // loadSettingsFrominiFile();
+    loadBaseSettings();
+
+    HbDataFormModelItem* themeComboGeneral = mModel->appendDataFormItem(
+            HbDataFormModelItem::ComboBoxItem, hbTrId(
+                    "txt_search_qtl_dialog_pri_heading_delimiter"));
+
+    themeComboGeneral->setContentWidgetData(QString("items"), mCategoryList);
+
+    themeComboGeneral->setContentWidgetData(QString("currentIndex"),
+            mSelectedScope);
+
+    QModelIndex index = mModel->indexFromItem(themeComboGeneral);
+
+    HbDataFormViewItem *formItem = dataform->dataFormViewItem(index);
+
+    HbComboBox *comboBox =
+            static_cast<HbComboBox*> (formItem->dataItemContentWidget());
+
+    q_currentIndexChanged(mSelectedScope);
+
+    connect(comboBox, SIGNAL(currentIndexChanged(int)), this,
+            SLOT(q_currentIndexChanged(int)));
+
     }
+//----------------------------------------------------------------------------------------------------------------------------
+//SettingsWidget::q_currentIndexChanged()
+//
+//----------------------------------------------------------------------------------------------------------------------------
+void SettingsWidget::q_currentIndexChanged(int avalue)
+    {
+    for (int i = 0; i < mModelItemList.count(); i++)
+        {
+        mModel->removeItem(mModelItemList.at(i));
+        }
+    mModelItemList.clear();
+   // int ret = mModel->rowCount();
+    if (!avalue) //device category creation
+        {
+        isInternetSelected = false;
+        HbCheckBox *checkboxitem = NULL;
+        mDeviceCheckBoxList.clear();
+        for (int i = 0; i < mDeviceListDisplay.count(); i++)
+            {
+
+            HbDataFormModelItem* mModelItem = mModel->appendDataFormItem(
+                    HbDataFormModelItem::CheckBoxItem);
+            mModelItemList.append(mModelItem);
+            QModelIndex index = mModel->indexFromItem(mModelItem);
+
+            HbDataFormViewItem *formItem = dataform->dataFormViewItem(index);
+
+            checkboxitem
+                    = static_cast<HbCheckBox*> (formItem->dataItemContentWidget());
+
+            checkboxitem->setText(mDeviceListDisplay.at(i));
+
+            mDeviceCheckBoxList.append(checkboxitem);
+
+            signalMapper->setMapping(mDeviceCheckBoxList.at(i), i);
+
+            connect(mDeviceCheckBoxList.at(i), SIGNAL(stateChanged(int)),
+                    signalMapper, SLOT(map()));
+
+            connect(signalMapper, SIGNAL(mapped(int)), this,
+                    SLOT(itemChecked(int)));
+            }
+        loadDeviceSettings();
+        }
+    else
+        {
+        isInternetSelected = true;
+        mDeviceCheckBoxList.clear();
+        HbDataFormModelItem* mModelItem = mModel->appendDataFormItem(
+                HbDataFormModelItem::RadioButtonListItem);
+        mModelItemList.append(mModelItem);
+        mModelItem->setContentWidgetData("items", internetCategoryList);
+
+        QModelIndex index = mModel->indexFromItem(mModelItem);
+
+        HbDataFormViewItem *formItem = dataform->dataFormViewItem(index);
+
+        mradiolist
+                = static_cast<HbRadioButtonList*> (formItem->dataItemContentWidget());
+
+        mradiolist->setPreviewMode(HbRadioButtonList::NoPreview);
+
+        mradiolist->setSelected(mSelectedProvider);
+        connect(mradiolist, SIGNAL(itemSelected(int)), this,
+                SLOT(q_itemSelected(int)));
+
+        for (int i = 0; i < mActions.count(); i++)
+            popup->removeAction(mActions.at(i));
+        popup->addActions(mActions);
+        popup->removeAction(mActions.at(0));
+        }
+    }
+//----------------------------------------------------------------------------------------------------------------------------
+//SettingsWidget::preparecategories()
+//
+//----------------------------------------------------------------------------------------------------------------------------
+void SettingsWidget::preparecategories()
+    {
+    // read form database
+
+
+    QString mConnectionName("cpixcontentinfo.sq");
+    QString mDatabaseName("c:\\Private\\2001f6fb\\cpixcontentinfo.sq");
+
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", mConnectionName);
+    db.setDatabaseName(mDatabaseName);
+
+    QSqlQuery query(QSqlDatabase::database(mConnectionName));
+    QString statement = "SELECT NAME FROM table1";
+
+    query.prepare(statement);
+    query.exec();
+    while (query.next())
+        {
+        QString category_name = query.value(0).toString();
+        int value = query.value(2).toInt();
+        if (value)
+            {
+            mCategoryDbMapping.insert(category_name, false);
+            }
+        else
+            {
+            mCategoryDbMapping.insert(category_name, true);
+            }
+        qDebug() <<"string db= "<<category_name;
+        }
+    db.close();         
+    
+  /*  mCategoryDbMapping.insert("Contacts", true); 
+    mCategoryDbMapping.insert("Audios", true); 
+    mCategoryDbMapping.insert("Images", true); 
+    mCategoryDbMapping.insert("Videos", true); 
+    mCategoryDbMapping.insert("Messages", true); 
+    mCategoryDbMapping.insert("email", true); 
+    mCategoryDbMapping.insert("Calendar", true); 
+    mCategoryDbMapping.insert("Notes", true); 
+    mCategoryDbMapping.insert("Applications", true); 
+    mCategoryDbMapping.insert("Bookmarks", true); 
+    mCategoryDbMapping.insert("Files", true); */
+    
+   // mCategoryDbMapping.insert("email", true); // to remove once email starts working
+    
+    mDeviceListDisplay.append("Select all");
+    mDeviceMapping.insert(0, true);
+
+    if (mCategoryDbMapping.value("Contacts"))
+        {
+        mDeviceMapping.insert(1, true);
+        mDeviceListDisplay.append(hbTrId("txt_search_list_contatcs"));
+        }
+
+    if (mCategoryDbMapping.value("Audios")
+            || mCategoryDbMapping.value("Images") || mCategoryDbMapping.value(
+            "Videos"))
+        {
+        mDeviceListDisplay.append(hbTrId("txt_search_list_media"));
+        mDeviceMapping.insert(2, true);
+        }
+
+    if (mCategoryDbMapping.value("Messages") || mCategoryDbMapping.value(
+            "email"))
+        {
+        mDeviceListDisplay.append(hbTrId("txt_search_list_messagemail"));
+        mDeviceMapping.insert(3, true);
+        }
+
+    if (mCategoryDbMapping.value("Calendar") || mCategoryDbMapping.value(
+            "Notes"))
+        {
+        mDeviceListDisplay.append(hbTrId("txt_search_list_calendarnotes"));
+        mDeviceMapping.insert(4, true);
+        }
+
+    if (mCategoryDbMapping.value("Applications"))
+        {
+        mDeviceListDisplay.append(hbTrId("txt_search_list_applications"));
+        mDeviceMapping.insert(5, true);
+        }
+
+    if (mCategoryDbMapping.value("Bookmarks"))
+        {
+        mDeviceListDisplay.append(hbTrId("txt_search_list_bookmarks"));
+        mDeviceMapping.insert(6, true);
+        }
+
+    if (mCategoryDbMapping.value("Files"))
+        {
+        mDeviceListDisplay.append(hbTrId("txt_search_list_all_other_files"));
+        mDeviceMapping.insert(7, true);
+        }
+    internetCategoryList = (QStringList() << "Google" << "Bing");
+
+    mCategoryList = (QStringList() << hbTrId("txt_search_list_device")
+            << hbTrId("txt_search_list_internet"));
+    }
+
 //----------------------------------------------------------------------------------------------------------------------------
 //SettingsWidget::~SettingsWidget()
 //
@@ -144,6 +334,15 @@ SettingsWidget::~SettingsWidget()
     {
     delete signalMapper;
     //delete popup;
+    //delete dataform;
+    delete mModel;
+    //delete mradiolist;
+    mDeviceCheckBoxList.clear();
+    mInternetCheckBoxList.clear();
+    mModelItemList.clear();
+    mActions.clear();
+    delete mDocumentLoader;
+    //delete popup;
     }
 //----------------------------------------------------------------------------------------------------------------------------
 //SettingsWidget::launchSettingWidget()
@@ -151,7 +350,12 @@ SettingsWidget::~SettingsWidget()
 //----------------------------------------------------------------------------------------------------------------------------
 void SettingsWidget::launchSettingWidget()
     {
-    loadSettingsFrominiFile();
+    if (mInstialize)
+        {
+        initialize();
+        mInstialize = false;
+        }
+    q_currentIndexChanged(mSelectedScope);
     setActionVisibility();
     popup->show();
     }
@@ -169,20 +373,12 @@ void SettingsWidget::setActionVisibility()
             noItemSelected = false;
             }
         }
-    for (int i = 0; i < mInternetCheckBoxList.count(); i++)
+    for (int i = 0; i < mActions.count(); i++)
+        popup->removeAction(mActions.at(i));
+    popup->addActions(mActions);
+    if (noItemSelected)
         {
-        if (mInternetCheckBoxList.at(i)->checkState() == Qt::Checked)
-            {
-            noItemSelected = false;
-            }
-        }
-    if (!noItemSelected)
-        {
-        popup->primaryAction()->setVisible(true);
-        }
-    else
-        {
-        popup->primaryAction()->setVisible(false);
+        popup->removeAction(mActions.at(0));
         }
     }
 //----------------------------------------------------------------------------------------------------------------------------
@@ -191,106 +387,55 @@ void SettingsWidget::setActionVisibility()
 //----------------------------------------------------------------------------------------------------------------------------
 void SettingsWidget::itemChecked(int selectedIndex)
     {
-    int totalcount = deviceCategoryList.count()
-            + internetCategoryList.count();
-
-    if (selectedIndex == 0) // validating the parent category "devices"
+    if (mDeviceCheckBoxList.count() != 0)
         {
-        if ((mDeviceCheckBoxList.at(selectedIndex)->checkState()
-                == Qt::Checked))
+        if (selectedIndex == 0 && mchangestate) // validating the select all
             {
-            isInternetSelected = false;
-            checkSubCategories(0);
-            unCheckSubCategories(0);
+            if ((mDeviceCheckBoxList.at(selectedIndex)->checkState()
+                    == Qt::Checked))
+                {
+                checkSubCategories();
+                }
+            else
+                {
+                unCheckSubCategories();
+                }
             }
         else
             {
-            unCheckSubCategories(1);
-            }
-        setActionVisibility();
-        return;
-        }
-    else if (selectedIndex == deviceCategoryList.count())// validating the parent category "internet"
-        {
-        if (mInternetCheckBoxList.at(selectedIndex
-                - deviceCategoryList.count())->checkState() == Qt::Checked)
-            {
-            isInternetSelected = true;
-            checkSubCategories(1);
-            unCheckSubCategories(1);
-            }
-        else
-            {
-            unCheckSubCategories(0);
-            }
-        setActionVisibility();
-        return;
-        }
-    if (selectedIndex < deviceCategoryList.count())// validating the sub categories under  "devices"
-        {
-        if (mDeviceCheckBoxList.at(selectedIndex)->checkState()
-                == Qt::Checked)
-            {
-            isInternetSelected = false;
-            unCheckSubCategories(0);
-
+            if ((mDeviceCheckBoxList.at(selectedIndex)->checkState()
+                    == Qt::Unchecked))
+                {
+                mchangestate = false;
+                mDeviceCheckBoxList.at(0)->setCheckState(Qt::Unchecked);
+                setActionVisibility();
+                return;
+                }
             }
         }
-    else // validating the sub categories under  "internet"
-        {
-        int curentindex = (selectedIndex + internetCategoryList.count())
-                - (deviceCategoryList.count() + internetCategoryList.count());
-
-        if (mInternetCheckBoxList.at(curentindex)->checkState()
-                == Qt::Checked)
-            {
-            isInternetSelected = true;
-            unCheckSubCategories(1);
-            //return;
-            }
-        }
+    mchangestate = true;
     setActionVisibility();
     }
 //----------------------------------------------------------------------------------------------------------------------------
-//SettingsWidget::check(int checkSubCategory)
+//SettingsWidget::checkSubCategories
 //
 //----------------------------------------------------------------------------------------------------------------------------
-void SettingsWidget::checkSubCategories(int checkSubCategory)
+void SettingsWidget::checkSubCategories()
     {
-    if (checkSubCategory == 0)
+    for (int i = 0; i < mDeviceCheckBoxList.count(); i++)
         {
-        for (int i = 0; i < mDeviceCheckBoxList.count(); i++)
-            {
-            mDeviceCheckBoxList.at(i)->setCheckState(Qt::Checked);
-            }
-        }
-    else
-        {
-        for (int i = 0; i < mInternetCheckBoxList.count(); i++)
-            {
-            mInternetCheckBoxList.at(i)->setCheckState(Qt::Checked);
-            }
+        mDeviceCheckBoxList.at(i)->setCheckState(Qt::Checked);
         }
     }
 //----------------------------------------------------------------------------------------------------------------------------
-//SettingsWidget::unCheckSubCategories(int unCheckSubCategory)
+//SettingsWidget::unCheckSubCategories
 //
 //----------------------------------------------------------------------------------------------------------------------------
-void SettingsWidget::unCheckSubCategories(int unCheckSubCategory)
+void SettingsWidget::unCheckSubCategories()
     {
-    if (unCheckSubCategory == 0)
+    for (int i = 0; i < mDeviceCheckBoxList.count(); i++)
         {
-        for (int i = 0; i < mInternetCheckBoxList.count(); i++)
-            {
-            mInternetCheckBoxList.at(i)->setCheckState(Qt::Unchecked);
-            }
-        }
-    else
-        {
-        for (int i = 0; i < mDeviceCheckBoxList.count(); i++)
-            {
-            mDeviceCheckBoxList.at(i)->setCheckState(Qt::Unchecked);
-            }
+        mDeviceCheckBoxList.at(i)->setCheckState(Qt::Unchecked);
         }
     }
 //----------------------------------------------------------------------------------------------------------------------------
@@ -299,7 +444,7 @@ void SettingsWidget::unCheckSubCategories(int unCheckSubCategory)
 //----------------------------------------------------------------------------------------------------------------------------
 void SettingsWidget::checkBoxCancelEvent()
     {
-    loadSettingsFrominiFile();//bug fix for cancel event selection should not reflect "go" button
+    //   loadDeviceSettings();//bug fix for cancel event selection should not reflect "go" button
     emit settingsEvent(false);
     }
 //----------------------------------------------------------------------------------------------------------------------------
@@ -319,82 +464,112 @@ void SettingsWidget::checkBoxOkEvent()
 
 void SettingsWidget::storeSettingsToiniFile()
     {
-    QSettings appSettings("Search.ini", QSettings::IniFormat);
+    QSettings appSettings("search.ini", QSettings::IniFormat);
+    appSettings.setValue("selectedcategory", mSelectedScope);
+    appSettings.setValue("devicecount", mDeviceCategoryRefList.count());
+    if (!isInternetSelected)
+        {
+        int j = 0;
+        for (int i = 0; i < mDeviceCategoryRefList.count(); i++)
+            {
+            if (mDeviceMapping.at(i))
+                {
+                if (mDeviceCheckBoxList.at(j)->checkState() == Qt::Checked)
+                    {
+                    appSettings.setValue(mDeviceCategoryRefList.at(i), 1);
+                    emit selectedItemCategory(i, true);
+                    }
+                else
+                    {
+                    appSettings.setValue(mDeviceCategoryRefList.at(i), 0);
+                    emit selectedItemCategory(i, false);
+                    }
+                j++;
+                }
+            else
+                {
+                appSettings.setValue(mDeviceCategoryRefList.at(i), 0);
+                emit selectedItemCategory(i, false);
+                }
 
-    appSettings.setValue("DeviceCount", mDeviceCheckBoxList.count());
-    for (int i = 0; i < mDeviceCheckBoxList.count(); i++)
-        {
-        if (mDeviceCheckBoxList.at(i)->checkState() == Qt::Checked)
-            {
-            appSettings.setValue(mDeviceCheckBoxList.at(i)->text(), 1);
-            emit selectedItemCategory(i, true);
-            }
-        else
-            {
-            appSettings.setValue(mDeviceCheckBoxList.at(i)->text(), 0);
-            emit selectedItemCategory(i, false);
             }
         }
-    // int totalcount = i;
-    appSettings.setValue("InternetCount", mInternetCheckBoxList.count());
-    for (int i = 0; i < mInternetCheckBoxList.count(); i++)
+    appSettings.setValue("internetcount", internetCategoryList.count());
+    appSettings.setValue("selectedprovider", mSelectedProvider);
+    }
+//----------------------------------------------------------------------------------------------------------------------------
+//void SettingsWidget::loadBaseSettings()
+//
+//----------------------------------------------------------------------------------------------------------------------------
+void SettingsWidget::loadBaseSettings()
+    {
+    QSettings appSettings("search.ini", QSettings::IniFormat);
+    int value;
+    if (!(appSettings.contains("selectedcategory")))
         {
-        if (mInternetCheckBoxList.at(i)->checkState() == Qt::Checked)
-            {
-            appSettings.setValue(mInternetCheckBoxList.at(i)->text(), 1);
-            //  emit selectedcategory(totalcount,true);
-            }
-        else
-            {
-            appSettings.setValue(mInternetCheckBoxList.at(i)->text(), 0);
-            //emit selectedcategory(totalcount,false);
-            }
-        //    totalcount++;
+        value = 0;
         }
+    else
+        {
+        value = appSettings.value("selectedcategory").toInt();
+        }
+    mSelectedScope = value;
+    if (mSelectedScope)
+        {
+        isInternetSelected = true;
+        }
+    else
+        {
+        isInternetSelected = false;
+        }
+    mSelectedProvider = appSettings.value("selectedprovider").toInt();
     }
 
 //----------------------------------------------------------------------------------------------------------------------------
-//void SettingsWidget::loadSettingsFrominiFile()
+//void SettingsWidget::loadDeviceSettings()
 //
 //----------------------------------------------------------------------------------------------------------------------------
-
-void SettingsWidget::loadSettingsFrominiFile()
+void SettingsWidget::loadDeviceSettings()
     {
-    enableDefaultSettings();
-    isInternetSelected = false;
-    QSettings appSettings("Search.ini", QSettings::IniFormat);
-    int ret = 0;
-    for (int i = 0; i < mDeviceCheckBoxList.count(); i++)
+    QSettings appSettings("search.ini", QSettings::IniFormat);
+    int value;
+    if (!isInternetSelected)
         {
-        ret = appSettings.value(mDeviceCheckBoxList.at(i)->text()).toInt();
-        if (ret)
+        int j = 0;
+        for (int i = 0; i < mDeviceCategoryRefList.count(); i++)
             {
-            mDeviceCheckBoxList.at(i)->setCheckState(Qt::Checked);
-            emit selectedItemCategory(i, true);
-            }
-        else
-            {
-            mDeviceCheckBoxList.at(i)->setCheckState(Qt::Unchecked);
-            emit selectedItemCategory(i, false);
+            if (!(appSettings.contains(mDeviceCategoryRefList.at(i))))
+                {
+                value = 1;
+                }
+            else
+                {
+                value
+                        = appSettings.value(mDeviceCategoryRefList.at(i)).toInt();
+                }
+            if (mDeviceMapping.count() && mDeviceCheckBoxList.count()
+                    && mDeviceMapping.at(i))
+                {
+                if (value)
+                    {
+                    mDeviceCheckBoxList.at(j)->setCheckState(Qt::Checked);
+                    }
+                else
+                    {
+                    mDeviceCheckBoxList.at(j)->setCheckState(Qt::Unchecked);
+                    }
+                j++;
+                }
+            if (value) // get the setting before ui preparation
+                {
+                emit selectedItemCategory(i, true);
+                }
+            else
+                {
+                emit selectedItemCategory(i, false);
+                }
             }
         }
-    for (int i = 0; i < mInternetCheckBoxList.count(); i++)
-        {
-
-        ret = appSettings.value(mInternetCheckBoxList.at(i)->text()).toInt();
-        if (ret)
-            {
-            isInternetSelected = true;
-            mInternetCheckBoxList.at(i)->setCheckState(Qt::Checked);
-            // emit selectedcategory(mInternetCheckBoxList.at(i)->text(),true);
-            }
-        else
-            {
-            mInternetCheckBoxList.at(i)->setCheckState(Qt::Unchecked);
-            // emit selectedcategory(mInternetCheckBoxList.at(i)->text(),false);
-            }
-        }
-
     }
 //----------------------------------------------------------------------------------------------------------------------------
 //SettingsWidget::isInternetSearchOptionSelected()
@@ -402,50 +577,26 @@ void SettingsWidget::loadSettingsFrominiFile()
 //----------------------------------------------------------------------------------------------------------------------------
 bool SettingsWidget::isInternetSearchOptionSelected()
     {
+    loadBaseSettings();
     return isInternetSelected;
     }
+
 //----------------------------------------------------------------------------------------------------------------------------
-//void SettingsWidget::changeDeviceInternetCheck()
+//void SettingsWidget::storeDefaultSettings()
 //
 //----------------------------------------------------------------------------------------------------------------------------
-void SettingsWidget::changeDeviceInternetCheck()
+void SettingsWidget::storeDefaultSettings()
     {
-    if (isInternetSearchOptionSelected() == true)
+    QSettings appSettings("search.ini", QSettings::IniFormat);
+    if (!appSettings.contains("selectedcategory")) // change the settings for the first time only
         {
-        mDeviceCheckBoxList.at(0)->setCheckState(Qt::Checked);
-
+        mSelectedScope = 0;
+        mSelectedProvider = 0;
+        appSettings.setValue("selectedcategory", mSelectedScope);
+        appSettings.setValue("devicecount", mDeviceCategoryRefList.count());
+        for (int i = 0; i < mDeviceCategoryRefList.count(); i++)
+            appSettings.setValue(mDeviceCategoryRefList.at(i), 1);
+        appSettings.setValue("internetcount", internetCategoryList.count());
+        appSettings.setValue("selectedprovider", mSelectedProvider);
         }
-    else
-
-        {
-
-        mInternetCheckBoxList.at(0)->setCheckState(Qt::Checked);
-
-        }
-
-    emit settingsChanged();
-    }
-//----------------------------------------------------------------------------------------------------------------------------
-//void SettingsWidget::enableDefaultSettings()
-//
-//----------------------------------------------------------------------------------------------------------------------------
-void SettingsWidget::enableDefaultSettings()
-    {
-    QSettings appSettings("Search.ini", QSettings::IniFormat);
-    if (!appSettings.contains("DeviceCount")) // change the settings for the first time only
-        {
-        appSettings.setValue("DeviceCount", mDeviceCheckBoxList.count());
-        for (int i = 0; i < mDeviceCheckBoxList.count(); i++)
-            {
-            //   mDeviceCheckBoxList.at(i)->setCheckState(Qt::Checked);
-            appSettings.setValue(mDeviceCheckBoxList.at(i)->text(), 1);
-            }
-        for (int i = 0; i < mInternetCheckBoxList.count(); i++)
-            {
-            //mInternetCheckBoxList.at(i)->setCheckState(Qt::Unchecked);
-            appSettings.setValue(mInternetCheckBoxList.at(i)->text(), 0);
-            }
-        //  storeSettingsToiniFile();
-        }
-
     }

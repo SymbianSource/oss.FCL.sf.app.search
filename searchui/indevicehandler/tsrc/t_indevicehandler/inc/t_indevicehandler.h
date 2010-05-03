@@ -34,14 +34,11 @@ private slots:
     void initTestCase();
     void cleanupTestCase();
     void testCreateAndDestructIndeviceHandler();
-    void testhandleSearchResult();
     void testhandleAsyncSearchResult();
     void testhandleDocument();
     void testgetSearchResult();
     void testgetDocumentAsync();
-    void testgetDocumentAtIndex();
     void testgetDocumentAsyncAtIndex();
-    void testsearch();
     void testsearchAsync();
     void testcancelLastSearch();
     void testgetSearchResultCount();

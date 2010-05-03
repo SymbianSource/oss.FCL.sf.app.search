@@ -15,9 +15,10 @@
  *
  */
 
-#include "Search.h"
-#include "hsruntime.h"
-#include "hsruntimefactory.h"
+#include "search.h"
+#include <qstatemachine.h>
+#include <searchruntimeprovider.h>
+#include <searchruntime.h>
 
 // ---------------------------------------------------------------------------
 // Search::Search
@@ -28,23 +29,16 @@ Search::Search(QObject* aParent) :
     {
     SEARCH_FUNC_ENTRY("SEARCH::Search::Search");
 
-    HsRuntimeFactory factory("searchresources/plugins/runtimeproviders",
-            "searchresources/plugins/runtimeproviders");
-
-    HsRuntimeToken token;
-    token.mLibrary = "searchruntimeprovider.dll";
-    token.mUri = "search.nokia.com/runtime/defaultruntime";
-
-    mRuntime = factory.createRuntime(token);
+    SearchRuntimeProvider *interface = new SearchRuntimeProvider();
+    mRuntime = interface->createPlugin();
     if (mRuntime)
         {
         mRuntime->setParent(this);
         connect(mRuntime, SIGNAL(started()), SLOT(handleRuntimeStarted()));
         connect(mRuntime, SIGNAL(stopped()), SLOT(handleRuntimeStopped()));
         connect(mRuntime, SIGNAL(faulted()), SLOT(handleRuntimeFaulted()));
-        }
-
-    SEARCH_FUNC_EXIT("SEARCH::Search::Search");
+        } 
+		SEARCH_FUNC_EXIT("SEARCH::Search::Search");
     }
 
 // ---------------------------------------------------------------------------
@@ -93,8 +87,10 @@ void Search::start()
 void Search::stop()
     {
     SEARCH_FUNC_ENTRY("SEARCH::Search::stop");
-
-    mRuntime->stop();
+    if (mRuntime)
+        {
+        mRuntime->stop();
+        }
 
     SEARCH_FUNC_EXIT("SEARCH::Search::stop");
     }

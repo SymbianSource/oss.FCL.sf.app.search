@@ -32,7 +32,7 @@ SOURCE        imageplugin.cpp
 SOURCE        tproxy.cpp
 
 USERINCLUDE   ../inc
-USERINCLUDE   ../../mediautils/inc
+USERINCLUDE   ../../mediautils/inc ../traces
 SYSTEMINCLUDE /epoc32/include/ecom
 APP_LAYER_SYSTEMINCLUDE
 

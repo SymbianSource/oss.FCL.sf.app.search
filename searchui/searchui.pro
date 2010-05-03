@@ -15,10 +15,11 @@
 #
 TEMPLATE = subdirs
 
-SUBDIRS  += indevicehandler \        
-	   Searchapplication \ 			          
-           runtimeproviders \                              
-           stateproviders
+SUBDIRS  += indevicehandler \ 
+	   stateproviders  \     
+	   runtimeproviders \
+	   searchapplication               
+           
 
 CONFIG += ordered
 

@@ -19,7 +19,7 @@
 #define SEARCH_STATES_INITSTATE_H
 
 #include <qstate.h>
-#include "Search_global.h"
+#include "search_global.h"
 
 SEARCH_CLASS( SearchStateProviderTest)
 class SearchInitState : public QState

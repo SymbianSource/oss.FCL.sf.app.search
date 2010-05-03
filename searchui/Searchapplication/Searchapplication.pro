@@ -19,8 +19,6 @@ TEMPLATE = app
 TARGET = Searchapplication 
 
 win32 {
-    INCLUDEPATH += \
-                  $$PWD/../../homescreensrv/homescreensrv_plat/appruntimemodel_api
     LIBS += -L$$PWD/../../bin/debug
     
     CONFIG(debug, debug|release) {
@@ -31,7 +29,7 @@ win32 {
     DESTDIR = $$PWD/../../bin/$$SUBDIRPART
 }
 
-LIBS +=  -lappruntimemodel
+LIBS +=  -lsearchruntimeprovider
 
 QT += xml 
 
@@ -47,7 +45,8 @@ DEPENDPATH += . \
 
 INCLUDEPATH += . \
                ./inc \
-               ../inc
+               ../inc \
+              ../runtimeproviders/searchruntimeprovider/inc 
 
 symbian {
     TARGET.UID2 = 0x100039CE
@@ -56,14 +55,11 @@ symbian {
     TARGET.EPOCSTACKSIZE = 0x14000 // 80kB
     TARGET.EPOCHEAPSIZE = 0x20000 0x1000000 // 128kB - 16MB
     rom:DEFINES += ROM
-    ICON = resources/search_app_icon.svg
-    icon.sources = resources/search_app_icon.svg
-    icon.path = /searchresources  
-    DEPLOYMENT += icon addFiles
+    SKINICON = qtg_large_search
 }
 
 win32 {
-include(Searchapplication_installs_win32.pri)
+include(searchapplication_installs_win32.pri)
 }
 
-include(Searchapplication.pri)
+include(searchapplication.pri)

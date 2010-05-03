@@ -152,14 +152,16 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
         */
         virtual TInt TestStartHarvesterL( CStifItemParser& aItem );
 		
-        virtual TInt TestFolderRenamingL( CStifItemParser& aItem );
-		
         virtual TInt TestFormBaseAppClass( CStifItemParser& aItem );
 		
 		virtual TInt TestDatabasePathL( CStifItemParser& aItem );
 		
-		virtual TInt TestCreateIndexItemL( CStifItemParser& aItem );
-		
+		virtual TInt TestCreateIndexItemL( CStifItemParser& aItem );		
+
+        virtual TInt TestFolderCreateL( CStifItemParser& aItem );        
+
+        virtual TInt TestFolderRenameL( CStifItemParser& aItem );
+        
         /**
          * Message harvester test method.
          * @since ?Series60_version

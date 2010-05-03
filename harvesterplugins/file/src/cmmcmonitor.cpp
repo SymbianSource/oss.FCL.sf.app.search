@@ -26,7 +26,12 @@
 #include <f32file.h> // TDriveNumber
 #include <driveinfo.h> // TDriveInfo
 
-#include <uikoninternalpskeys.h>
+#include <UikonInternalPSKeys.h>
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cmmcmonitorTraces.h"
+#endif
+
 
 // CONSTANTS
 // 
@@ -55,9 +60,11 @@ CMMCMonitor::CMMCMonitor( CFilePlugin& aFilePlugin )
     : CActive( CActive::EPriorityStandard ),
       iFilePlugin( aFilePlugin )
     {
+    OstTraceFunctionEntry0( CMMCMONITOR_CMMCMONITOR_ENTRY );
     CPIXLOGSTRING("ENTER CMMCMonitor::CMMCMonitor");
     CActiveScheduler::Add( this );
     CPIXLOGSTRING("END CMMCMonitor::CMMCMonitor");
+    OstTraceFunctionExit0( CMMCMONITOR_CMMCMONITOR_EXIT );
     }
 
 
@@ -81,23 +88,31 @@ CMMCMonitor::~CMMCMonitor()
 //
 void CMMCMonitor::ConstructL( RFs* aFsSession )
     {
+    OstTraceFunctionEntry0( CMMCMONITOR_CONSTRUCTL_ENTRY );
     CPIXLOGSTRING("ENTER CMMCMonitor::ConstructL Foobar");
     iFsSession = aFsSession;
     
     TInt error = iProperty.Attach( KPSUidUikon, KUikMMCInserted );
-    if ( error != KErrNone ) CPIXLOGSTRING("END CMMCMonitor::Attach to MMCInserted failed");
+    if ( error != KErrNone ) 
+        {
+        OstTrace0( TRACE_NORMAL, CMMCMONITOR_CONSTRUCTL, "END CMMCMonitor::Attach to MMCInserted failed" );
+        CPIXLOGSTRING("END CMMCMonitor::Attach to MMCInserted failed");
+        }
     
     error = iProperty.Get( KPSUidUikon, KUikMMCInserted, iMmcStatus );
     if ( error != KErrNone ) 
     	{
+		OstTrace0( TRACE_NORMAL, DUP1_CMMCMONITOR_CONSTRUCTL, "CMMCMonitor::Get MMCInserted failed" );
 		CPIXLOGSTRING("CMMCMonitor::Get MMCInserted failed");
     	} 
     else if ( iMmcStatus ) 	 
     	{
+    	OstTrace0( TRACE_NORMAL, DUP2_CMMCMONITOR_CONSTRUCTL, "CMMCMonitor::MMC card is in" );
     	CPIXLOGSTRING("CMMCMonitor::MMC card is in");
     	}
     else 
     	{
+    	OstTrace0( TRACE_NORMAL, DUP3_CMMCMONITOR_CONSTRUCTL, "CMMCMonitor::no MMC card" );
     	CPIXLOGSTRING("CMMCMonitor::no MMC card");
     	}
 
@@ -106,6 +121,7 @@ void CMMCMonitor::ConstructL( RFs* aFsSession )
     // CMMCMonitor::RunL().
     //
     CPIXLOGSTRING("END CMMCMonitor::ConstructL");
+    OstTraceFunctionExit0( CMMCMONITOR_CONSTRUCTL_EXIT );
     }
 
 
@@ -115,9 +131,11 @@ void CMMCMonitor::ConstructL( RFs* aFsSession )
 //
 TBool CMMCMonitor::StartMonitoring()
     {
+    OstTraceFunctionEntry0( CMMCMONITOR_STARTMONITORING_ENTRY );
     CPIXLOGSTRING("ENTER CMMCMonitor::StartMonitoring");
     TRAP_IGNORE( RunL() ); // Need to TRAP this rather than use RunError
     CPIXLOGSTRING("END CMMCMonitor::StartMonitoring");
+    OstTraceFunctionExit0( CMMCMONITOR_STARTMONITORING_EXIT );
     return ETrue;
     }
 
@@ -142,6 +160,7 @@ TBool CMMCMonitor::MmcStatus( TInt aDriveNumber )
         if ( ( drvStatus & DriveInfo::EDriveRemovable ) &&
              ( drvStatus & DriveInfo::EDriveUserVisible ) )
                 {
+                OstTrace1( TRACE_NORMAL, CMMCMONITOR_MMCSTATUS, "CMMCMonitor::MmcStatus;Drive Number=%d", aDriveNumber );
                 CPIXLOGSTRING2("CMMCMonitor::MmcStatus Drive Number %d", aDriveNumber);
                 isMmcPresent = ETrue;
                 }
@@ -156,6 +175,7 @@ TBool CMMCMonitor::MmcStatus( TInt aDriveNumber )
 //
 TInt CMMCMonitor::RunError( TInt aError )
     {
+    OstTrace1( TRACE_NORMAL, CMMCMONITOR_RUNERROR, "CMMCMonitor::RunError;aError=%d", aError );
     CPIXLOGSTRING2("CMMCMonitor::RunError Error:",aError);
     return KErrNone;
     }
@@ -167,9 +187,11 @@ TInt CMMCMonitor::RunError( TInt aError )
 //
 void CMMCMonitor::DoCancel()
     {
+    OstTraceFunctionEntry0( CMMCMONITOR_DOCANCEL_ENTRY );
     CPIXLOGSTRING("ENTER CMMCMonitor::DoCancel");
     iProperty.Cancel();
     CPIXLOGSTRING("END CMMCMonitor::DoCancel");
+    OstTraceFunctionExit0( CMMCMONITOR_DOCANCEL_EXIT );
     }
 
 
@@ -179,6 +201,7 @@ void CMMCMonitor::DoCancel()
 //
 void CMMCMonitor::RunL()
     {
+    OstTraceFunctionEntry0( CMMCMONITOR_RUNL_ENTRY );
     CPIXLOGSTRING("ENTER CMMCMonitor::RunL");
     iProperty.Subscribe( iStatus );
     SetActive();
@@ -186,10 +209,12 @@ void CMMCMonitor::RunL()
     
     if ( iMmcStatus )
     	{
+    	OstTrace0( TRACE_NORMAL, CMMCMONITOR_RUNL, "CMMCMonitor::MMC card is in" );
     	CPIXLOGSTRING("CMMCMonitor::MMC card is in");
     	}
     else 
     	{
+		OstTrace0( TRACE_NORMAL, DUP1_CMMCMONITOR_RUNL, "CMMCMonitor::no MMC card" );
 		CPIXLOGSTRING("CMMCMonitor::no MMC card");
     	}
 
@@ -214,12 +239,14 @@ void CMMCMonitor::RunL()
 
         if ( drvStatus & DriveInfo::EDrivePresent )
             {
+            OstTrace0( TRACE_NORMAL, DUP2_CMMCMONITOR_RUNL, "CMMCMonitor::RunL insert event" );
             CPIXLOGSTRING("CMMCMonitor::RunL insert event");
             // Mount MMC and force reharvest
             iFilePlugin.MountL(drv, ETrue);
             }
         else
             {
+            OstTrace0( TRACE_NORMAL, DUP3_CMMCMONITOR_RUNL, "CMMCMonitor::RunL eject event" );
             CPIXLOGSTRING("CMMCMonitor::RunL eject event");
             // If the MMC has been ejected, then need to dismount 
             // and undefine the volume
@@ -227,6 +254,7 @@ void CMMCMonitor::RunL()
             }
         }
     CPIXLOGSTRING("END CMMCMonitor::RunL");
+    OstTraceFunctionExit0( CMMCMONITOR_RUNL_EXIT );
     }
 
 // End Of File

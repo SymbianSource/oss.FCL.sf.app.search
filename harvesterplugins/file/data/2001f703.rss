@@ -37,7 +37,7 @@ RESOURCE REGISTRY_INFO theInfo
                                         {
                                         implementation_uid = 0x2001F703;
                                         version_no = 1;
-                                        display_name = "CPix Search File plugin";
+                                        display_name = "Files";
                                         default_data = "File";
                                         opaque_data = "";
                                         }

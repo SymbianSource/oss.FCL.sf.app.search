@@ -16,7 +16,24 @@
 
 TEMPLATE = app
 
+DEFINES += BUILD_SEARCHSTATEPROVIDER
 
+symbian {
+	CONFIG(debug, debug|release) {
+	    DESTDIR = ./debug
+	} else {
+	    DESTDIR = ./release    
+	}
+}
+
+win32 {
+ 	               
+    LIBS += -L$$PWD/../../../../../bin/debug
+    
+    DESTDIR = $$PWD/../../../../../bin/debug/
+}
+
+#LIBS += -lappservices
 LIBS += -lstatemodel
 #LIBS += -searchstateprovider.dll
 #LIBS += -searchruntimeprovider.dll
@@ -29,7 +46,10 @@ LIBS += -laknicon
 LIBS += -lapgrfx
 LIBS += -lbitgdi
     
-CONFIG += qtestlib 
+CONFIG += qtestlib \
+          symbian_test \
+          debug_and_release \
+          console
 CONFIG += hb
 
 QT += xml \
@@ -45,9 +65,8 @@ DEPENDPATH += .\
 INCLUDEPATH += .\
                ./inc \
                ../../inc \
-               ../../../../inc \
-               ../../../../indevicehandler/inc \
-	       ../../../../runtimeproviders/searchruntimeprovider/inc
+               ../../../../inc \               
+               ../../../../indevicehandler/inc 
 symbian {         
 CONFIG += symbian_test               
 TARGET.UID2 = 0x100039CE

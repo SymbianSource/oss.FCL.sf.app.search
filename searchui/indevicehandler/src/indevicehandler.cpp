@@ -27,6 +27,19 @@ InDeviceHandler::InDeviceHandler() :
     {
     }
 // ---------------------------------------------------------------------------
+// InDeviceHandler::~InDeviceHandler()
+// ---------------------------------------------------------------------------
+//
+InDeviceHandler::~InDeviceHandler()
+    {
+    if (mSearchInterface)
+        {
+        delete mSearchInterface;
+
+        }
+    }
+
+// ---------------------------------------------------------------------------
 // InDeviceHandler::getSearchResult(int aError, int estimatedResultCount)
 // aError: error code
 // estimatedResultCount: number of hits
@@ -71,45 +84,8 @@ QCPixDocument* InDeviceHandler::getDocumentAtIndex(int aIndex)
         }
     return doc;
     }
-// ---------------------------------------------------------------------------
-// InDeviceHandler:: search(QString aSearchString)
-// aSearchString: string to be searched sync
-// ---------------------------------------------------------------------------
-//
-void InDeviceHandler::search(QString aSearchString)
-    {
-    qDebug() << "InDeviceHandler::search Enter";
-    if (aSearchString.length())
-        {
-        int error = 0;
-        mSearchResultCount = 0;
-        if (mSearchInterface)
-            {
-            try
-                {
-                mSearchResultCount = mSearchInterface->search(aSearchString);
-                }
-            catch (...)
-                {
-                error = -1;
-                }
-            }
-        emit handleSearchResult(error, mSearchResultCount);
-        }
-    qDebug() << "InDeviceHandler::search Exit";
-    }
-// ---------------------------------------------------------------------------
-// InDeviceHandler::~InDeviceHandler()
-// ---------------------------------------------------------------------------
-//
-InDeviceHandler::~InDeviceHandler()
-    {
-    if (mSearchInterface)
-        {
-        delete mSearchInterface;
 
-        }
-    }
+
 // ---------------------------------------------------------------------------
 // InDeviceHandler::getSearchResultCount()
 // gets the number of hits
@@ -141,7 +117,7 @@ void InDeviceHandler::getDocumentAsyncAtIndex(int aIndex)
 
     }
 // ---------------------------------------------------------------------------
-// InDeviceHandler::searchAsync(QString aSearchAsyncString, QString/* aDefaultSearchField*/)
+// InDeviceHandler::searchAsync
 // aSearchAsyncString: string to be searched
 // async
 // ---------------------------------------------------------------------------
@@ -186,7 +162,7 @@ void InDeviceHandler::cancelLastSearch()
         }
     }
 // ---------------------------------------------------------------------------
-// InDeviceHandler::setCategory(QString astring)
+// InDeviceHandler::setCategory
 // astring: setting categories to be searched
 // ---------------------------------------------------------------------------
 //
@@ -203,6 +179,14 @@ void InDeviceHandler::setCategory(QString astring)
         database.append(astring);
         mSearchInterface = QCPixSearcher::newInstance(database,
                 DEFAULT_SEARCH_FIELD);
+        }
+    else
+        {
+        mSearchInterface = QCPixSearcher::newInstance("root",
+        DEFAULT_SEARCH_FIELD);
+        }
+    if (mSearchInterface)
+        {
         try
             {
             mSearchInterface->connect(mSearchInterface,
@@ -226,6 +210,7 @@ void InDeviceHandler::setCategory(QString astring)
             }
         }
     }
+
 // ---------------------------------------------------------------------------
 // InDeviceHandler::isPrepared()
 // verify the mSearchInterface is prepared or not

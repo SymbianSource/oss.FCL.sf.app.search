@@ -26,23 +26,44 @@
 
 #include "cfileplugin.h"
 #include "cfolderrenamedharvester.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cfolderrenamedharvesterTraces.h"
+#endif
+
 
 // CONSTANTS
 _LIT( KFileMask, "*.*" );
 const TInt KItemsPerRun = 1;
 
+
 namespace {
 
 void AppendBackslash( TDes& aDirectory )
-    {
-    const TChar KBackslashChar( '\\' );
+    {    
     const TInt lastChar = aDirectory.Length() - 1;
+    const TChar KBackslashChar( '\\' );
 
     // If it is directory which not contain backslash. 
     if ( KBackslashChar != aDirectory[lastChar] )
        {
        aDirectory.Append( KBackslashChar );
        }
+    }
+
+void RemoveBackslash( TDes& aDirectory )
+    {
+    const TInt lastChar = aDirectory.Length() - 1;
+    const TChar KBackslashChar( '\\' );
+    
+    //If directory contains slash at the end
+    if ( KBackslashChar == aDirectory[lastChar] )
+        {
+        TPtrC temppath( aDirectory.Left( lastChar ) );
+        aDirectory.Zero();
+        aDirectory.Append(temppath);
+        }
+    
     }
 
 } // namespace
@@ -149,9 +170,11 @@ CFolderRenamedHarvester::CFolderRenamedHarvester(  CFilePlugin& aFilePlugin, RFs
     iFilePlugin( aFilePlugin ),
     iFs( aFs )
     {
+    OstTraceFunctionEntry0( CFOLDERRENAMEDHARVESTER_CFOLDERRENAMEDHARVESTER_ENTRY );
     CPIXLOGSTRING("ENTER CFolderRenamedHarvester::CFolderRenamedHarvester");
     CActiveScheduler::Add( this );
     CPIXLOGSTRING("END CFolderRenamedHarvester::CFolderRenamedHarvester");
+    OstTraceFunctionExit0( CFOLDERRENAMEDHARVESTER_CFOLDERRENAMEDHARVESTER_EXIT );
     }
 
 
@@ -171,6 +194,7 @@ void CFolderRenamedHarvester::ConstructL()
 TBool CFolderRenamedHarvester::StartL( const TFileName& aOldDirectoryName, 
 									   const TFileName& aNewDirectoryName )
     {
+    OstTraceFunctionEntry0( CFOLDERRENAMEDHARVESTER_STARTL_ENTRY );
     CPIXLOGSTRING("ENTER CFolderRenamedHarvester::Start");
 
     // Append trailing backslash if required
@@ -184,6 +208,7 @@ TBool CFolderRenamedHarvester::StartL( const TFileName& aOldDirectoryName,
 
 	SetNextRequest( EFolderRenamedIdleState );
     CPIXLOGSTRING("END CFolderRenamedHarvester::Start");
+    OstTraceFunctionExit0( CFOLDERRENAMEDHARVESTER_STARTL_EXIT );
     return ETrue;
     }
 
@@ -193,6 +218,7 @@ TBool CFolderRenamedHarvester::StartL( const TFileName& aOldDirectoryName,
 //		
 void CFolderRenamedHarvester::GetNextFolderL()
     {
+    OstTraceFunctionEntry0( CFOLDERRENAMEDHARVESTER_GETNEXTFOLDERL_ENTRY );
     CPIXLOGSTRING("ENTER CFolderRenamedHarvester::GetNextFolderL");   
 
     delete iDir;
@@ -203,13 +229,15 @@ void CFolderRenamedHarvester::GetNextFolderL()
 
     if( iDir )
         {
+        OstTrace0( TRACE_NORMAL, CFOLDERRENAMEDHARVESTER_GETNEXTFOLDERL, "CFolderRenamedHarvester::GetNextFolderL - IF EHarvesterGetFileId" );
         CPIXLOGSTRING("CFolderRenamedHarvester::GetNextFolderL - IF EHarvesterGetFileId"); 
         SetNextRequest( EFolderRenamedGetFileId );
         }
     else
         {
+        OstTrace0( TRACE_NORMAL, DUP1_CFOLDERRENAMEDHARVESTER_GETNEXTFOLDERL, "CFolderRenamedHarvester::GetNextFolderL - IF EHarvesterIdle" );
         CPIXLOGSTRING("CFolderRenamedHarvester::GetNextFolderL - IF EHarvesterIdle");
-
+        HandleFolderRenameL();
         // finished folder rename, delete the folder from the array.
         CFolderRenamedItem *item = iRenamedFolders[0];
         iRenamedFolders.Remove(0);
@@ -218,6 +246,7 @@ void CFolderRenamedHarvester::GetNextFolderL()
         SetNextRequest( EFolderRenamedIdleState );
         }
     CPIXLOGSTRING("END CFolderRenamedHarvester::GetNextFolderL");
+    OstTraceFunctionExit0( CFOLDERRENAMEDHARVESTER_GETNEXTFOLDERL_EXIT );
     }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +256,7 @@ void CFolderRenamedHarvester::GetNextFolderL()
 //		    
 void CFolderRenamedHarvester::GetFileIdL()
     {
+    OstTraceFunctionEntry0( CFOLDERRENAMEDHARVESTER_GETFILEIDL_ENTRY );
     CPIXLOGSTRING("ENTER CFolderRenamedHarvester::GetFileId");
 
     if( iCurrentIndex == 0 )
@@ -251,7 +281,7 @@ void CFolderRenamedHarvester::GetFileIdL()
             TEntry entry = (*iDir)[iCurrentIndex];
             // Check if entry is a hidden or system file
             // if true -> continue until find something to index or have checked whole directory
-            if( !entry.IsHidden() && !entry.IsSystem() && !entry.IsDir() )
+            if( !entry.IsHidden() && !entry.IsSystem() )
                 {
                 TParse fileParser;
                 fileParser.Set( iDirscan->FullPath(), &(*iDir)[iCurrentIndex].iName, NULL );
@@ -260,12 +290,22 @@ void CFolderRenamedHarvester::GetFileIdL()
                 TPtrC leaf( fileNamePtr.Right( fileNamePtr.Length() - iNewFolderName.Length() ) );
                 TFileName oldFileName( iOldFolderName );
                 oldFileName.Append( leaf );
-
-                iFilePlugin.CreateFileIndexItemL( oldFileName, ECPixRemoveAction );
-                iFilePlugin.CreateFileIndexItemL( fileParser.FullName(), ECPixAddAction );
+                if(entry.IsDir())
+                    {
+                    iFilePlugin.CreateFolderFileIndexItemL( oldFileName, ECPixRemoveAction );
+                    iFilePlugin.CreateFolderFileIndexItemL( fileParser.FullName(), ECPixAddAction );                
+                    }  
+                else
+                    {
+                    iFilePlugin.CreateContentIndexItemL( oldFileName, ECPixRemoveAction );
+                    iFilePlugin.CreateFolderFileIndexItemL( oldFileName, ECPixRemoveAction, false );
+                
+                    iFilePlugin.CreateContentIndexItemL( fileParser.FullName(), ECPixAddAction );
+                    iFilePlugin.CreateFolderFileIndexItemL( fileParser.FullName(), ECPixAddAction, false );
+                    }                
                 // TODO: If this is not TRAPPED, state machine breaks 
                 iStepNumber++;
-                }
+                }            
             iCurrentIndex++;
             }
             
@@ -286,6 +326,7 @@ void CFolderRenamedHarvester::GetFileIdL()
         SetNextRequest( EFolderRenamedStartHarvest );
         }
     CPIXLOGSTRING("END CFolderRenamedHarvester::GetFileId"); 
+    OstTraceFunctionExit0( CFOLDERRENAMEDHARVESTER_GETFILEIDL_EXIT );
     }			
 
       
@@ -295,6 +336,7 @@ void CFolderRenamedHarvester::GetFileIdL()
 //   
 void CFolderRenamedHarvester::DoCancel()
 	{
+	OstTrace0( TRACE_NORMAL, CFOLDERRENAMEDHARVESTER_DOCANCEL, "CFolderRenamedHarvester::DoCancel" );
 	CPIXLOGSTRING("CFolderRenamedHarvester::DoCancel");
 	}
 
@@ -304,6 +346,7 @@ void CFolderRenamedHarvester::DoCancel()
 //   
 void CFolderRenamedHarvester::RunL()
     {
+    OstTraceFunctionEntry0( CFOLDERRENAMEDHARVESTER_RUNL_ENTRY );
     CPIXLOGSTRING("ENTER CFolderRenamedHarvester::RunL");
      // Simple Round-Robin scheduling.
     Deque();
@@ -315,6 +358,7 @@ void CFolderRenamedHarvester::RunL()
 			{
 			if ( iRenamedFolders.Count() == 0 )
 				{
+				OstTraceFunctionExit0( CFOLDERRENAMEDHARVESTER_RUNL_EXIT );
 				return; // Nothing to do.
 				}
 
@@ -342,6 +386,7 @@ void CFolderRenamedHarvester::RunL()
 			break;
         }
     CPIXLOGSTRING("END CFolderRenamedHarvester::RunL");
+    OstTraceFunctionExit0( DUP1_CFOLDERRENAMEDHARVESTER_RUNL_EXIT );
     }
 
 // -----------------------------------------------------------------------------
@@ -350,6 +395,7 @@ void CFolderRenamedHarvester::RunL()
 //   
 TInt CFolderRenamedHarvester::RunError(TInt aError)
 	{
+    OstTrace1( TRACE_NORMAL, CFOLDERRENAMEDHARVESTER_RUNERROR, "CFolderRenamedHarvester::RunError;aError=%d", aError );
     CPIXLOGSTRING2("CFolderRenamedHarvester::RunError - aError: %d", aError );
     iRenamedFolders.ResetAndDestroy();
 	iHarvestState = EFolderRenamedIdleState;
@@ -363,6 +409,7 @@ TInt CFolderRenamedHarvester::RunError(TInt aError)
 //
 void CFolderRenamedHarvester::SetNextRequest( TFileHarvesterState aState )
     {
+    OstTrace0( TRACE_NORMAL, CFOLDERRENAMEDHARVESTER_SETNEXTREQUEST, "CFolderRenamedHarvester::SetNextRequest" );
     CPIXLOGSTRING("CFolderRenamedHarvester::SetNextRequest");
     if ( !IsActive() )
         {
@@ -373,5 +420,11 @@ void CFolderRenamedHarvester::SetNextRequest( TFileHarvesterState aState )
         }
     }
 
-
+void CFolderRenamedHarvester::HandleFolderRenameL()
+    {
+    RemoveBackslash(iOldFolderName);
+    iFilePlugin.CreateFolderFileIndexItemL( iOldFolderName, ECPixRemoveAction );
+    RemoveBackslash(iNewFolderName);
+    iFilePlugin.CreateFolderFileIndexItemL( iNewFolderName, ECPixAddAction );
+    }
 // End of File

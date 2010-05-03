@@ -31,7 +31,7 @@ SOURCE cpixmediaaudiodoc.cpp
 SOURCE        tproxy.cpp
 
 USERINCLUDE   ../inc
-USERINCLUDE   ../../mediautils/inc
+USERINCLUDE   ../../mediautils/inc ../traces
 
 APP_LAYER_SYSTEMINCLUDE
 SYSTEMINCLUDE /epoc32/include/ecom

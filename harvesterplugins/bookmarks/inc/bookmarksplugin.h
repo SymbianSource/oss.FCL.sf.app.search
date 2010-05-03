@@ -21,9 +21,9 @@
 #include <cindexingplugin.h>
 
 #include <e32base.h>
-#include <favouritessession.h>
-#include <favouritesdb.h>
-#include <favouritesdbobserver.h>
+#include <FavouritesSession.h>
+#include <FavouritesDb.h>
+#include <FavouritesDbObserver.h>
 
 #include "common.h"
 #include "delayedcallback.h"

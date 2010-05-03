@@ -15,8 +15,8 @@
  *
  */
 
-#include "Search.h"
-#include "Search_global.h"
+#include "search.h"
+#include "search_global.h"
 
 #include <QtGui>
 #include <hbapplication.h>
@@ -42,6 +42,22 @@ int main(int argc, char *argv[])
     QTranslator commonTranslator;
     commonTranslator.load("common_" + lang, path);
     app.installTranslator(&commonTranslator);
+
+    QTranslator musicTranslator;
+    musicTranslator.load("musicplayer_" + lang, path);
+    app.installTranslator(&musicTranslator);
+
+    QTranslator contactsTranslator;
+    contactsTranslator.load("contacts_" + lang, path);
+    app.installTranslator(&contactsTranslator);
+
+    QTranslator calenderTranslator;
+    calenderTranslator.load("calendar_" + lang, path);
+    app.installTranslator(&calenderTranslator);
+
+    QTranslator notesTranslator;
+    notesTranslator.load("notes_" + lang, path);
+    app.installTranslator(&notesTranslator);
 
     Search search;
 #ifdef ROM

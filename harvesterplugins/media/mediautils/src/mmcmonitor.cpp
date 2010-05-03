@@ -25,7 +25,7 @@
 #include <f32file.h> // TDriveNumber
 #include <driveinfo.h> // TDriveInfo
 
-#include <uikoninternalpskeys.h>
+#include <UikonInternalPSKeys.h>
 
 // CONSTANTS
 // 
