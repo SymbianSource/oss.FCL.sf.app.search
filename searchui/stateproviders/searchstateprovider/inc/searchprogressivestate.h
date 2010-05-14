@@ -28,6 +28,7 @@
 #include <xqappmgr.h>
 #include <xqaiwrequest.h>
 #include "search_global.h"
+#include <f32file.h>
 
 //Uncomment to enable performance measurements.
 //#define OST_TRACE_COMPILER_IN_USE
@@ -61,7 +62,6 @@
 #define PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG
 
 #endif //OST_TRACE_COMPILER_IN_USE
-
 class HbMainWindow;
 class HbView;
 class HbListView;
@@ -71,7 +71,8 @@ class HbSearchPanel;
 class CFbsBitmap;
 class InDeviceHandler;
 class QCPixDocument;
-
+class NotesEditor;
+class EventViewerPluginInterface;
 SEARCH_CLASS( SearchStateProviderTest)
 /** @ingroup group_searchstateprovider
  * @brief The state where progressive search state is shown
@@ -150,8 +151,6 @@ private:
     void setSelectedCategories();
 public slots:
 
-   
-
     /**
      * slot connects to CSearchHandler to get the status of search result asynchronously 
      * @since S60 ?S60_version.
@@ -226,26 +225,25 @@ public slots:
      */
     void getrowsRemoved();
     /**
-        * slot added for Application manager
-        * @since S60 ?S60_version.
-        */
+     * slot added for Application manager
+     * @since S60 ?S60_version.
+     */
 
     void handleOk(const QVariant& var);
-    
+
     /**
-      * slot added for Application manager
-      * @since S60 ?S60_version.
-      */
+     * slot added for Application manager
+     * @since S60 ?S60_version.
+     */
 
     void handleError(int ret, const QString& var);
-    
-    /**
-      * Slot implemented for particular category search 
-      * @since S60 ?S60_version.
-      */
 
-    
-    QString filterDoc(const QCPixDocument* aDoc,const QString& filter);
+    /**
+     * Slot implemented to delete the calenderviewer plugin  
+     * @since S60 ?S60_version.
+     */
+
+    void _viewingCompleted();
 private:
 
     /**
@@ -287,6 +285,29 @@ private:
      */
     QPixmap fromSymbianCFbsBitmap(CFbsBitmap *aBitmap);
 
+    /**
+     * Function to retrive drive number from the provided mediaId
+     *  @param aMediaId Unique media Id.
+     */
+    QString getDrivefromMediaId(QString aMediaId);
+
+    /**
+     * Function to launch the result item for application category 
+     *  @param aUid Unique app Id.
+     */
+    void LaunchApplicationL(const TUid aUid);
+
+    /**
+     * Function to parse the  QCPixDocument with the given filter       
+     */
+    QString filterDoc(const QCPixDocument* aDoc, const QString& filter);
+
+    /**
+     * Function to parse the  QCPixDocument with the given filters       
+     */
+    QStringList filterDoc(const QCPixDocument* aDoc, const QString& filter1,
+            const QString& filter2, const QString& filter3 = QString());
+
 signals:
 
     /**
@@ -322,7 +343,7 @@ private:
      * Own.
      */
     HbSearchPanel* mSearchPanel;
-  
+
     /**
      * model for list view
      * Own.
@@ -393,11 +414,14 @@ private:
     bool loadSettings;
     QList<HbIcon> mIconArray;
     HbIcon mIcon;
-	
+    RFs iFs;
+
+    EventViewerPluginInterface *calAgandaViewerPluginInstance;
+    NotesEditor *notesEditor;
 private:
     XQApplicationManager* mAiwMgr;
     XQAiwRequest* mRequest;
-	
+    QSize mListViewIconSize;
 #ifdef OST_TRACE_COMPILER_IN_USE
     QTime m_totalSearchUiTime;
     QTime m_categorySearchUiTime;

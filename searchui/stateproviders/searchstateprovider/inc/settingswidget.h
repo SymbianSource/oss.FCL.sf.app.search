@@ -29,6 +29,7 @@ class HbDataFormModel;
 class HbDataForm;
 class HbRadioButtonList;
 class HbDataFormModelItem;
+class HbComboBox;
 
 SEARCH_CLASS(SearchStateProviderTest)
 
@@ -226,6 +227,11 @@ private:
       */
 
     HbRadioButtonList* mradiolist;
+	
+    /** 
+     * combobox items
+     */    
+    HbComboBox *comboBox ;
 
     bool mInstialize;
     bool mchangestate;

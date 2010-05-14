@@ -48,7 +48,7 @@ const char *DATAFORM = "dataForm";
 //----------------------------------------------------------------------------------------------------------------------------
 SettingsWidget::SettingsWidget() :
     signalMapper(NULL), popup(NULL), mDocumentLoader(NULL), dataform(NULL),
-            mModel(NULL),mSelectedScope(0),mSelectedProvider(0)
+            mModel(NULL),mSelectedScope(0),mSelectedProvider(0),comboBox(NULL)
     {
     for (int i = 0; i < 8; i++)
         {
@@ -130,7 +130,7 @@ void SettingsWidget::createGui()
 
     HbDataFormModelItem* themeComboGeneral = mModel->appendDataFormItem(
             HbDataFormModelItem::ComboBoxItem, hbTrId(
-                    "txt_search_qtl_dialog_pri_heading_delimiter"));
+                    "txt_search_info_select_search_scope"));
 
     themeComboGeneral->setContentWidgetData(QString("items"), mCategoryList);
 
@@ -139,9 +139,9 @@ void SettingsWidget::createGui()
 
     QModelIndex index = mModel->indexFromItem(themeComboGeneral);
 
-    HbDataFormViewItem *formItem = dataform->dataFormViewItem(index);
+    HbDataFormViewItem *formItem = static_cast<HbDataFormViewItem *> (dataform->itemByIndex(index));
 
-    HbComboBox *comboBox =
+      comboBox =
             static_cast<HbComboBox*> (formItem->dataItemContentWidget());
 
     q_currentIndexChanged(mSelectedScope);
@@ -175,7 +175,7 @@ void SettingsWidget::q_currentIndexChanged(int avalue)
             mModelItemList.append(mModelItem);
             QModelIndex index = mModel->indexFromItem(mModelItem);
 
-            HbDataFormViewItem *formItem = dataform->dataFormViewItem(index);
+            HbDataFormViewItem *formItem = static_cast<HbDataFormViewItem *> (dataform->itemByIndex(index));
 
             checkboxitem
                     = static_cast<HbCheckBox*> (formItem->dataItemContentWidget());
@@ -205,7 +205,7 @@ void SettingsWidget::q_currentIndexChanged(int avalue)
 
         QModelIndex index = mModel->indexFromItem(mModelItem);
 
-        HbDataFormViewItem *formItem = dataform->dataFormViewItem(index);
+        HbDataFormViewItem *formItem = static_cast<HbDataFormViewItem *> (dataform->itemByIndex(index));
 
         mradiolist
                 = static_cast<HbRadioButtonList*> (formItem->dataItemContentWidget());
@@ -272,7 +272,7 @@ void SettingsWidget::preparecategories()
     
    // mCategoryDbMapping.insert("email", true); // to remove once email starts working
     
-    mDeviceListDisplay.append("Select all");
+    mDeviceListDisplay.append(hbTrId("txt_search_list_select_all"));
     mDeviceMapping.insert(0, true);
 
     if (mCategoryDbMapping.value("Contacts"))
@@ -320,7 +320,7 @@ void SettingsWidget::preparecategories()
         mDeviceListDisplay.append(hbTrId("txt_search_list_all_other_files"));
         mDeviceMapping.insert(7, true);
         }
-    internetCategoryList = (QStringList() << "Google" << "Bing");
+    internetCategoryList = (QStringList());
 
     mCategoryList = (QStringList() << hbTrId("txt_search_list_device")
             << hbTrId("txt_search_list_internet"));
@@ -355,7 +355,8 @@ void SettingsWidget::launchSettingWidget()
         initialize();
         mInstialize = false;
         }
-    q_currentIndexChanged(mSelectedScope);
+    comboBox->setCurrentIndex(mSelectedScope);
+    loadDeviceSettings();
     setActionVisibility();
     popup->show();
     }

@@ -328,7 +328,8 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 		{
         // Return the entry that has been fetched, this will be NULL if there are 
 	    // no entries with the cal unique id
-	    CCalEntry* entry = iEntryView->FetchL(aLocalUid);    
+	    CCalEntry* entry = iEntryView->FetchL(aLocalUid);
+	    if ( entry == NULL)  return;
 	    CleanupStack::PushL(entry);
 	    
 	    if( CCalEntry::ENote != entry->EntryTypeL() )

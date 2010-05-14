@@ -45,6 +45,7 @@ LIBS += -lfbscli
 LIBS += -laknicon
 LIBS += -lapgrfx
 LIBS += -lbitgdi
+LIBS += -lnoteseditor
     
 CONFIG += qtestlib \
           symbian_test \

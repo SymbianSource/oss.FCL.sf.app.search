@@ -37,7 +37,9 @@ QEmailFetcher::QEmailFetcher( MEmailItemObserver& aObserver )
      iEmailService( NULL ),
      iMailBoxListings( NULL ), 
      iMailFolderList( NULL ),
-     iEnvelopeListing( NULL )
+     iEnvelopeListing( NULL ),
+     iCurrentMailboxIndex( 0 ), 
+     iCurrentFolderIndex( 0 )
     {
     }
 
@@ -57,7 +59,6 @@ QEmailFetcher* QEmailFetcher::newInstance( MEmailItemObserver& aObserver ){
     //Leak free init.
     try{
         QEmailFetcher* emailFetcher = new QEmailFetcher( aObserver );
-        //Uncomment 'this' once the actual APIs are ready.
         emailFetcher->iEmailService = new NmEmailService( emailFetcher );
         emailFetcher->iEmailEventNotifier =  new NmEventNotifier( emailFetcher );
         emailFetcher->iMailBoxListings = new NmMailboxListing( emailFetcher );
@@ -164,6 +165,30 @@ CSearchDocument* getSearchDocument( const NmMessageEnvelope& aEnvelope ){
 } //anonymous namespace
 
 //------------------------------------------------------------------------------
+//Just to avoid duplication of the following two lines.
+void QEmailFetcher::NotifyHarvestingComplete(){
+    iCurrentMailboxIndex = iCurrentFolderIndex = 0;
+    QT_TRAP_THROWING( iEmailObserver.HarvestingCompleted() );
+    return;
+}
+
+//------------------------------------------------------------------------------
+void QEmailFetcher::handleMailboxesListed(int aCount){
+    iCurrentMailboxIndex = 0;
+    if( aCount == NmMailboxListing::MailboxListingFailed ) {
+        NotifyHarvestingComplete();
+        return;
+    }
+    if( aCount>0 && iMailBoxListings->getMailboxes( iMailBoxes ) ){
+        //Already set to NULL in constructor, so safe to call delete first time.
+        processNextMailbox();
+    }else{
+        NotifyHarvestingComplete();
+        return;
+    }
+}
+
+//------------------------------------------------------------------------------
 //Options to make async (like other plugins' Asynchronizer):
 //1. Use http://doc.trolltech.com/4.6/qtimer.html and connect timeout() signal to something?
 //Downside: 
@@ -178,44 +203,68 @@ CSearchDocument* getSearchDocument( const NmMessageEnvelope& aEnvelope ){
 //
 //Recommendation: Use option 4.
 
-void QEmailFetcher::handleMailboxesListed(int aCount){
-    QList<NmMailbox> mailBoxes;
-    if( aCount>0 && iMailBoxListings->getMailboxes( mailBoxes ) ){
-        for( int i=0; i<aCount; i++ ){
-            //Already set to NULL in constructor, so safe to call delete first time.
-            delete iMailFolderList; iMailFolderList = NULL;
-            iMailFolderList = new NmFolderListing( this, mailBoxes.at( i ).id() );
-            connect( iMailFolderList, SIGNAL(foldersListed()), this, SLOT(mailFoldersListed()) );
-            const int waitForSeconds = 30; //TODO Move this constant out of here if needed elsewhere
-            QTimer::singleShot( waitForSeconds, iMailFolderList, SLOT( start()) );
-        }
+void QEmailFetcher::processNextMailbox(){
+    //No more mailboxes, notify completion.
+    if( iCurrentMailboxIndex >= iMailBoxes.count() ) {
+        NotifyHarvestingComplete();
+        return;
+    }
+    
+    //More mailboxes available.
+    delete iMailFolderList; iMailFolderList = NULL;
+    iMailFolderList = new NmFolderListing( this, iMailBoxes.at( iCurrentMailboxIndex++ ).id() );
+    connect( iMailFolderList, SIGNAL(foldersListed()), this, SLOT(handleMailFoldersListed()) );
+    const int waitForSeconds = 30; //TODO Move this constant out of here if needed elsewhere
+    QTimer::singleShot( waitForSeconds, iMailFolderList, SLOT( start()) );
+}
+
+//------------------------------------------------------------------------------
+void QEmailFetcher::handleMailFoldersListed(int aCount){
+    iCurrentFolderIndex = 0;
+    if( aCount == NmFolderListing::FolderListingFailed ){
+        processNextMailbox();
+        return;//Don't proceed futher.
+    }
+    if( aCount && iMailFolderList->getFolders( iFolders ) ){ 
+        processNextFolder();
+    }else{
+        processNextMailbox();
+        return;
     }
 }
 
 //------------------------------------------------------------------------------
-void QEmailFetcher::mailFoldersListed(int aCount){
-    if( aCount == NmFolderListing::FolderListingFailed ) return; //silently.
-    QList<NmFolder> folders;
-    if ( aCount && iMailFolderList->getFolders( folders ) ) {
-        for( int i=0; i<aCount; i++ ){
-            //Already set to NULL in constructor, so safe to call delete first time.
-            delete iEnvelopeListing; iEnvelopeListing = NULL; 
-            iEnvelopeListing = new NmEnvelopeListing( this, folders.at( i ).id(), 0 );
-            connect(iEnvelopeListing, SIGNAL(envelopesListed(int)),this,SLOT(processMessages(int)));
-            iEnvelopeListing->start();
-        }
+void QEmailFetcher::processNextFolder(){
+    //No more folders in current mailbox.
+    if( iCurrentFolderIndex >= iFolders.count() ) {
+        processNextMailbox();
+        return;//Don't proceed futher.
     }
+    
+    //More folders to process.
+    //Already set to NULL in constructor, so safe to call delete first time.
+    delete iEnvelopeListing; iEnvelopeListing = NULL; 
+    iEnvelopeListing= new NmEnvelopeListing( 
+            this, 
+            iFolders.at( iCurrentFolderIndex++ ).id(),
+            iMailBoxes.at( iCurrentMailboxIndex-1 ).id() ); //we have already incremented iMailboxIndex.
+
+    connect(iEnvelopeListing, SIGNAL(envelopesListed(int)),this,SLOT(processMessages(int)));
+    iEnvelopeListing->start();
 }
 
 //------------------------------------------------------------------------------
 void QEmailFetcher::processMessages(int aCount){
-    if( aCount == NmMailboxListing::MailboxListingFailed ) return; //silently.
+    if( aCount == NmEnvelopeListing::EnvelopeListingFailed ) {
+        processNextFolder();
+        return;//Don't proceed futher.
+    }
     QList<NmMessageEnvelope> envelopes;
     if ( aCount > 0 && iEnvelopeListing->getEnvelopes(envelopes) ) {
         for( int i=0; i<envelopes.count(); i++ ) {
-        const NmMessageEnvelope &envelope = envelopes.at( i );
-        //Create document and call back observer.
-        QT_TRAP_THROWING( iEmailObserver.HandleDocumentL( getSearchDocument( envelope ), ECPixAddAction ) );
+            const NmMessageEnvelope &envelope = envelopes.at( i );
+            //Create document and call back observer.
+            QT_TRAP_THROWING( iEmailObserver.HandleDocumentL( getSearchDocument( envelope ), ECPixAddAction ) );
         }
     }
 }

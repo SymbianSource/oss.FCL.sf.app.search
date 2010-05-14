@@ -45,30 +45,36 @@ private slots:
     void testCreateProgressiveState();
     void testCreateSettingsState();
     void testCreateinitState();
-     /**
+    /**
      * t_searchprogressivestate.cpp
      */
 
     void testProgressiveStateConstruction();
     void testProgressiveStateOnEntryAndExitSignalled();
+    void testgetAppIconFromAppId();
+    void testsetSelectedCategories();
     void testonAsyncSearchComplete();
     void testonGetDocumentComplete();
-    void testgetSettingCategory();
     void testopenResultitem();
-    void testcreateSuggestionLink();
-    void testnoResultsFound();
-    void testclear();
-    void testsearchOnCategory();
-    void teststartNewSearch();
+    void testgetSettingCategory();
     void testsetSettings();
-    void test_CustomizeGoButton();
-    void testgetAppIconFromAppId();
+    void teststartNewSearch();
+    void test_customizeGoButton();
     void testsettingsaction();
-    void testcancelsearch();
-    void testhandleokanderror();
+    void testcancelSearch();
+    void testgetrowsInserted();
+    void testgetrowsRemoved();
+    void testhandleOkError();
+    void test_viewingCompleted();
+    void testsearchOnCategory();
+    void testclear();
+    void testnoResultsFound();
+    void testcreateSuggestionLink();
     void testTDisplayMode2Format();
-    void testsetSelectedCategories();
-    void testfilterdoc();
+    void testfromSymbianCFbsBitmap();
+    void testgetDrivefromMediaId();
+    void testLaunchApplicationL();
+    void testfilterDoc();
 
     /**
      * t_searchsettingsstate.cpp
@@ -97,17 +103,15 @@ private slots:
     void testisInternetSearchOptionSelected();
     void testunCheckSubCategories();
     void testcheckSubCategories();
-  
+
     void testcheckBoxOkEvent();
     void testcheckBoxCancelEvent();
     void testitemChecked();
     void testcreateGui();
     void testpreparecategories();
     void testq_currentIndexChanged();
-  
+
     void selectedItemCategory();
-    
-    
 
     /* void testOnWizardAddedSignalledNoWizardInCS();
      void testProgressUpdated();

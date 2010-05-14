@@ -29,6 +29,7 @@ PRJ_EXPORTS
  
 ../cenrep/20029ac7.cre                         /epoc32/winscw/c/private/10202be9/20029ac7.cre
 ../cenrep/20029ac7.cre                         /epoc32/data/z/private/10202be9/20029ac7.cre
+../sis/cpixsearchapp_stub.sis                  /epoc32/data/z/system/install/cpixsearchapp_stub.sis
 
 PRJ_TESTMMPFILES
 

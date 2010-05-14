@@ -185,11 +185,12 @@ HbMainWindow* SearchStateProviderTest::mainWindow()
 int main(int argc, char *argv[])
     {
     QApplication app(argc, argv);
-    int error;
+    int error =0;
     TRAPD(err,
             QTEST_DISABLE_KEYPAD_NAVIGATION
             SearchStateProviderTest tc;
             error = QTest::qExec(&tc, argc, argv););
+    Q_UNUSED(err);
     return error;
     }
 #else //Q_OS_SYMBIAN

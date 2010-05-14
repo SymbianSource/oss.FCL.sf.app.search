@@ -48,6 +48,11 @@ public:
    * @param aActionType action to be taken on document
 	 */
 	virtual void HandleDocumentL(const CSearchDocument* aSearchDocument, TCPixActionType aActionType) = 0;
+	
+	/**
+     * A pure virtual method which is called by the email fetcher when harvesting completed     
+     */
+    virtual void HarvestingCompleted() = 0;
 
 };
 

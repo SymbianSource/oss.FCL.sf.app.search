@@ -209,8 +209,13 @@ void CApplicationsPlugin::CreateApplicationsIndexItemL( TApaAppInfo& aAppInfo, T
     docidString = docidString.Mid( KUidStartIndex, KUidEndIndex  );
     
     CSearchDocument* document = CSearchDocument::NewLC( docidString, _L(APPLICATIONS_APPCLASS) );
+    //The UID field should not be aggregated for now as we dont want it to be searchable by default.
+    //By default, all tokenized fields are aggregated and therefore searchable.
+    //If we dont tokenize, then the field will not be searchable at all.
+    //As a middle path, we tokenize this field, but explicitly chose NOT to aggregate it.
+    //That way, if a client is interested in the UID field, he can choose to query it explicitly.
     document->AddFieldL(KMimeTypeField, KMimeTypeApplication, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized );
-    document->AddFieldL(KApplicationFieldUid, docidString, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+    document->AddFieldL(KApplicationFieldUid, docidString, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EAggregateNo );
 
     if( iWidgetRegistry.IsWidget( aAppInfo.iUid  ) )
         AddWidgetInfoL( document, aAppInfo.iUid );

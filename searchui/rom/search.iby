@@ -43,6 +43,10 @@ file=/epoc32/release/armv5/urel/searchruntimeprovider.dll SHARED_LIB_DIR/searchr
 //state provider dll
 file=/epoc32/release/armv5/urel/searchstateprovider.dll SHARED_LIB_DIR/searchstateprovider.dll
 
+
+// Stub sis
+data=DATAZ_\system\install\searchui_stub.sis             \System\Install\searchui_stub.sis
+
 #endif //FF_SEARCH_SW
 
 #endif // __SEARCH_IBY__

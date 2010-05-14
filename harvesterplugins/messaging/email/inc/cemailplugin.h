@@ -45,7 +45,12 @@ public:
 	 * From MEmailItemObserver
 	 */
 	 void HandleDocumentL(const CSearchDocument* aSearchDocument, TCPixActionType aActionType);
-	  
+	
+	 /**
+	  * From MEmailItemObserver
+	  */ 
+	 void HarvestingCompleted();
+	 
 	 /**
      * Gets the database observer class
      */

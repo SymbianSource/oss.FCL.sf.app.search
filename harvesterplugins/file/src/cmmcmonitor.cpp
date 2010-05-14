@@ -242,15 +242,15 @@ void CMMCMonitor::RunL()
             OstTrace0( TRACE_NORMAL, DUP2_CMMCMONITOR_RUNL, "CMMCMonitor::RunL insert event" );
             CPIXLOGSTRING("CMMCMonitor::RunL insert event");
             // Mount MMC and force reharvest
-            iFilePlugin.MountL(drv, ETrue);
+            iFilePlugin.MountL(drv, EFalse); //dont force reharvest
             }
         else
             {
             OstTrace0( TRACE_NORMAL, DUP3_CMMCMONITOR_RUNL, "CMMCMonitor::RunL eject event" );
             CPIXLOGSTRING("CMMCMonitor::RunL eject event");
             // If the MMC has been ejected, then need to dismount 
-            // and undefine the volume
-            iFilePlugin.UnMount(drv, ETrue);
+            // and undefine the volume and also remove from queue forever
+            iFilePlugin.UnMount(drv, ETrue,ETrue);
             }
         }
     CPIXLOGSTRING("END CMMCMonitor::RunL");

@@ -51,12 +51,15 @@ LIBRARY       cpixharvesterplugininterface.lib
 LIBRARY       cpixsearchclient.lib
 LIBRARY       qtemailfetcher.lib
 LIBRARY       qtcore.lib
+LIBRARY       libstdcpp.lib //for std::exception from QT_TRYCATCH_LEAVING
 
 OPTION CW -wchar_t on
 MACRO _WCHAR_T_DECLARED
 
 // For logging
 LIBRARY 	  flogger.lib 
+
+EPOCALLOWDLLDATA
 
 EXPORTUNFROZEN
 

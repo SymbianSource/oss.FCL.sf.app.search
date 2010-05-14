@@ -246,7 +246,7 @@ TCPIXMDEDBAPIReturnType CCPIXMDEDbManager::UpdateL(const TUint& aObjId,CMDSEntit
     sql.Format(KMdeCpixSyncDbSqlCheckExist,aObjId);
     User::LeaveIfError(dbView.Prepare(iDatabase, TDbQuery(sql)));
     User::LeaveIfError(dbView.EvaluateAll());
-    dbView.FirstL();
+    (void)dbView.FirstL();
     if(dbView.AtRow())
         {
         dbView.UpdateL();

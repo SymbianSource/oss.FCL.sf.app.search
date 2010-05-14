@@ -6,17 +6,20 @@ EXPORTS
 	_ZN13QEmailFetcher15StartHarvestingEv @ 5 NONAME
 	_ZN13QEmailFetcher15processMessagesEi @ 6 NONAME
 	_ZN13QEmailFetcher16staticMetaObjectE @ 7 NONAME DATA 16
-	_ZN13QEmailFetcher17mailFoldersListedEi @ 8 NONAME
+	_ZN13QEmailFetcher17processNextFolderEv @ 8 NONAME
 	_ZN13QEmailFetcher18handleMessageEventE12MessageEventyy5QListIyE @ 9 NONAME
-	_ZN13QEmailFetcher19getStaticMetaObjectEv @ 10 NONAME
-	_ZN13QEmailFetcher21handleMailboxesListedEi @ 11 NONAME
-	_ZN13QEmailFetcher22emailServiceIntializedEb @ 12 NONAME
-	_ZN13QEmailFetcherC1ER18MEmailItemObserver @ 13 NONAME
-	_ZN13QEmailFetcherC2ER18MEmailItemObserver @ 14 NONAME
-	_ZN13QEmailFetcherD0Ev @ 15 NONAME
-	_ZN13QEmailFetcherD1Ev @ 16 NONAME
-	_ZN13QEmailFetcherD2Ev @ 17 NONAME
-	_ZNK13QEmailFetcher10metaObjectEv @ 18 NONAME
-	_ZTI13QEmailFetcher @ 19 NONAME
-	_ZTV13QEmailFetcher @ 20 NONAME
+	_ZN13QEmailFetcher18processNextMailboxEv @ 10 NONAME
+	_ZN13QEmailFetcher19getStaticMetaObjectEv @ 11 NONAME
+	_ZN13QEmailFetcher21handleMailboxesListedEi @ 12 NONAME
+	_ZN13QEmailFetcher22emailServiceIntializedEb @ 13 NONAME
+	_ZN13QEmailFetcher23handleMailFoldersListedEi @ 14 NONAME
+	_ZN13QEmailFetcher24NotifyHarvestingCompleteEv @ 15 NONAME
+	_ZN13QEmailFetcherC1ER18MEmailItemObserver @ 16 NONAME
+	_ZN13QEmailFetcherC2ER18MEmailItemObserver @ 17 NONAME
+	_ZN13QEmailFetcherD0Ev @ 18 NONAME
+	_ZN13QEmailFetcherD1Ev @ 19 NONAME
+	_ZN13QEmailFetcherD2Ev @ 20 NONAME
+	_ZNK13QEmailFetcher10metaObjectEv @ 21 NONAME
+	_ZTI13QEmailFetcher @ 22 NONAME
+	_ZTV13QEmailFetcher @ 23 NONAME
 

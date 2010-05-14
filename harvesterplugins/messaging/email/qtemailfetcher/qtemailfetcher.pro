@@ -34,7 +34,7 @@ symbian{
     
     INCLUDEPATH += ../inc
     
-    HEADERS += memailitemobserver.h
+    HEADERS += ../inc/memailitemobserver.h
     LIBS += -lcpixsearchclient
     LIBS += -lnmailclientapi
         

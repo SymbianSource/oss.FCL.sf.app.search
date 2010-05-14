@@ -60,7 +60,7 @@ void SearchInDeviceHandlerTest::testhandleDocument()
     InDeviceHandler* indevicehandler = new InDeviceHandler();
     indevicehandler->setCategory("file");
 
-    indevicehandler->searchAsync("a");
+    indevicehandler->searchAsync("txt");
     QTest::qWait(200);
 
     QSignalSpy spy(indevicehandler,
@@ -153,11 +153,12 @@ void SearchInDeviceHandlerTest::testisPrepared()
 int main(int argc, char *argv[])
     {
     QApplication app(argc, argv);
-    int error;
+    int error = 0;
     TRAPD(err,
             QTEST_DISABLE_KEYPAD_NAVIGATION
             SearchInDeviceHandlerTest tc;
             error = QTest::qExec(&tc, argc, argv););
+    Q_UNUSED(err);
     return error;
     }
 #else //Q_OS_SYMBIAN

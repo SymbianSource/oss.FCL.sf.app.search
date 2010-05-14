@@ -115,7 +115,7 @@ public:
 	 * @aUndefineAsWell if ETrue then undefine the volume as well
 	 * 
 	 */
-	void UnMount(TDriveNumber aMedia, TBool aUndefineAsWell);
+	void UnMount(TDriveNumber aMedia, TBool aUndefineAsWell,TBool aRemoveQueuePersist = EFalse);
 
 	/**
 	 * FormBaseAppClass - constructs a baseAppClass for the given drive.

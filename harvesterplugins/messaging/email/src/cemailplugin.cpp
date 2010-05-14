@@ -158,10 +158,10 @@ void CEmailPlugin::StartHarvestingL(const TDesC& aQualifiedBaseAppClass)
 	if (!iIndexer[drive])
 	   User::Leave(KErrGeneral);
 	
-	//Complete harvesting here only for time being
-	//HarvestingCompleted(KErrNone);
-    // Reset the database
+	// Reset the database
 	iIndexer[drive]->ResetL();
+	iQEmailFetcher->StartHarvesting();
+	
 #ifdef __PERFORMANCE_DATA
     iStartTime.UniversalTime();
 #endif
@@ -350,6 +350,15 @@ HBufC* CEmailPlugin::DatabasePathLC(TDriveNumber aMedia)
 CCPixIndexer* CEmailPlugin::GetIndexer()
     {
     return iIndexer[iCurrentDrive];
+    }
+
+// ---------------------------------------------------------------------------
+// CEmailPlugin::HarvestingCompleted callback from email fetcher
+// ---------------------------------------------------------------------------
+//
+void CEmailPlugin::HarvestingCompleted()
+    {
+    HarvestingCompleted(KErrNone);
     }
 
 // ---------------------------------------------------------------------------

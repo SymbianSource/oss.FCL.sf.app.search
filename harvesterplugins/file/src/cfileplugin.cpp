@@ -307,7 +307,7 @@ void CFilePlugin::MountL(TDriveNumber aMedia, TBool aForceReharvest)
     OstTraceFunctionExit0( CFILEPLUGIN_MOUNTL_EXIT );
     }
 
-void CFilePlugin::UnMount(TDriveNumber aMedia, TBool aUndefineAsWell)
+void CFilePlugin::UnMount(TDriveNumber aMedia, TBool aUndefineAsWell,TBool aRemoveQueuePersist)
     {
     OstTraceFunctionEntry0( CFILEPLUGIN_UNMOUNT_ENTRY );
     CPIXLOGSTRING("ENTER CFilePlugin::UnMount ");
@@ -325,8 +325,8 @@ void CFilePlugin::UnMount(TDriveNumber aMedia, TBool aUndefineAsWell)
     TBuf<KFilePluginBaseAppClassMaxLen> baseContentAppClass;
     FormBaseAppClass(aMedia,KFileBaseAppClassContent, baseContentAppClass);
 
-    // Remove from harvesting queue
-    iObserver->RemoveHarvestingQueue(this, baseContentAppClass);
+    // Remove from harvesting queue aRemovePersist will remove from config file as well
+    iObserver->RemoveHarvestingQueue(this, baseContentAppClass,aRemoveQueuePersist);
     
     // Delete the index object
     if (iIndexer[aMedia])

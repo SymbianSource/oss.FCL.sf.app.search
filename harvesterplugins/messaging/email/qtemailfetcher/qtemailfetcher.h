@@ -53,16 +53,19 @@ public:
     static QEmailFetcher* newInstance(MEmailItemObserver& aObserver);
     ~QEmailFetcher();
     void StartHarvesting();
-
+    
 private:
     QEmailFetcher(MEmailItemObserver& aObserver );
     static void initialize(QEmailFetcher* aThis); //helper (2nd phase constructor).
-
-    //Private?
-public slots:
+    void processNextMailbox();
+    void processNextFolder();
+    void processNextEnvelope();
+    void NotifyHarvestingComplete();
+    
+public slots: //public since they need to be called by *other* objects.
     void emailServiceIntialized( bool );
     void handleMailboxesListed( int );
-    void mailFoldersListed( int );
+    void handleMailFoldersListed( int );
     void processMessages( int );
     //Connect to messageEvent signal
     void handleMessageEvent( MessageEvent aEvent, quint64 mailboxId, quint64 folderId, QList<quint64> messageList );
@@ -75,6 +78,12 @@ private:
     NmFolderListing* iMailFolderList;       //owned.
     NmEnvelopeListing* iEnvelopeListing;    //owned.
     NmMessageEnvelope* iMessageListing;     //owned.
+    
+    //These are needed to asynchronously process *all* mailboxes/folders.
+    int iCurrentMailboxIndex;
+    int iCurrentFolderIndex;
+    QList<NmMailbox> iMailBoxes;
+    QList<NmFolder> iFolders;
     };
 
 #endif //_QEMAILFETCHER_H

@@ -367,6 +367,10 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 		// Return the entry that has been fetched, this will be NULL if there are 
 		// no entries with the cal unique id
 		CCalEntry* entry = iEntryView->FetchL(aLocalUid);
+		if ( entry == NULL ) {
+            CleanupStack::PopAndDestroy(index_item);
+            return;
+		}
 		// TODO leave if entry is NULL
 		CleanupStack::PushL(entry);
 		// TODO Uncomment below portion of code when the latest Organiser code in MCL
