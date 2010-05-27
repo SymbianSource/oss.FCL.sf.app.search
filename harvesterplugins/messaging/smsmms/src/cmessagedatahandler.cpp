@@ -12,7 +12,7 @@
 * Contributors:
 *
 * Description:  Harvester message plugin
- *
+*
 */
 
 
@@ -630,61 +630,65 @@ HBufC* CMessageDataHandler::CreateExcerptLC(const TDesC& aFromAddress,
 											const TDesC& aBodyText,
 											const TMsvId& aFolderId)
 	{
+    //Note:Only From/To (as appropriate): and Body: fields to be added to excerpt for now. 
+    //See appclass-hierarchy.txt for details.  
+    
 	_LIT(KEllipsis, "...");
 	_LIT(KSpace, " ");
 	TInt excerptLength = KMsgBodyExcerptSymbols + KEllipsis().Length(); 
 
-	TMsvEntry entry;
-	TMsvId service = 0;
-	iMsvSession.GetEntry(aFolderId, service, entry);
-	HBufC *folder_str = entry.iDetails.AllocLC();
+	//Not removing commented out code as this may come back into use in near future.
+//	TMsvEntry entry;
+//	TMsvId service = 0;
+//	iMsvSession.GetEntry(aFolderId, service, entry);
+//	HBufC *folder_str = entry.iDetails.AllocLC();
+//
+//	excerptLength += folder_str->Length();
+//	excerptLength += KSpace().Length();
 
-	excerptLength += folder_str->Length();
-	excerptLength += KSpace().Length();
-
-	if ((aFromAddress.Length() > 0) && (aFolderId == KMsvGlobalInBoxIndexEntryIdValue))
-		{
-		excerptLength += aFromAddress.Length();
-		excerptLength += KSpace().Length();
-		}
-	if ((aRecipientArray.MdcaCount() > 0) && (aFolderId != KMsvGlobalInBoxIndexEntryIdValue))
-		{
-		excerptLength += aRecipientArray.MdcaPoint(0).Length();
-		excerptLength += KSpace().Length(); 
-		}
-	if (aSubject.Length() > 0)
-		{
-		excerptLength += aSubject.Length();
-		excerptLength += KSpace().Length();
-		}
+	if( aFolderId == KMsvGlobalInBoxIndexEntryIdValue && aFromAddress.Length() > 0 )
+	    {
+        excerptLength += aFromAddress.Length();
+        excerptLength += KSpace().Length();
+	    }
+	else if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue && aRecipientArray.MdcaCount() > 0 )
+	    {
+        excerptLength += aRecipientArray.MdcaPoint(0).Length();
+        excerptLength += KSpace().Length(); 
+	    }
 
 	HBufC* excerpt = HBufC::NewL(excerptLength);
 	TPtr excerptPtr = excerpt->Des();
 
-	excerptPtr.Copy(*folder_str);
-	excerptPtr.Append(KSpace);
+	//Not removing commented out code as this may come back into use in near future.
+//	excerptPtr.Copy(*folder_str);
+//	excerptPtr.Append(KSpace);
 	
-	if ((aFromAddress.Length() > 0) && (aFolderId == KMsvGlobalInBoxIndexEntryIdValue))
-		{
-		excerptPtr.Append(aFromAddress);
-		excerptPtr.Append(KSpace);
-		}
-	if ((aRecipientArray.MdcaCount() > 0) && (aFolderId != KMsvGlobalInBoxIndexEntryIdValue))
-		{
-		excerptPtr.Append(aRecipientArray.MdcaPoint(0));
-		excerptPtr.Append(KSpace);
-		}
-	if (aSubject.Length() > 0)
-		{
-		excerptPtr.Append(aSubject);
-		excerptPtr.Append(KSpace);
-		}
+	//For inbox items, From: is present while for sent items To: is present.
+    if ((aFromAddress.Length() > 0) && (aFolderId == KMsvGlobalInBoxIndexEntryIdValue))
+        {
+        excerptPtr.Append(aFromAddress);
+        excerptPtr.Append(KSpace);
+        }
+    else if ((aRecipientArray.MdcaCount() > 0) && (aFolderId != KMsvGlobalInBoxIndexEntryIdValue))
+        {
+        excerptPtr.Append(aRecipientArray.MdcaPoint(0));
+        excerptPtr.Append(KSpace);
+        }
+
+	//Not deleting this code as it might have to be brought back into use
+	//in (possibly near) future.
+//	if (aSubject.Length() > 0)
+//		{
+//		excerptPtr.Append(aSubject);
+//		excerptPtr.Append(KSpace);
+//		}
 
 	excerptPtr.Append(aBodyText.Left(KMsgBodyExcerptSymbols));
 	if (aBodyText.Length() > KMsgBodyExcerptSymbols)
 		excerptPtr.Append(KEllipsis);
 
-	CleanupStack::PopAndDestroy(folder_str);
+//	CleanupStack::PopAndDestroy(folder_str);
 	CleanupStack::PushL(excerpt);
 	return excerpt;
 	}

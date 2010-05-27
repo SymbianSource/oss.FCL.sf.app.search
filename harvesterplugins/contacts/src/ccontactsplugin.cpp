@@ -300,6 +300,17 @@ void CContactsPlugin::AddToExcerptL(CSearchDocument& /*aDocument*/, CContactItem
 		}
 	}
 
+// ---------------------------------------------------------------------------
+// Helper: Adds the field to the document AND to the exceprt field.
+// This function helps avoid calling two functions explicitly for most fields.
+// This function needs to be a member function as it has to call member functions.
+// Improvement: AddFieldL need to be a member function - can be refactored.
+// ---------------------------------------------------------------------------
+void CContactsPlugin::AddFieldToDocumentAndExcerptL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName )
+    {
+    AddFieldL( aDocument, aFieldSet, aFieldId, aFieldName );
+    AddToExcerptL( aDocument, aFieldSet, aFieldId, aFieldName );
+    }
 
 // ---------------------------------------------------------------------------
 // CContactsPlugin::CreateMessageIndexItemL
@@ -333,52 +344,56 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 		    }
 		else//If the contact item is a regular contact.
 		    {
-            CContactItemFieldSet& fieldSet = contact->CardFields();
-            AddFieldL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldCompanyName, KContactsCompanyNameField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldAddress, KContactsAddressField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldNote, KContactsNoteField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldJobTitle, KContactsJobTitleField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldSecondName, KContactsSecondNameField ); 
-            
-            AddFieldL( *index_item, fieldSet, KUidContactFieldPrefixName, KContactsPrefixField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldSuffixName, KContactsSuffixField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldAdditionalName, KContactsAdditionalNameField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldUrl, KContactsUrlField );
-    
-            AddFieldL( *index_item, fieldSet, KUidContactFieldPostOffice, KContactsPostOfficeField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldExtendedAddress, KContactsExtendedAddressField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldLocality, KContactsLocalityField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldRegion, KContactsRegionField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldPostcode, KContactsPostcodeField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldCountry, KContactsCountryField );
-    
-            AddFieldL( *index_item, fieldSet, KUidContactFieldSIPID, KContactsSIPIDField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldSpouse, KContactsSpouseField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldChildren, KContactsChildrenField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldClass, KContactsClassField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldFax, KContactsFaxField );				
-            
-            AddFieldL( *index_item, fieldSet, KUidContactFieldGivenNamePronunciation, KContactsGivenNamePronunciationField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyNamePronunciation, KContactsFamilyNamePronunciationField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldCompanyNamePronunciation, KContactsCompanyNamePronunciationField );
-            //left: Birthday; Anniversary (date kind of type), Picture, Logo..
-
             if (iExcerpt)
                 {
                 delete iExcerpt;
                 iExcerpt = NULL;
                 }
             iExcerpt = HBufC::NewL(2);
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldCompanyName, KContactsCompanyNameField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldLocality, KContactsLocalityField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldCountry, KContactsCountryField );
+            
+            CContactItemFieldSet& fieldSet = contact->CardFields();
+
+            //For contacts, all fields __except__ GivenName and FamilyName should be added to excerpt.
+            //See appclass-hierarchy.txt for details.
+            /* The order of fields in excerpt is as below. The order in this case
+             * is the order of fields shown when you 'Edit' the contact.
+             */
+            AddFieldL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField );
+            AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSIPID, KContactsSIPIDField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldCompanyName, KContactsCompanyNameField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldJobTitle, KContactsJobTitleField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldNote, KContactsNoteField );
+
+            /* The following fields are not displayed when 'Edit'-ing the contact.
+             * The order here is arbitrary.
+             */
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldAddress, KContactsAddressField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSecondName, KContactsSecondNameField ); 
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPrefixName, KContactsPrefixField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSuffixName, KContactsSuffixField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldAdditionalName, KContactsAdditionalNameField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldUrl, KContactsUrlField );
+    
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPostOffice, KContactsPostOfficeField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldExtendedAddress, KContactsExtendedAddressField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldLocality, KContactsLocalityField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldRegion, KContactsRegionField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPostcode, KContactsPostcodeField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldCountry, KContactsCountryField );
+    
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSpouse, KContactsSpouseField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldChildren, KContactsChildrenField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldClass, KContactsClassField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldFax, KContactsFaxField );				
+            
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldGivenNamePronunciation, KContactsGivenNamePronunciationField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldFamilyNamePronunciation, KContactsFamilyNamePronunciationField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldCompanyNamePronunciation, KContactsCompanyNamePronunciationField );
+            //left: Birthday; Anniversary (date kind of type), Picture, Logo..
+
             index_item->AddExcerptL(*iExcerpt);
             }
         

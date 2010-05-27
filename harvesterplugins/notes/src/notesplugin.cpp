@@ -352,13 +352,14 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 
 		index_item->AddFieldL(KMimeTypeField, KMimeTypeNotes, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 
-    	TInt excerptLength = entry->DescriptionL().Length();
-		HBufC* excerpt = HBufC::NewLC(excerptLength);
-		TPtr excerptDes = excerpt->Des();		
-		excerptDes.Append(entry->DescriptionL());
-		
-        index_item->AddExcerptL(*excerpt);
-        CleanupStack::PopAndDestroy(excerpt);      
+		//For notes, no content is expected in excerpt for now.
+		//See appclass-hierarchy.txt for details.
+//    	TInt excerptLength = entry->DescriptionL().Length();
+//		HBufC* excerpt = HBufC::NewLC(excerptLength);
+//		TPtr excerptDes = excerpt->Des();		
+//		excerptDes.Append(entry->DescriptionL());
+//      index_item->AddExcerptL(*excerpt);
+//      CleanupStack::PopAndDestroy(excerpt);      
 		
 		// Send for indexing
 		if (aActionType == ECPixAddAction)

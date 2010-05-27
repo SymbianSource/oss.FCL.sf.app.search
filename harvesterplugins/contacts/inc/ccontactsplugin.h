@@ -101,6 +101,11 @@ protected:
 	void AddToExcerptL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName );
 
 	/**
+	 *  Helper function: adds information field to the document and to the excerpt field(if available)
+	 */
+	void AddFieldToDocumentAndExcerptL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName );
+	
+	/**
 	 * Creates the actual contact book index item
 	 */
 	void CreateContactIndexItemL(TInt aContentId, TCPixActionType aActionType);

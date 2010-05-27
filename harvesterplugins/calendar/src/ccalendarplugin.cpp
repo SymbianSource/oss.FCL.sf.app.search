@@ -400,11 +400,9 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 
 		index_item->AddFieldL(KMimeTypeField, KMimeTypeCalendar, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 
-    	TInt excerptLength = 3 + entry->SummaryL().Length() + entry->DescriptionL().Length() + entry->LocationL().Length();
+    	TInt excerptLength = 1 /*single 1-character delimiters*/ + entry->DescriptionL().Length() + entry->LocationL().Length();
 		HBufC* excerpt = HBufC::NewLC(excerptLength);
 		TPtr excerptDes = excerpt->Des();
-		excerptDes.Copy(entry->SummaryL());
-		excerptDes.Append(KExcerptDelimiter);
 		excerptDes.Append(entry->DescriptionL());
 		excerptDes.Append(KExcerptDelimiter);
 		excerptDes.Append(entry->LocationL());

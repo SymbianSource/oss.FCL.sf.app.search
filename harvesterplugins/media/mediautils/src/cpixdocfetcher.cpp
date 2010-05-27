@@ -27,6 +27,7 @@
 
 #define CPIX_MIMETYPE_FIELD      L"_mimetype"
 #define LCPIX_MIMETYPE_FIELD     L"_mimetype"
+const TInt KInitialExcerptLength = 5;
 const TInt KStartPosition = 2; //Start position of absolute path
 const TInt KDrivePosition = 0; //Drive position in object Uri
 const TInt KMaxMediaLength = 14;
@@ -36,6 +37,7 @@ _LIT(KFormat, "%u");
 _LIT(KNameField, "Name");
 _LIT(KMediaIdField, "MediaId");
 _LIT(KExtensionField, "Extension");
+_LIT(KExcerptDelimiter, " ");
 
 // -----------------------------------------------------------------------------
 // CCPIXDocFetcher::NewL()
@@ -67,6 +69,7 @@ CCPIXDocFetcher* CCPIXDocFetcher::NewLC()
 CCPIXDocFetcher::~CCPIXDocFetcher()
     {
     iFs.Close();
+    delete iExcerpt;
     }
 
 // -----------------------------------------------------------------------------
@@ -77,6 +80,7 @@ void CCPIXDocFetcher::ConstructL()
     {
     //Heap variables if any
     User::LeaveIfError(iFs.Connect());
+    iExcerpt = NULL;
     }
 
 // -----------------------------------------------------------------------------
@@ -86,6 +90,19 @@ void CCPIXDocFetcher::ConstructL()
 CCPIXDocFetcher::CCPIXDocFetcher()
     {
     
+    }
+
+// -----------------------------------------------------------------------------
+// CCPIXDocFetcher::ResetExcerpt() 
+// -----------------------------------------------------------------------------
+//
+void CCPIXDocFetcher::ResetExcerpt()
+    {
+    if(iExcerpt)
+        {
+        delete iExcerpt;
+        iExcerpt = NULL;
+        }
     }
 
 // -----------------------------------------------------------------------------
@@ -130,6 +147,9 @@ CSearchDocument* CCPIXDocFetcher::GetCpixDocumentL(const CMdEObject& aObject,
         
         CMdEProperty* property(NULL);
         CMdEPropertyDef& titlePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KTitleProperty );
+        /*Requirement Excerpt should have all item specific field in priority order so has to be handled
+         *at plugin specific document handler
+         */
         if(aObject.Property( titlePropDef, property ) != KErrNotFound)
            {
            //Add field to document
@@ -139,17 +159,7 @@ CSearchDocument* CCPIXDocFetcher::GetCpixDocumentL(const CMdEObject& aObject,
                AddFiledtoDocumentL(*index_item,
                                      MdeConstants::Object::KTitleProperty,
                                      textProperty->Value());
-               index_item->AddExcerptL(textProperty->Value());
                }
-           else
-               {
-               index_item->AddExcerptL(aObject.Uri());
-               }
-           }
-        else
-           {
-           //No property title
-           index_item->AddExcerptL(aObject.Uri());
            }
         //Item type as MIME type
         CMdEPropertyDef& mimeTypePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KItemTypeProperty);
@@ -210,6 +220,30 @@ void CCPIXDocFetcher::GetExtension(const TDesC& aUri,
     if(pos > 0)
         {
          aExtension.Copy(aUri.Mid(pos+1));
+        }
+    }
+
+// -----------------------------------------------------------------------------
+// CCPIXDocFetcher::AddToFieldExcerptL() 
+// -----------------------------------------------------------------------------
+//
+void CCPIXDocFetcher::AddToFieldExcerptL(const TDesC& aExcerptValue)
+    {
+    if(!iExcerpt)
+        {
+        iExcerpt = HBufC::NewL(KInitialExcerptLength);
+        }
+    if(aExcerptValue.Compare(KNullDesC) != 0)//value is not Null
+        {
+        TInt currentSize = iExcerpt->Size();
+        TInt newSize = currentSize + aExcerptValue.Size() + 1;
+        if(newSize > currentSize) //New size is bigger so we have to reallocate
+            {
+            iExcerpt = iExcerpt->ReAllocL(newSize);
+            }
+        TPtr ptr = iExcerpt->Des();
+        ptr.Append(aExcerptValue);
+        ptr.Append(KExcerptDelimiter);
         }
     }
 

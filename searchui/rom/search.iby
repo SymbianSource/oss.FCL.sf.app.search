@@ -27,7 +27,7 @@ S60_APP_EXE( Searchapplication)
 // Application registration file.
 data=DATAZ_/private/10003a3f/import/apps/Searchapplication_reg.rsc	/private/10003a3f/import/apps/Searchapplication_reg.rsc
 
-data=DATAZ_/resource/apps/Searchapplication.mif    /resource/apps/Searchapplication.mif
+
 
 //SearchIndevice handler
 file=/epoc32/release/armv5/urel/searchindevicehandler.dll SHARED_LIB_DIR/searchindevicehandler.dll

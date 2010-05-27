@@ -94,6 +94,12 @@ public:
      * @param aExtension reference of descriptor buffer to be filled with file extension
      */
     void GetExtension(const TDesC& aUri, TDes& aExtension);
+    
+    /*
+     * Add the value to excerpt field
+     * @param TDesC& aExcerptValue excerpt value
+     */
+    void AddToFieldExcerptL(const TDesC& aExcerptValue);
 protected:
     /*
      * second phase constructor ConstructL
@@ -103,6 +109,13 @@ protected:
      * Default constructor
      */
     CCPIXDocFetcher(); //Default constructor
+    /*
+     * reset the excerpt
+     */
+    void ResetExcerpt();
+    
+    // Excerpt field
+    HBufC* iExcerpt;
 private:
     /*
      * Convert URI to Absolute URI

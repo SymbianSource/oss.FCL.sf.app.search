@@ -62,18 +62,13 @@ private slots:
     void test_customizeGoButton();
     void testsettingsaction();
     void testcancelSearch();
-    void testgetrowsInserted();
-    void testgetrowsRemoved();
     void testhandleOkError();
-    void test_viewingCompleted();
-    void testsearchOnCategory();
     void testclear();
     void testnoResultsFound();
     void testcreateSuggestionLink();
     void testTDisplayMode2Format();
-    void testfromSymbianCFbsBitmap();
     void testgetDrivefromMediaId();
-    void testLaunchApplicationL();
+    void testLaunchApplication();
     void testfilterDoc();
 
     /**

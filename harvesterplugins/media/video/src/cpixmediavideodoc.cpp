@@ -24,6 +24,7 @@
 #include <mdeobjectdef.h>
 #include "harvesterserverlogger.h"
 #include "OstTraceDefinitions.h"
+#include "csearchdocument.h"
 #ifdef OST_TRACE_COMPILER_IN_USE
 #include "cpixmediavideodocTraces.h"
 #endif
@@ -92,8 +93,22 @@ CSearchDocument* CCPIXMediaVideoDoc::GetCpixDocumentL(const CMdEObject& aObject,
     //Get basic document
     CPIXLOGSTRING("CCPIXMediaVideoDoc::GetCpixDocumentL()");
     CSearchDocument* index_item = CCPIXDocFetcher::GetCpixDocumentL(aObject,aAppClass,aObjectDef);
+    ResetExcerpt(); //Reset excerpt initially
+    TInt slashpos = GetUri().LocateReverse('\\');
+    TPtrC name = GetUri().Mid( (slashpos+1) );
+    AddToFieldExcerptL(name); //Add name to excerpt field
     //URI and Excerpt is done add additional properties here 
     CMdEProperty* property(NULL);
+    CMdEPropertyDef& descriptionPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KDescriptionProperty );
+    if(aObject.Property( descriptionPropDef, property ) != KErrNotFound)
+       {
+       //Add field to document
+       CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
+       AddFiledtoDocumentL(*index_item,
+                  MdeConstants::MediaObject::KDescriptionProperty,
+                  textProperty->Value());
+       AddToFieldExcerptL(textProperty->Value());
+       }
     CMdEPropertyDef& artistPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KArtistProperty );
     if(aObject.Property( artistPropDef, property )!= KErrNotFound)
        {
@@ -102,43 +117,40 @@ CSearchDocument* CCPIXMediaVideoDoc::GetCpixDocumentL(const CMdEObject& aObject,
        AddFiledtoDocumentL(*index_item,
                            MdeConstants::MediaObject::KArtistProperty,
                            textProperty->Value());
+       AddToFieldExcerptL(textProperty->Value());
        }
     CMdEPropertyDef& authorPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KAuthorProperty );
     if(aObject.Property( authorPropDef, property ) != KErrNotFound)
        {
-      //Add field to document
-      CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
-      AddFiledtoDocumentL(*index_item,
+       //Add field to document
+       CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
+       AddFiledtoDocumentL(*index_item,
                          MdeConstants::MediaObject::KAuthorProperty,
                          textProperty->Value());
+       AddToFieldExcerptL(textProperty->Value());
        }
     CMdEPropertyDef& copyrightPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KCopyrightProperty );
     if(aObject.Property( copyrightPropDef, property ) != KErrNotFound)
        {
-     //Add field to document
-     CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
-     AddFiledtoDocumentL(*index_item,
+       //Add field to document
+       CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
+       AddFiledtoDocumentL(*index_item,
                       MdeConstants::MediaObject::KCopyrightProperty,
                       textProperty->Value());
+       AddToFieldExcerptL(textProperty->Value());
        }   
-    CMdEPropertyDef& descriptionPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KDescriptionProperty );
-    if(aObject.Property( descriptionPropDef, property ) != KErrNotFound)
-       {
-    //Add field to document
-    CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
-    AddFiledtoDocumentL(*index_item,
-                  MdeConstants::MediaObject::KDescriptionProperty,
-                  textProperty->Value());
-       }
+    
     CMdEPropertyDef& commentPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KCommentProperty );
     if(aObject.Property( commentPropDef, property ) != KErrNotFound)
        {
-    //Add field to document
-    CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
-    AddFiledtoDocumentL(*index_item,
+       //Add field to document
+       CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
+       AddFiledtoDocumentL(*index_item,
                    MdeConstants::MediaObject::KCommentProperty,
                    textProperty->Value());
+       AddToFieldExcerptL(textProperty->Value());
        }
+    index_item->AddExcerptL(*iExcerpt);
     OstTraceFunctionExit0( CCPIXMEDIAVIDEODOC_GETCPIXDOCUMENTL_EXIT );
     return index_item;
     }

@@ -47,6 +47,7 @@ LIBS += -laknicon
 LIBS += -lapgrfx
 LIBS += -lbitgdi
 LIBS += -lnoteseditor
+LIBS += -lxqutils
 
 
 coverage:DEFINES += COVERAGE_MEASUREMENT

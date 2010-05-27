@@ -650,8 +650,9 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
         index_item->AddFieldL(KMimeTypeField, KMimeTypeFolder, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
         }   
     
+    //Only content to be added to exceprt field. See appclass-hierarchy.txt
     //Add excerpt field
-    index_item->AddExcerptL(aFilePath);
+    //index_item->AddExcerptL(aFilePath);
     
     CleanupStack::Pop(index_item);
     return index_item;

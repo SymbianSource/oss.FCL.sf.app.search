@@ -130,7 +130,7 @@ private:
      * get the application icon  .
      * @since S60 ?S60_version.
      */
-    HbIcon getAppIconFromAppId(TUid auid);
+    HbIcon getAppIconFromAppIdL(TUid auid);
 
     /**
      * resizing the symbain icon  .
@@ -211,23 +211,7 @@ public slots:
     /**
      * slot connects to search state  for internet search
      * @since S60 ?S60_version.
-     */
-    void cancelSearch();
-    /**
-     * slot connects to model  for rows insert completion
-     * @since S60 ?S60_version.
-     */
-    void getrowsInserted();
-
-    /**
-     * slot connects to model  for rows delete completion
-     * @since S60 ?S60_version.
-     */
-    void getrowsRemoved();
-    /**
-     * slot added for Application manager
-     * @since S60 ?S60_version.
-     */
+     */  
 
     void handleOk(const QVariant& var);
 
@@ -307,6 +291,18 @@ private:
      */
     QStringList filterDoc(const QCPixDocument* aDoc, const QString& filter1,
             const QString& filter2, const QString& filter3 = QString());
+
+    /**
+     * Function to convert bitmap to pixmap       
+     */
+    void fromBitmapAndMaskToPixmapL(CFbsBitmap* fbsBitmap,
+            CFbsBitmap* fbsMask, QPixmap& pixmap);
+
+    /**
+     * Function to get pixmap       
+     */
+    void GetPixmapByFilenameL(TDesC& fileName, const QSize &size,
+            QPixmap& pixmap);
 
 signals:
 
@@ -412,15 +408,54 @@ private:
      * 
      */
     bool loadSettings;
+
+    /**
+     * 
+     * Icon List to be created in boot up for all categories
+     */
     QList<HbIcon> mIconArray;
+
+    /**
+     * Hbicon to be created 
+     * 
+     */
     HbIcon mIcon;
+
+    /**
+     * to get drive info
+     * 
+     */
     RFs iFs;
 
+    /**
+     * Calendar plugin info
+     * 
+     */
     EventViewerPluginInterface *calAgandaViewerPluginInstance;
+
+    /**
+     * to create Notes editor 
+     * 
+     */
     NotesEditor *notesEditor;
+
 private:
+    /**
+     * Application manager handler to perform resultitem opening.
+     * 
+     */
     XQApplicationManager* mAiwMgr;
+
+    /**
+     * Request handler to to open resultItems
+     * 
+     */
     XQAiwRequest* mRequest;
+
+    /**
+     * ListView icon Size.
+     * 
+     */
     QSize mListViewIconSize;
 #ifdef OST_TRACE_COMPILER_IN_USE
     QTime m_totalSearchUiTime;

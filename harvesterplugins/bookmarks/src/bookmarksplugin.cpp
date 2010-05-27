@@ -36,7 +36,7 @@
 const TInt KHarvestingDelay = 1000;
 /** Number of bookmarks to process in one active scheduler cycle */
 const TInt KBookmarksPerRunL = 1;
-_LIT(KExcerptDelimiter, " ");
+//_LIT(KExcerptDelimiter, " ");
 /** Bookmark list size for dynamic array*/
 const TInt KBookmarkListSize = 100;
 
@@ -270,14 +270,16 @@ void CBookmarksPlugin::DoIndexingL(CFavouritesItem*& aItem, const TDesC& aDocidS
             OstTraceExt1( TRACE_NORMAL, DUP1_CBOOKMARKSPLUGIN_DOINDEXINGL, "CBookmarksPlugin::DoIndexingL();domain=%S", domain );
             CPIXLOGSTRING2("CBookmarksPlugin::DoIndexingL(): domain = %S", &domain );
             }
+        
+        //For bookmarks, only URL should go into exceprt field.
+        //For more info, check the appclass-hierarchy.txt
+
         //Add Excerpt as it is must have field. What should be excerpt in bookmarks ?
-        HBufC* excerpt = HBufC::NewLC(aItem->Url().Length() + aItem->Name().Length() + 1);
+        HBufC* excerpt = HBufC::NewLC( aItem->Url().Length() + 1 );
         TPtr ptr = excerpt->Des();
-        ptr.Append(aItem->Name());
-        ptr.Append(KExcerptDelimiter);
-        ptr.Append(aItem->Url());
-        index_item->AddExcerptL(*excerpt);
-        CleanupStack::PopAndDestroy(excerpt);
+        ptr.Append( aItem->Url() );
+        index_item->AddExcerptL( *excerpt );
+        CleanupStack::PopAndDestroy( excerpt );
 
         // Send for indexing
         TRAPD(err, iIndexer->AddL(*index_item));

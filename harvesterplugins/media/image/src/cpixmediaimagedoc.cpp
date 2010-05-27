@@ -24,6 +24,7 @@
 #include <mdeobjectdef.h>
 #include "harvesterserverlogger.h"
 #include "OstTraceDefinitions.h"
+#include "csearchdocument.h"
 #ifdef OST_TRACE_COMPILER_IN_USE
 #include "cpixmediaimagedocTraces.h"
 #endif
@@ -94,8 +95,21 @@ CSearchDocument* CCPIXMediaImageDoc::GetCpixDocumentL(const CMdEObject& aObject,
     //Get basic document
     CPIXLOGSTRING("START CCPIXMediaImageDoc::GetCpixDocumentL");
     CSearchDocument* index_item = CCPIXDocFetcher::GetCpixDocumentL(aObject,aAppClass,aObjectDef);
+    ResetExcerpt(); //Reset excerpt initially
     //URI and Excerpt is done add additional properties here 
     CMdEProperty* property(NULL);
+    //Title property
+    CMdEPropertyDef& titlePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KTitleProperty );
+    if(aObject.Property( titlePropDef, property ) != KErrNotFound)
+       {
+       //Add field to document
+       CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
+       AddFiledtoDocumentL(*index_item,
+                           MdeConstants::Object::KTitleProperty,
+                           textProperty->Value());
+       AddToFieldExcerptL(textProperty->Value());
+       }
+            
     //Get user comment field
     CMdEPropertyDef& commentPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KCommentProperty );
     if(aObject.Property( commentPropDef, property )!= KErrNotFound)
@@ -105,6 +119,7 @@ CSearchDocument* CCPIXMediaImageDoc::GetCpixDocumentL(const CMdEObject& aObject,
        AddFiledtoDocumentL(*index_item,
                            MdeConstants::MediaObject::KCommentProperty,
                            textProperty->Value());
+       AddToFieldExcerptL(textProperty->Value());
        }
     CMdEPropertyDef& dateTimePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Image::KDateTimeOriginalProperty);
     if(aObject.Property( dateTimePropDef, property ) != KErrNotFound)
@@ -127,6 +142,7 @@ CSearchDocument* CCPIXMediaImageDoc::GetCpixDocumentL(const CMdEObject& aObject,
                              CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
           }
       }
+    index_item->AddExcerptL(*iExcerpt);
     //Latitude error currently 
     /* TODO- Bhuvi Location is a seperate object for each image object if any such relation
      * exist it has to be searched from Relation table and from there we have to open 
