@@ -74,8 +74,10 @@ TInt MapBaseAppClassToDrive(const TDesC& aBaseAppClass, TDriveNumber& aDrive)
 //  
 CEmailPlugin* CEmailPlugin::NewL()
 {
+    CPIXLOGSTRING("CEmailPlugin::NewL : Start");
 	  CEmailPlugin* instance = CEmailPlugin::NewLC();
     CleanupStack::Pop(instance);
+    CPIXLOGSTRING("CEmailPlugin::NewL : End");
     return instance;
 }
 
@@ -85,9 +87,11 @@ CEmailPlugin* CEmailPlugin::NewL()
 //  
 CEmailPlugin* CEmailPlugin::NewLC()
 {
-	  CEmailPlugin* instance = new (ELeave)CEmailPlugin();
+    CPIXLOGSTRING("CEmailPlugin::NewLC : Start");
+	CEmailPlugin* instance = new (ELeave)CEmailPlugin();
     CleanupStack::PushL(instance);
     instance->ConstructL();
+    CPIXLOGSTRING("CEmailPlugin::NewLC : End");
     return instance;
 }
 
@@ -135,11 +139,13 @@ void CEmailPlugin::ConstructL()
 //  
 void CEmailPlugin::StartPluginL()
 	{
+    CPIXLOGSTRING("CEmailPlugin::StartPluginL : Start");
 	CPIXLOGSTRING2("currentDrive used is : %d", iCurrentDrive );
 	MountL(TDriveNumber(iCurrentDrive)); //Mount current drive
 	//create instance of QEmailFetcher
 	QT_TRYCATCH_LEAVING(iQEmailFetcher = QEmailFetcher::newInstance(*this));
 	// Define this base application class, use default location
+	CPIXLOGSTRING("CEmailPlugin::StartPluginL : End");
 	}
 
 // ---------------------------------------------------------------------------

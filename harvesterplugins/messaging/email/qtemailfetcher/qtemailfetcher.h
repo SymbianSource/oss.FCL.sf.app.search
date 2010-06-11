@@ -32,9 +32,17 @@
 #include <nmapimessageenvelope.h>
 #include <nmapifolderlisting.h>
 #include <QObject>
+#include <nmapifolder.h>
 #include "memailitemobserver.h"
 
 using namespace EmailClientApi;
+
+enum TEmailDocType
+        {
+        EEmailTypeMail = 0,
+        EEmailTypeFolder,
+        EEmailTypeMailBox
+        };
 
 //How this works:
 //1. List all mail boxes.
@@ -61,29 +69,32 @@ private:
     void processNextFolder();
     void processNextEnvelope();
     void NotifyHarvestingComplete();
-    
+    CSearchDocument* getSearchDocument( const NmApiMessageEnvelope& aEnvelope ,quint64 aMailboxId, quint64 aFolderId );
+    CSearchDocument* getMailboxorfolderSearchDocument( quint64 aMailboxId, quint64 aFolderId, TEmailDocType aDocType, QString aFoldername );
 public slots: //public since they need to be called by *other* objects.
     void emailServiceIntialized( bool );
-    void handleMailboxesListed( int );
-    void handleMailFoldersListed( int );
-    void processMessages( int );
+    void handleMailboxesListed( qint32 );
+    void handleMailFoldersListed( qint32 );
+    void processMessages( qint32 );
     //Connect to messageEvent signal
-    void handleMessageEvent( MessageEvent aEvent, quint64 mailboxId, quint64 folderId, QList<quint64> messageList );
+    void handleMessageEvent( NmApiMessageEvent aEvent, quint64 mailboxId, quint64 folderId, QList<quint64> messageList ); 
+    //Connect to Mailbox event signal
+    void handlemailboxEvent(EmailClientApi::NmApiMailboxEvent event, QList<quint64> id);
     
 private:
     MEmailItemObserver& iEmailObserver;     //The parent/creator. Not owned.
-    NmEventNotifier* iEmailEventNotifier;   //owned; triggers handleMessageEvent.
-    NmEmailService* iEmailService;          //owned. 
-    NmMailboxListing* iMailBoxListings;     //owned.
-    NmFolderListing* iMailFolderList;       //owned.
-    NmEnvelopeListing* iEnvelopeListing;    //owned.
-    NmMessageEnvelope* iMessageListing;     //owned.
+    NmApiEventNotifier* iEmailEventNotifier;   //owned; triggers handleMessageEvent.
+    NmApiEmailService* iEmailService;          //owned. 
+    NmApiMailboxListing* iMailBoxListings;     //owned.
+    NmApiFolderListing* iMailFolderList;       //owned.
+    NmApiEnvelopeListing* iEnvelopeListing;    //owned.
+    NmApiMessageEnvelope* iMessageListing;     //owned.
     
     //These are needed to asynchronously process *all* mailboxes/folders.
     int iCurrentMailboxIndex;
     int iCurrentFolderIndex;
-    QList<NmMailbox> iMailBoxes;
-    QList<NmFolder> iFolders;
+    QList<NmApiMailbox> iMailBoxes;
+    QList<NmApiFolder> iFolders;
     };
 
 #endif //_QEMAILFETCHER_H

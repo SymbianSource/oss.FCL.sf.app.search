@@ -1,20 +1,17 @@
 /*
-* Copyright (c) 2008 Nokia Corporation and/or its subsidiary(-ies).
-* All rights reserved.
-* This component and the accompanying materials are made available
-* under the terms of "Eclipse Public License v1.0"
-* which accompanies this distribution, and is available
-* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+* ==============================================================================
+*  Name        : s60performance.h
+*  Part of     : SearchServer
+*  Interface   :
+*  Description :
+*  Version     :
 *
-* Initial Contributors:
-* Nokia Corporation - initial contribution.
-*
-* Contributors:
-*
-* Description: 
-*
+*  Copyright (c) 2008 Nokia Corporation.
+*  This material, including documentation and any related
+*  computer programs, is protected by copyright controlled by
+*  Nokia Corporation.
+* ==============================================================================
 */
-
 
 // Uncomment to get harvester plugin performance logs
 //MACRO __PERFORMANCE_DATA

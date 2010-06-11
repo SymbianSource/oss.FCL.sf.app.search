@@ -42,7 +42,7 @@
 
 
 /** Number of symbols from MsgBody taken to excerpt */
-const TInt KMsgBodyExcerptSymbols = 90;
+const TInt KMsgBodyExcerptSymbols = 160;
 
 // For Ucs2 detection
 const TInt KUtf8BomLength = 3;
@@ -626,7 +626,7 @@ CSearchDocument* CMessageDataHandler::CreateEmailDocumentL(const TMsvId& aMsvId,
 //
 HBufC* CMessageDataHandler::CreateExcerptLC(const TDesC& aFromAddress,
 											const CDesCArray& aRecipientArray,
-											const TDesC& aSubject,
+											const TDesC& /*aSubject*/,
 											const TDesC& aBodyText,
 											const TMsvId& aFolderId)
 	{

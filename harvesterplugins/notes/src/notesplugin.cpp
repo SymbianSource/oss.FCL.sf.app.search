@@ -53,7 +53,7 @@ _LIT(KNpdMemo , "Memo");
 _LIT(KNpdUpdateTime , "Date");
 
 //Reference from CPix calender harvester plugin.
-_LIT(KNotesTimeFormat , "%F%/0%Y%M%D%H%T"); // Locale independent YYYYMMDDHHMM
+_LIT(KNotesTimeFormat , "%F%/0%Y %M %D %H%T"); // Locale independent YYYYMMDDHHMM
 
 // ---------------------------------------------------------------------------
 // CNotesPlugin::NewL

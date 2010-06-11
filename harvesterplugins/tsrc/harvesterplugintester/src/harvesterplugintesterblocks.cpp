@@ -121,6 +121,8 @@ TInt CHarvesterPluginTester::RunMethodL(
         ENTRY( "TestCreateMMS",CHarvesterPluginTester::TestCreateMmsL ),
         ENTRY( "TestCreateEmail",CHarvesterPluginTester::TestCreateEmailL ),
 		ENTRY( "TestAudioHarvesting",CHarvesterPluginTester::TestAudioHarvestingL ),
+        ENTRY( "TestAudioHarvestingUpdateIndex",CHarvesterPluginTester::TestAudioHarvestingUpdateIndexL ),
+        ENTRY( "TestAudioHarvestingDeleteIndex",CHarvesterPluginTester::TestAudioHarvestingDeleteIndexL ),
 		ENTRY( "TestMdsSyncController",CHarvesterPluginTester::TestMdsSyncControllerL ),
 		//ENTRY( "TestBlacklistPlugin",CHarvesterPluginTester::TestBlacklistPluginL ),
 		//ENTRY( "TestBlacklistPluginVersion",CHarvesterPluginTester::TestBlacklistPluginVersionL ),
@@ -925,9 +927,35 @@ TInt CHarvesterPluginTester::TestCreateContactIndexItemL( CStifItemParser& aItem
                  {
                   TInt aContactId;
                   //Add a contact first and later edit the contact
+                  plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS) );                                    
                   aContactId = CreateNewContactL( *db, ContactName, _L("123") );
-                  
-                  CContactItem* contactItem = db->OpenContactL( aContactId );
+                  iPluginTester->iWaitForHarvester->Start();
+                  if( aItem.GetNextString ( NewContactName ) == KErrNone )
+                      {
+                      CContactCard* newCard = CContactCard::NewLC();                      
+                      // Create the firstName field and add the data to it
+                      CContactItemField* firstName = CContactItemField::NewLC( KStorageTypeText, KUidContactFieldGivenName );
+                      firstName->TextStorage()->SetTextL(NewContactName);    
+                      newCard->AddFieldL(*firstName);
+                      CleanupStack::Pop(firstName);
+                        
+                      // Create the phoneNo field and add the data to it
+                      CContactItemField* phoneNumber = CContactItemField::NewLC( KStorageTypeText, KUidContactFieldPhoneNumber );
+                      phoneNumber->SetMapping(KUidContactFieldVCardMapTEL);
+                      phoneNumber ->TextStorage()->SetTextL(_L("567"));
+                      newCard->AddFieldL(*phoneNumber);
+                      CleanupStack::Pop(phoneNumber);
+                      
+                      plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS) );
+                      CContactItem* contactItem = db->UpdateContactLC(aContactId, newCard);
+                      iPluginTester->iWaitForHarvester->Start();
+                      
+                      CleanupStack::PopAndDestroy(contactItem);
+                      CleanupStack::PopAndDestroy(newCard);
+                      
+                      error = doSearch( NewContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+                      }
+                  /*CContactItem* contactItem = db->OpenContactL( aContactId );
                   CleanupStack::PushL( contactItem );                           
                   // First get the item's field set
                   CContactItemFieldSet& fieldSet=contactItem->CardFields();                              
@@ -940,12 +968,12 @@ TInt CHarvesterPluginTester::TestCreateContactIndexItemL( CStifItemParser& aItem
                       // Commit the change back to database and clean up
                       db->CommitContactL( *contactItem );
                       }
-                  CleanupStack::PopAndDestroy(contactItem);                
+                  CleanupStack::PopAndDestroy(contactItem)*/;                
                   
-                  plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS) );
+                  /*plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS) );
                   iPluginTester->iWaitForHarvester->Start();
                   error = doSearch( NewContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
-                  db->DeleteContactL( aContactId );
+                  db->DeleteContactL( aContactId );*/
                   }                 
              }
          if( IndexAction.Compare( KActionDelete ) == 0 )
@@ -955,13 +983,16 @@ TInt CHarvesterPluginTester::TestCreateContactIndexItemL( CStifItemParser& aItem
                  TInt aContactId;
                  plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS));
                  //Add a contact to contactdatabase and later delete it
-                 aContactId = CreateNewContactL( *db, ContactName, _L("123455"));
-                 db->DeleteContactL(aContactId);
-                 iPluginTester->iWaitForHarvester->Start();                 
+                 aContactId = CreateNewContactL( *db, ContactName, _L("123455"));                 
+                 iPluginTester->iWaitForHarvester->Start();
                  error = doSearch( ContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
-                 //If the contact is succesfully deleted, make error to KErrNone.To show testcase success
-                 if(error == KErrNotFound)
-                     error = KErrNone;                 
+                 if(error == KErrNone)
+                     {
+                     plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS));
+                     db->DeleteContactL(aContactId);
+                     iPluginTester->iWaitForHarvester->Start();
+                     error = doSearch( ContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeNoResultsExpected );
+                     }                                 
                  }             
              }
         }
@@ -990,9 +1021,24 @@ TInt CHarvesterPluginTester::TestCreateContactGroupL( CStifItemParser& aItem )
         CContactItem* newitem = db->CreateContactGroupL( _L("TestGroup") );
         db->AddContactToGroupL( aContactId, newitem->Id() );       
         iPluginTester->iWaitForHarvester->Start();    
-        error = doSearch( GroupName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );    
+        error = doSearch( GroupName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+        
+        //update the group by adding a new contact, to get update event
+        CContactGroup* group = static_cast<CContactGroup*>(db->OpenContactLX(newitem->Id()));        
+        CleanupStack::PushL(group);
+        plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS) );
+        TInt aId = CreateNewContactL( *db, _L("Contact1"), _L("455") );        
+        db->AddContactToGroupL( aId, group->Id());
+        db->CommitContactL(*group);
+        iPluginTester->iWaitForHarvester->Start();    
+        CleanupStack::PopAndDestroy(2);
+        
+        //Delete the group and its contacts
+        plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS) );
         db->DeleteContactL(aContactId);
+        db->RemoveContactFromGroupL(aId, newitem->Id());
         db->DeleteContactL( newitem->Id() );
+        iPluginTester->iWaitForHarvester->Start();
         }
     
     delete plugin;
@@ -1029,8 +1075,13 @@ TInt CHarvesterPluginTester::TestCalenderEntryL( CStifItemParser& /*aItem*/ )
     session->AddEntryL();
     iPluginTester->iWaitForHarvester->Start();
     User::After((TTimeIntervalMicroSeconds32)30000000);
-    error = doSearch( _L("scheduled"), _L( CALENDAR_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+    error = doSearch( _L("Meeting"), _L( CALENDAR_QBASEAPPCLASS ), ESearchTypeResultsExpected );
     doLog( iLog, error, KSearchError );
+    
+    // For update event
+    session->UpdateCalenderEntryL();
+    plugin->StartHarvestingL( _L(CALENDAR_QBASEAPPCLASS) );
+    iPluginTester->iWaitForHarvester->Start();
     
     plugin->StartHarvestingL( _L(CALENDAR_QBASEAPPCLASS) );
     session->DeleteEntryL();
@@ -1161,7 +1212,107 @@ TInt CHarvesterPluginTester::TestAudioHarvestingL( CStifItemParser& /*aItem*/ )
     //End search
     return error;
     }
+TInt CHarvesterPluginTester::TestAudioHarvestingUpdateIndexL( CStifItemParser& aItem )
+    {
+    TInt error = KErrNone;
+    TPtrC filepath;
+    TPtrC filename;
+    TPtrC newFile;
+    TBuf<KMaxFileName> srcPath(_L("c:\\data\\Sounds\\"));
+    TBuf<KMaxFileName> desPath;
+    desPath.Copy( srcPath );
+    CAudioPlugin* plugin = CAudioPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    RFs fSession;
+    fSession.Connect();
+    CleanupClosePushL( fSession );
+    if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
+        {
+        srcPath.Append( filename );
+        if( aItem.GetNextString(newFile) == KErrNone )
+            {
+            desPath.Append( newFile );
+            RHarvesterClient harvester;
+            User::LeaveIfError(harvester.Connect());
+            harvester.Pause();
+            TBool fileExist = BaflUtils::FileExists( fSession, srcPath );        
+            if(!fileExist)
+            {
+            BaflUtils::EnsurePathExistsL( fSession, srcPath );//Create folder
+            BaflUtils::CopyFile( fSession, filepath, srcPath );                    
+            }            
+            BaflUtils::RenameFile( fSession, srcPath, desPath );
+            harvester.Resume();
+            harvester.Close();
+            plugin->StartHarvestingL( _L(MEDIA_QBASEAPPCLASS) );
+            //wait for index to flush
+            iPluginTester->SetWaitTime( (TTimeIntervalMicroSeconds32)60000000 );
+            //wait till video harvesting completes
+            iPluginTester->iWaitForHarvester->Start();
+            TInt count = SearchForTextL(_L("testaudio"), _L(MEDIA_QBASEAPPCLASS), KNullDesC );
+            if(count <= 0)
+               {
+               error = KErrNotFound;
+               }
+            doLog( iLog, error, _L("Error in TestAudioHarvestingUpdateIndexL") );
+            }        
+        }
+        else
+            doLog( iLog, KErrNotFound, _L("Error in TestAudioHarvestingUpdateIndexL") );           
+        CleanupStack::PopAndDestroy();
+        delete plugin;
+        delete iPluginTester;
+        return error;
+        }
 
+TInt CHarvesterPluginTester::TestAudioHarvestingDeleteIndexL( CStifItemParser& aItem )
+    {
+    TInt error = KErrNone;
+    TPtrC filepath;
+    TPtrC filename;    
+    TBuf<KMaxFileName> srcPath(_L("c:\\data\\Sounds\\"));
+    CAudioPlugin* plugin = CAudioPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    RFs fSession;
+    fSession.Connect();
+    CleanupClosePushL( fSession );
+    if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
+        {
+        srcPath.Append( filename );        
+        RHarvesterClient harvester;
+        User::LeaveIfError(harvester.Connect());
+        harvester.Pause();
+        TBool fileExist = BaflUtils::FileExists( fSession, srcPath );        
+        if(!fileExist)
+        {
+        BaflUtils::EnsurePathExistsL( fSession, srcPath );//Create folder
+        BaflUtils::CopyFile( fSession, filepath, srcPath );                    
+        }            
+        BaflUtils::DeleteFile( fSession, srcPath );        
+        harvester.Resume();
+        harvester.Close();
+        plugin->StartHarvestingL( _L(MEDIA_QBASEAPPCLASS) );
+        //wait for index to flush
+        iPluginTester->SetWaitTime( (TTimeIntervalMicroSeconds32)60000000 );
+        //wait till video harvesting completes
+        iPluginTester->iWaitForHarvester->Start();
+        TInt count = SearchForTextL(_L("eagle"), _L(MEDIA_QBASEAPPCLASS), KNullDesC );
+        if(count <= 0)
+           {
+           // If the search is not found,then testcase is success
+           doLog( iLog, error, _L("Error in TestAudioHarvestingDeleteIndexL") );
+           }
+        }
+    else
+        doLog( iLog, KErrNotFound, _L("Error in TestAudioHarvestingDeleteIndexL") );           
+    CleanupStack::PopAndDestroy();
+    delete plugin;
+    delete iPluginTester;
+    return error;
+    }
+        
 TInt CHarvesterPluginTester::TestMdsSyncControllerL( CStifItemParser& /*aItem*/ )
     {
     _LIT( KHarvesterPluginTester, "HarvesterPluginTester" );

@@ -30,7 +30,7 @@
 #endif
 
 
-_LIT( KFormatDateTime, "%04d-%02d-%02dT%02d:%02d:%02dZ");    // yyyy-mm-ddThh:mm:ssZ
+_LIT( KFormatDateTime, "%04d %02d %02dT%02d:%02d:%02dZ");    // yyyy-mm-ddThh:mm:ssZ
 
 // -----------------------------------------------------------------------------
 // CCPIXDocFetcher::NewL()

@@ -41,7 +41,7 @@ _LIT(KExcerptDelimiter, " ");
 /** The delay between harvesting chunks. */
 const TInt KHarvestingDelay = 2000;
 
-_LIT(KCalendarTimeFormat,"%F%/0%Y%M%D%H%T"); // Locale independent YYYYMMDDHHSS
+_LIT(KCalendarTimeFormat,"%F%/0%Y %M %D %H%T"); // Locale independent YYYYMMDDHHSS
 
 // ---------------------------------------------------------------------------
 // CMessagePlugin::NewL

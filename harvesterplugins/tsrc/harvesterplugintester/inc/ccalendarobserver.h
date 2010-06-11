@@ -41,6 +41,7 @@ public:
     TBool NotifyProgress();
     
     void AddEntryL();
+    void UpdateCalenderEntryL();
     void DeleteEntryL();
     void AddNoteL( TPtr8 aMemo);
     void DeleteNoteEntryL();

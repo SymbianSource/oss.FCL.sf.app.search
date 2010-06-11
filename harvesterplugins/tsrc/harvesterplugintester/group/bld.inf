@@ -33,6 +33,7 @@ PRJ_TESTEXPORTS
 ../conf/testfile.txt				/epoc32/winscw/c/data/testfile.txt
 ../conf/eagle_landed.mp3           /epoc32/winscw/c/data/eagle_landed.mp3
 ../conf/niagara.wmv           	  /epoc32/winscw/c/data/niagara.wmv
+../conf/square.jpg           	  /epoc32/winscw/c/data/square.jpg
 
 //Note: Export for ROM build 
 ../conf/testframework.ini         z:/system/data/testframework.ini

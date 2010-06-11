@@ -109,30 +109,35 @@ void CMessAsyncWaiter::DoCancel()
 TInt MessagingUtils::CreateMessageL(CMsvSession* aMsgSession, const TDesC& aMsgFrom,
                                     const TDesC& aMsgTo,const TDesC& aMsgBody)
     {
+    CSmsClientMtm* smsMtm = NULL;
+    TMsvId newMsgId = NULL;
     CClientMtmRegistry* mtmReg = CClientMtmRegistry::NewL( *aMsgSession );
-    CSmsClientMtm* smsMtm = static_cast<CSmsClientMtm*>( mtmReg->NewMtmL( KUidMsgTypeSMS )); 
-    smsMtm->SwitchCurrentEntryL( KMsvGlobalInBoxIndexEntryId );
-    smsMtm->CreateMessageL( KUidMsgTypeSMS.iUid );
-    TMsvId newMsgId = smsMtm->Entry().EntryId();
-    smsMtm->AddAddresseeL( aMsgTo ); //to address if need
-    CMsvStore* messageStore = smsMtm->Entry().EditStoreL();
-    CleanupStack::PushL( messageStore );
-    CSmsHeader& header = smsMtm->SmsHeader();
-    header.SetFromAddressL(aMsgFrom);
-    header.StoreL( *messageStore );
-    CleanupStack::PopAndDestroy( messageStore );
-    CRichText& body = smsMtm->Body();
-    body.Reset();
-    // Put 16bits stream stored in 8bits buffer back to 16bits buffer.
-    body.InsertL( 0, aMsgBody);
-    TMsvEntry entry = smsMtm->Entry().Entry();
-    entry.SetInPreparation( EFalse );
-    entry.SetVisible( ETrue );
-    entry.iDate.HomeTime();
-    entry.iDetails.Set(aMsgFrom);
-    entry.SetUnread( EFalse );
-    smsMtm->Entry().ChangeL( entry );
-    smsMtm->SaveMessageL(); 
+    TRAPD(err,smsMtm = static_cast<CSmsClientMtm*>( mtmReg->NewMtmL( KUidMsgTypeSMS )));
+    if( err == KErrNone)
+        {
+        smsMtm->SwitchCurrentEntryL( KMsvGlobalInBoxIndexEntryId );
+        smsMtm->CreateMessageL( KUidMsgTypeSMS.iUid );
+        newMsgId = smsMtm->Entry().EntryId();
+        smsMtm->AddAddresseeL( aMsgTo ); //to address if need
+        CMsvStore* messageStore = smsMtm->Entry().EditStoreL();
+        CleanupStack::PushL( messageStore );
+        CSmsHeader& header = smsMtm->SmsHeader();
+        header.SetFromAddressL(aMsgFrom);
+        header.StoreL( *messageStore );
+        CleanupStack::PopAndDestroy( messageStore );
+        CRichText& body = smsMtm->Body();
+        body.Reset();
+        // Put 16bits stream stored in 8bits buffer back to 16bits buffer.
+        body.InsertL( 0, aMsgBody);
+        TMsvEntry entry = smsMtm->Entry().Entry();
+        entry.SetInPreparation( EFalse );
+        entry.SetVisible( ETrue );
+        entry.iDate.HomeTime();
+        entry.iDetails.Set(aMsgFrom);
+        entry.SetUnread( EFalse );
+        smsMtm->Entry().ChangeL( entry );
+        smsMtm->SaveMessageL();
+        }
     delete smsMtm;
     delete mtmReg;
     return newMsgId;

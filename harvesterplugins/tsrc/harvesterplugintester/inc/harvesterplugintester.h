@@ -227,6 +227,10 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
 		
 		virtual TInt TestAudioHarvestingL( CStifItemParser& aItem );
 		
+		virtual TInt TestAudioHarvestingUpdateIndexL( CStifItemParser& aItem );
+		        
+        virtual TInt TestAudioHarvestingDeleteIndexL( CStifItemParser& aItem );
+		
 		virtual TInt TestMdsSyncControllerL( CStifItemParser& aItem );
 		
 		virtual TInt TestBlacklistPluginL( CStifItemParser& aItem );

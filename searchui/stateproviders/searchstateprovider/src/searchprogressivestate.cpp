@@ -598,46 +598,28 @@ void SearchProgressiveState::openResultitem(QModelIndex index)
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("applications"))
         {
-        TRAPD(err,
-                    {LaunchApplicationL(TUid::Uid((item->data(Qt::UserRole)).toString().toInt(&t, 16)));})
-        if (err == KErrNone)
-            {
-            }
+        TRAP_IGNORE(LaunchApplicationL(TUid::Uid((item->data(Qt::UserRole)).toString().toInt(&t, 16))));
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("file"))
         {
+        QString uid = item->data(Qt::UserRole).toString();
+        QFile file(uid);
+        mRequest = mAiwMgr->create(file, false);
+        args << file.fileName();
         }
-    else if (item->data(Qt::UserRole + 1).toString().contains("video"))
+    else if ((item->data(Qt::UserRole + 1).toString().contains("video"))
+            || (item->data(Qt::UserRole + 1).toString().contains("audio"))
+            || (item->data(Qt::UserRole + 1).toString().contains("image")))
         {
-        mRequest = mAiwMgr->create("com.nokia.videos", "IVideoView",
-                "playMedia(QString)", false);
+        QString uid = getDrivefromMediaId(
+                item->data(Qt::UserRole + 2).toString());
+        uid.append(':');
+        uid.append(item->data(Qt::UserRole).toString());
+        QFile file(uid);
+        mRequest = mAiwMgr->create(file, false);
+        args << file.fileName();
+        }
 
-        QString uid = getDrivefromMediaId(
-                item->data(Qt::UserRole + 2).toString());
-        uid.append(':');
-        uid.append(item->data(Qt::UserRole).toString());
-        args << uid;
-        }
-    else if (item->data(Qt::UserRole + 1).toString().contains("audio"))
-        {
-        QString uid = getDrivefromMediaId(
-                item->data(Qt::UserRole + 2).toString());
-        uid.append(':');
-        uid.append(item->data(Qt::UserRole).toString());
-        mRequest = mAiwMgr->create("musicplayer",
-                "com.nokia.symbian.IFileView", "view(QString)", false);
-        args << uid;
-        }
-    else if (item->data(Qt::UserRole + 1).toString().contains("image"))
-        {
-        QString uid = getDrivefromMediaId(
-                item->data(Qt::UserRole + 2).toString());
-        uid.append(':');
-        uid.append(item->data(Qt::UserRole).toString());
-        mRequest = mAiwMgr->create("com.nokia.services.media",
-                "com.nokia.symbian.IFileView", "view(QString)", false);
-        args << uid;
-        }
     else if (item->data(Qt::UserRole + 1).toString().contains("notes"))
         {
         if (!notesEditor)
@@ -830,11 +812,11 @@ void SearchProgressiveState::startNewSearch(const QString &aKeyword)
         mDatabasecount = 0;
         mLinkindex = 0;
         //Prefix query
-        /*mSearchString = "$prefix(\"";
+        mSearchString = "$prefix(\"";
         mSearchString += mOriginalString;
-        mSearchString += "\")";*/
-        mSearchString = mOriginalString;
-        mSearchString.append('*');
+        mSearchString += "\")";
+        /*mSearchString = mOriginalString;
+         mSearchString.append('*');*/
         searchOnCategory(mSearchString);
         }
     }

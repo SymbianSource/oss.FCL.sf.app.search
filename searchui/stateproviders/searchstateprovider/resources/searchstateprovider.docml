@@ -10,7 +10,7 @@
                 <sizehint height="47.7612un" type="PREFERRED" width="35.8209un"/>
             </widget>
             <widget name="searchPanel" type="HbSearchPanel">
-                <sizepolicy horizontalPolicy="MinimumExpanding" horizontalStretch="0" verticalPolicy="Preferred" verticalStretch="0"/>
+                <sizepolicy horizontalPolicy="Preferred" horizontalStretch="0" verticalPolicy="Preferred" verticalStretch="0"/>
             </widget>
             <layout orientation="Vertical" type="linear">
                 <linearitem itemname="listView"/>

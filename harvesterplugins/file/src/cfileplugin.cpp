@@ -116,7 +116,7 @@ TBool CFilePlugin::IsFileTypeMedia(const TDesC& aExt)
                                 _S("awb"),_S("mid"), _S("midi"), _S("spmid"), _S("rng"), _S("mxmf"), _S("wav"),
                                 _S("au"), _S("nrt"), _S("mka"),_S("jp2"), _S("j2k"), _S("jpx"),
                                 _S("rm"), _S("rmvb"),_S("ota"), _S("wbmp"), _S("wmf"),_S("otb"),
-                                _S("rv"),  _S("mkv"), _S("ra"),_S("tif"), _S("tiff")};
+                                _S("rv"),  _S("mkv"), _S("asf"),_S("ra"),_S("tif"), _S("tiff")};
     
     const TInt count = sizeof( KMediaExt ) / sizeof( TText* );
     
