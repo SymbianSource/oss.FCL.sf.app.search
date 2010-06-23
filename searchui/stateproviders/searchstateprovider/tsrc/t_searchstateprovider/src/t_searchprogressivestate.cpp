@@ -225,7 +225,7 @@ void SearchStateProviderTest::teststartNewSearch()
     {
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
-
+    progressiveState->onEntry(event);
     progressiveState->getSettingCategory(0, true);
     progressiveState->getSettingCategory(1, true);
     progressiveState->getSettingCategory(2, true);
@@ -234,7 +234,7 @@ void SearchStateProviderTest::teststartNewSearch()
     progressiveState->getSettingCategory(5, true);
     progressiveState->getSettingCategory(6, true);
     progressiveState->getSettingCategory(7, true);
-    progressiveState->onEntry(event);
+   
     progressiveState->startNewSearch("jpg");
     QTest::qWait(2000);
     QVERIFY(progressiveState->mModel->rowCount());
@@ -394,6 +394,7 @@ void SearchStateProviderTest::testgetDrivefromMediaId()
     QTest::qWait(200);
     QModelIndex index = progressiveState->mModel->index(1, 0);
     QStandardItem* item = progressiveState->mModel->itemFromIndex(index);
+    if(item)
     QString uid = progressiveState->getDrivefromMediaId(item->data(
             Qt::UserRole + 2).toString());
     //QVERIFY(uid.length());

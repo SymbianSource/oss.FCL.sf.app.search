@@ -45,7 +45,7 @@
 #include <apaidpartner.h>
 #include <qpluginloader.h>
 #include <eventviewerplugininterface.h>
-#include <noteseditor.h>
+#include <noteseditorinterface.h>
 #include <w32std.h>
 #include <apgtask.h>
 #include <apgcli.h>
@@ -53,6 +53,7 @@
 #include <apacmdln.h>
 #include <xqconversions.h>
 #include <apparc.h>
+#define hbApp qobject_cast<HbApplication*>(qApp)
 const char *SEARCHSTATEPROVIDER_DOCML = ":/xml/searchstateprovider.docml";
 const char *TOC_VIEW = "tocView";
 const char *TUT_SEARCHPANEL_WIDGET = "searchPanel";
@@ -64,7 +65,7 @@ const int totalcategories = 10;
 SearchProgressiveState::SearchProgressiveState(QState *parent) :
     QState(parent), mMainWindow(NULL), mView(NULL), mListView(NULL),
             mDocumentLoader(NULL), mModel(NULL), mSearchHandler(NULL),
-            notesEditor(0), mAiwMgr(0), mRequest(0)
+            mNotesEditor(0), mAiwMgr(0), mRequest(0)
     {
 
     mMainWindow = hbInstance->allMainWindows().at(0);
@@ -123,7 +124,7 @@ SearchProgressiveState::SearchProgressiveState(QState *parent) :
         {
         mSearchPanel->setSearchOptionsEnabled(true);
         
-        mSearchPanel->setPlaceholderText("Search device");
+        mSearchPanel->setPlaceholderText(hbTrId("txt_search_dialog_search_device"));
 
         mSearchPanel->setCancelEnabled(false);
         }
@@ -167,6 +168,23 @@ SearchProgressiveState::SearchProgressiveState(QState *parent) :
     m_categoryGetDocumentApiTime.start();
     m_getDocumentCatergoryTimeAccumulator = 0;
 #endif
+
+    //Notes Editor Interface loading 
+    QDir dir(NOTES_EDITOR_PLUGIN_PATH);
+    QString pluginName = dir.absoluteFilePath(NOTES_EDITOR_PLUGIN_NAME);
+
+    // Create plugin loader.
+    mNotespluginLoader = new QPluginLoader(pluginName);
+
+    if (mNotespluginLoader)
+        {
+        // Load the plugin.
+        mNotespluginLoader->load();
+
+        QObject *plugin = qobject_cast<QObject*> (
+                mNotespluginLoader->instance());
+        mNotesEditor = qobject_cast<NotesEditorInterface*> (plugin);
+        }
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::~SearchProgressiveState
@@ -189,9 +207,10 @@ SearchProgressiveState::~SearchProgressiveState()
         {
         delete mSearchHandlerList.at(i);
         }
-    if(notesEditor)
+    if (mNotespluginLoader)
         {
-        delete notesEditor;
+        mNotespluginLoader->unload();
+        delete mNotespluginLoader;
         }
     }
 // ---------------------------------------------------------------------------
@@ -319,6 +338,8 @@ void SearchProgressiveState::activateSignals()
                 SLOT(setSettings()));
         }
 
+    connect(mMainWindow, SIGNAL(viewReady()), this, SLOT(viewReady()));
+
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::deActivateSignals
@@ -346,6 +367,7 @@ void SearchProgressiveState::deActivateSignals()
         disconnect(mSearchPanel, SIGNAL(searchOptionsClicked()), this,
                 SLOT(setSettings()));
         }
+    disconnect(mMainWindow, SIGNAL(viewReady()), this, SLOT(viewReady()));
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::onAsyncSearchComplete
@@ -562,12 +584,13 @@ void SearchProgressiveState::openResultitem(QModelIndex index)
     {
     QStandardItem* item = mModel->itemFromIndex(index);
     if (item == NULL)
-        return;
+        return;PERF_RESULT_ITEM_LAUNCH_TIME_RESTART
     QList<QVariant> args;
     bool t;
     mRequest = NULL;
     if (item->data(Qt::UserRole + 1).toString().contains("contact"))
         {
+        PERF_RESULT_ITEM_FOR_LAUNCHING("contact")
         mRequest = mAiwMgr->create("com.nokia.services.phonebookservices",
                 "Fetch", "open(int)", false);
 
@@ -576,6 +599,8 @@ void SearchProgressiveState::openResultitem(QModelIndex index)
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("bookmark"))
         {
+        PERF_RESULT_ITEM_FOR_LAUNCHING("bookmark")
+        PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG("")
 
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("calendar"))
@@ -598,10 +623,13 @@ void SearchProgressiveState::openResultitem(QModelIndex index)
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("applications"))
         {
+        PERF_RESULT_ITEM_FOR_LAUNCHING("applications")
         TRAP_IGNORE(LaunchApplicationL(TUid::Uid((item->data(Qt::UserRole)).toString().toInt(&t, 16))));
+        PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG("")
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("file"))
         {
+        PERF_RESULT_ITEM_FOR_LAUNCHING("file")
         QString uid = item->data(Qt::UserRole).toString();
         QFile file(uid);
         mRequest = mAiwMgr->create(file, false);
@@ -611,6 +639,7 @@ void SearchProgressiveState::openResultitem(QModelIndex index)
             || (item->data(Qt::UserRole + 1).toString().contains("audio"))
             || (item->data(Qt::UserRole + 1).toString().contains("image")))
         {
+        PERF_RESULT_ITEM_FOR_LAUNCHING("media")
         QString uid = getDrivefromMediaId(
                 item->data(Qt::UserRole + 2).toString());
         uid.append(':');
@@ -622,14 +651,16 @@ void SearchProgressiveState::openResultitem(QModelIndex index)
 
     else if (item->data(Qt::UserRole + 1).toString().contains("notes"))
         {
-        if (!notesEditor)
+        PERF_RESULT_ITEM_FOR_LAUNCHING("notes")
+        if(mNotesEditor)
             {
-            notesEditor = new NotesEditor(this);
+            mNotesEditor->edit(item->data(Qt::UserRole).toInt());
             }
-        notesEditor->edit(item->data(Qt::UserRole).toInt());
+        PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG("")
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("msg"))
         {
+        PERF_RESULT_ITEM_FOR_LAUNCHING("msg")
         mRequest = mAiwMgr->create("com.nokia.services.hbserviceprovider",
                 "conversationview", "view(int)", false);
 
@@ -665,6 +696,7 @@ void SearchProgressiveState::openResultitem(QModelIndex index)
 void SearchProgressiveState::handleOk(const QVariant& var)
     {
     Q_UNUSED(var);
+PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG    ("")
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::handleError
@@ -1269,6 +1301,7 @@ void SearchProgressiveState::LaunchApplicationL(const TUid aUid)
         CleanupStack::PopAndDestroy(&appArcSession);
         }
     CleanupStack::PopAndDestroy(&wsSession);
+PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG    ("")
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::_viewingCompleted
@@ -1277,4 +1310,21 @@ void SearchProgressiveState::_viewingCompleted()
     {
     if (calAgandaViewerPluginInstance)
         calAgandaViewerPluginInstance->deleteLater();
+PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG    ("")
+    }
+// ---------------------------------------------------------------------------
+// SearchProgressiveState::viewReady
+// ---------------------------------------------------------------------------
+void SearchProgressiveState::viewReady()
+    {
+    if (hbApp)
+        {
+        if (hbApp->activateReason() == Hb::ActivationReasonActivity)
+            {
+            QVariantHash params = hbApp->activateParams();
+            QString searchKey = params.value("query").toString();
+            if (searchKey.length() > 0)
+                mSearchPanel->setCriteria(searchKey);
+            }
+        }PERF_APP_LAUNCH_END("SearchAppplication View is ready");
     }

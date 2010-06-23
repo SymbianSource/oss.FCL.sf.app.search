@@ -90,7 +90,7 @@ TInt CHarvesterPluginTester::RunMethodL(
         // First string is the function name used in TestScripter script file.
         // Second is the actual implementation member function. 
         ENTRY( "TestStartHarvester", CHarvesterPluginTester::TestStartHarvesterL ),        
-        ENTRY( "TestFormBaseAppClass", CHarvesterPluginTester::TestFormBaseAppClass ),
+        ENTRY( "TestFormBaseAppClass", CHarvesterPluginTester::TestFormBaseAppClassL ),
         ENTRY( "TestDatabasePath", CHarvesterPluginTester::TestDatabasePathL ),
         ENTRY( "TestCreateIndexItemL_Add", CHarvesterPluginTester::TestCreateIndexItemL ),
         ENTRY( "TestCreateIndexItemL_Update", CHarvesterPluginTester::TestCreateIndexItemL ),
@@ -113,6 +113,7 @@ TInt CHarvesterPluginTester::RunMethodL(
         ENTRY( "TestUpdateNoteL", CHarvesterPluginTester::TestUpdateNoteL ),                
         ENTRY( "TestContactsHarvesting", CHarvesterPluginTester::TestStartContactsHarvesterL ),
         ENTRY( "TestCreateContactIndexItemL_Add", CHarvesterPluginTester::TestCreateContactIndexItemL ),
+        ENTRY( "TestCreateAllContactFields", CHarvesterPluginTester::TestCreateAllContactFieldsL ),
         ENTRY( "TestCreateContactIndexItemL_Edit", CHarvesterPluginTester::TestCreateContactIndexItemL ),
         ENTRY( "TestCreateContactIndexItemL_Delete", CHarvesterPluginTester::TestCreateContactIndexItemL ),
         ENTRY( "TestCreateContactGroup", CHarvesterPluginTester::TestCreateContactGroupL ),
@@ -173,11 +174,12 @@ TInt CHarvesterPluginTester::TestStartHarvesterL( CStifItemParser& /*aItem*/ )
     iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
     delete filePlugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, KErrNone, KNoErrorString );
     return KErrNone;
     }
 
-TInt CHarvesterPluginTester::TestFormBaseAppClass( CStifItemParser& aItem )
+TInt CHarvesterPluginTester::TestFormBaseAppClassL( CStifItemParser& aItem )
     {
     // Print to UI
     _LIT( KFilePluginBaseAppClass, "FormBaseAppClass" );
@@ -212,7 +214,7 @@ TInt CHarvesterPluginTester::TestFormBaseAppClass( CStifItemParser& aItem )
         }
     delete filePlugin;
     delete iPluginTester;
-    
+    iPluginTester = NULL;
     doLog( iLog, error, KTestFormBaseAppClassNoError );
     return error;
     }
@@ -248,6 +250,7 @@ TInt CHarvesterPluginTester::TestDatabasePathL( CStifItemParser& aItem )
     CleanupStack::PopAndDestroy( buffer );
     delete filePlugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, error, KTestDatabasePathNoError );
     return error;
     }
@@ -259,15 +262,24 @@ enum TSearchType
     ESearchTypeNoResultsExpected
     };
 
-TInt doSearch( const TDesC& aSearchString, const TDesC& aBaseAppClass, TSearchType aSearchType )
+TInt doSearchL( const TDesC& aSearchString, const TDesC& aBaseAppClass, TSearchType aSearchType )
     {
+    _LIT(KHeaderPrefix, "$prefix(\"");
+    _LIT(KTrailerPrefix, "\")");
     RSearchServerSession session;
     User::LeaveIfError( session.Connect() );
     CCPixSearcher* searcher = CCPixSearcher::NewLC( session );
+    
+    //Form prefix search query
     searcher->OpenDatabaseL( aBaseAppClass );
+    HBufC* searchbuf = HBufC::NewLC(KHeaderPrefix().Length() + aSearchString.Length() + KTrailerPrefix().Length());
+    TPtr searchstring = searchbuf->Des();
+    searchstring.Append(KHeaderPrefix);
+    searchstring.Append(aSearchString);
+    searchstring.Append(KTrailerPrefix);
     
-    TInt docCount = searcher->SearchL( aSearchString, KNullDesC);
-    
+    TInt docCount = searcher->SearchL( searchstring, KNullDesC);
+    CleanupStack::PopAndDestroy( searchbuf );
     CleanupStack::PopAndDestroy( searcher );
     session.Close();
     
@@ -309,7 +321,7 @@ TInt CHarvesterPluginTester::TestCreateIndexItemL( CStifItemParser& aItem )
                 TPtrC searchString;
                 while( aItem.GetNextString ( searchString ) == KErrNone  && error == KErrNone )
                     {
-                    error = doSearch( searchString, KAppBasePath, ESearchTypeResultsExpected );
+                    error = doSearchL( searchString, KAppBasePath, ESearchTypeResultsExpected );
                     }
                 filePlugin->CreateContentIndexItemL( filePathName, ECPixRemoveAction );
                 }
@@ -323,7 +335,7 @@ TInt CHarvesterPluginTester::TestCreateIndexItemL( CStifItemParser& aItem )
                 TPtrC searchString;
                 while( aItem.GetNextString ( searchString ) == KErrNone  && error == KErrNone )
                     {
-                    error = doSearch( searchString, KAppBasePath, ESearchTypeNoResultsExpected );
+                    error = doSearchL( searchString, KAppBasePath, ESearchTypeNoResultsExpected );
                     }
                 }
             }
@@ -337,7 +349,7 @@ TInt CHarvesterPluginTester::TestCreateIndexItemL( CStifItemParser& aItem )
                 TPtrC searchString;
                 while( aItem.GetNextString ( searchString ) == KErrNone  && error == KErrNone )
                     {
-                    error = doSearch( searchString, KAppBasePath, ESearchTypeResultsExpected );
+                    error = doSearchL( searchString, KAppBasePath, ESearchTypeResultsExpected );
                     }
                 }
             }
@@ -358,7 +370,7 @@ TInt CHarvesterPluginTester::TestFolderCreateL( CStifItemParser& /*aItem*/ )
     
     _LIT( KDirectoryToCreate, "C:\\data\\TestFolder\\" );    
     RFs fs;
-    fs.Connect();
+    User::LeaveIfError( fs.Connect() );
     TBool folderExists = BaflUtils::FolderExists(fs, KDirectoryToCreate);
     if(!folderExists)
         {
@@ -368,12 +380,13 @@ TInt CHarvesterPluginTester::TestFolderCreateL( CStifItemParser& /*aItem*/ )
     
     if(error == KErrNone)
         {
-        error = doSearch( _L("TestFolder"), KAppBaseFolderFilePath, ESearchTypeResultsExpected );
+        error = doSearchL( _L("TestFolder"), KAppBaseFolderFilePath, ESearchTypeResultsExpected );
         fs.RmDir(KDirectoryToCreate);
         }
     fs.Close();
     delete filePlugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, error, _L("Error: TestFolderCreateL") );
     
     return error;
@@ -383,7 +396,7 @@ TInt CHarvesterPluginTester::TestFolderRenameL( CStifItemParser& /*aItem*/ )
     {
     TInt error = KErrNone;
     RFs fs;
-    fs.Connect();
+    User::LeaveIfError( fs.Connect() );
     
     CFilePlugin* filePlugin = CFilePlugin::NewL();
     CFolderRenamedHarvester* iFolderRenameHarvester = CFolderRenamedHarvester::NewL( *filePlugin, fs);
@@ -407,7 +420,7 @@ TInt CHarvesterPluginTester::TestFolderRenameL( CStifItemParser& /*aItem*/ )
         }
     iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
     
-    error = doSearch( _L("TestRenameFolder"), KAppBaseFolderFilePath, ESearchTypeResultsExpected );        
+    error = doSearchL( _L("TestRenameFolder"), KAppBaseFolderFilePath, ESearchTypeResultsExpected );        
   
     if(error == KErrNone)
         {
@@ -418,13 +431,15 @@ TInt CHarvesterPluginTester::TestFolderRenameL( CStifItemParser& /*aItem*/ )
     User::After( (TTimeIntervalMicroSeconds32)35000000 );
     
     //Search for the renamed directory
-    error = doSearch( _L("TestFolderRenamed"), KAppBaseFolderFilePath, ESearchTypeNoResultsExpected );    
+    error = doSearchL( _L("TestFolderRenamed"), KAppBaseFolderFilePath, ESearchTypeNoResultsExpected );    
     
     fs.RmDir(KDirectoryRenamed);    
     
     delete filePlugin;
     delete iFolderRenameHarvester;
+    iFolderRenameHarvester = NULL;
     delete iPluginTester;
+    iPluginTester = NULL;
     fs.Close();
     doLog( iLog, error, _L("Error: TestFolderRenameL") );
     
@@ -461,6 +476,7 @@ TInt CHarvesterPluginTester::TestMessageHarvesterL( CStifItemParser& /*aItem*/ )
     
     delete plugin; 
     delete iPluginTester;
+    iPluginTester = NULL;
     delete sessionobserver;
     delete msgSession;
     doLog(iLog,KErrNone,KNoErrorString);
@@ -502,6 +518,7 @@ TInt CHarvesterPluginTester::TestMessageHarvesterWithMessageL( CStifItemParser& 
     
     delete plugin; 
     delete iPluginTester;
+    iPluginTester = NULL;
     delete sessionobserver;
     delete msgSession;
     doLog(iLog,error,_L("Error in TestMessageHarvesterWithMessageL"));
@@ -552,6 +569,7 @@ TInt CHarvesterPluginTester::TestMessageHarvesterChangeDriveL( CStifItemParser& 
     
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     delete sessionobserver;
     delete msgSession;
     doLog(iLog,error,_L("Error in TestMessageHarvesterChangeDriveL"));
@@ -582,6 +600,7 @@ TInt CHarvesterPluginTester::TestStartBookmarksHarvesterL( CStifItemParser& /*aI
     iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, KErrNone, KNoErrorString );
     return KErrNone;
     }
@@ -627,12 +646,12 @@ TInt CHarvesterPluginTester::TestAddBookmarkL( CStifItemParser& aItem )
         {
         error = aItem.GetNextString( string );
         if( KErrNone == error ) 
-            error = doSearch( string , _L( BOOKMARK_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+            error = doSearchL( string , _L( BOOKMARK_QBASEAPPCLASS ), ESearchTypeResultsExpected );
         }
 
     delete plugin;
     delete iPluginTester;
-    
+    iPluginTester = NULL;
     favoritesDb.Close();
     favSession.Close();
     
@@ -670,6 +689,7 @@ TInt CHarvesterPluginTester::TestStartApplicationsHarvesterL( CStifItemParser& /
     iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
     delete appsPlugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, KErrNone, KNoErrorString );
     return KErrNone;
     }
@@ -686,6 +706,7 @@ TInt CHarvesterPluginTester::TestCreateApplicationsIndexItemL( CStifItemParser& 
 
     delete appsPlugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, KErrNone, KNoErrorString );
     return KErrNone;
     }
@@ -698,7 +719,8 @@ TInt CHarvesterPluginTester::TestCreateApplicationsIndexItemL( CStifItemParser& 
     plugin->StartHarvestingL( _L(NOTES_QBASEAPPCLASS) );
     iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
     delete plugin;
-    delete iPluginTester;    
+    delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, KErrNone, KNoErrorString );	
     return KErrNone;
     }
@@ -762,7 +784,7 @@ TInt CHarvesterPluginTester::PerformNotesTestL( TPtrC aString1 , TPtrC aString2)
         session->AddNoteL(memo->Des());
         plugin->StartHarvestingL( _L(NOTES_QBASEAPPCLASS) );
         iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
-        error = doSearch( aString2, _L(NOTES_QBASEAPPCLASS), ESearchTypeResultsExpected );
+        error = doSearchL( aString2, _L(NOTES_QBASEAPPCLASS), ESearchTypeResultsExpected );
         
         delete session;
         doLog( iLog, error, KNoErrorString );
@@ -770,6 +792,7 @@ TInt CHarvesterPluginTester::PerformNotesTestL( TPtrC aString1 , TPtrC aString2)
     delete memo;
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     return error;
     }
 
@@ -792,14 +815,14 @@ TInt CHarvesterPluginTester::TestDeleteNoteL( CStifItemParser& aItem )
     session->AddNoteL( buf8->Des());
     User::After( (TTimeIntervalMicroSeconds32)35000000 );
     delete buf8;    
-    error = doSearch( _L("TestNote"), _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+    error = doSearchL( _L("TestNote"), _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );
     doLog( iLog, error, KSearchError );    
     if( error == KErrNone)
         {
         session->DeleteNoteEntryL();
         User::After( (TTimeIntervalMicroSeconds32)35000000 );
         //Delete the Note entry added previously and search for result    
-        error = doSearch( _L("TestNote"), _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );             
+        error = doSearchL( _L("TestNote"), _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );             
         //If the entery is succesfully deleted, make error to KErrNone.To show testcase success
         if(error == KErrNotFound)
             error = KErrNone;    
@@ -807,6 +830,7 @@ TInt CHarvesterPluginTester::TestDeleteNoteL( CStifItemParser& aItem )
     delete session;
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, error, KSearchError );
     return KErrNone;
     }
@@ -831,7 +855,7 @@ TInt CHarvesterPluginTester::TestUpdateNoteL( CStifItemParser& aItem )
     TBuf<20> oldsearchstring;
     oldsearchstring.Copy( oldString );
     iPluginTester->iWaitForHarvester->Start();
-    error = doSearch( oldsearchstring, _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+    error = doSearchL( oldsearchstring, _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );
     doLog( iLog, error, KSearchError );
     
     TBuf<20> newsearchstring;
@@ -842,14 +866,15 @@ TInt CHarvesterPluginTester::TestUpdateNoteL( CStifItemParser& aItem )
     session->UpdateNoteEntryL( oldbuf8->Des(), newbuf8->Des() );
     plugin->StartHarvestingL( _L(NOTES_QBASEAPPCLASS) );
     iPluginTester->iWaitForHarvester->Start();
-    error = doSearch( newsearchstring, _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+    error = doSearchL( newsearchstring, _L( NOTES_QBASEAPPCLASS ), ESearchTypeResultsExpected );
     doLog( iLog, error, KSearchError );
     
     delete newbuf8;
     delete oldbuf8;
     delete session;
     delete plugin;
-    delete iPluginTester;    
+    delete iPluginTester;
+    iPluginTester = NULL;
     return error;    
     }
 
@@ -862,6 +887,7 @@ TInt CHarvesterPluginTester::TestStartContactsHarvesterL( CStifItemParser& /*aIt
     iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, KErrNone, KNoErrorString );
     return KErrNone;
     }
@@ -917,7 +943,7 @@ TInt CHarvesterPluginTester::TestCreateContactIndexItemL( CStifItemParser& aItem
                  aContactId = CreateNewContactL( *db, ContactName, _L("1234") );                 
                  iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.                 
                                                        
-                 error = doSearch( ContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected ); 
+                 error = doSearchL( ContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected ); 
                  db->DeleteContactL(aContactId);
                  }
              }
@@ -953,27 +979,8 @@ TInt CHarvesterPluginTester::TestCreateContactIndexItemL( CStifItemParser& aItem
                       CleanupStack::PopAndDestroy(contactItem);
                       CleanupStack::PopAndDestroy(newCard);
                       
-                      error = doSearch( NewContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+                      error = doSearchL( NewContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
                       }
-                  /*CContactItem* contactItem = db->OpenContactL( aContactId );
-                  CleanupStack::PushL( contactItem );                           
-                  // First get the item's field set
-                  CContactItemFieldSet& fieldSet=contactItem->CardFields();                              
-                  // Search the field set for the given name field
-                  TInt index = fieldSet.Find( KUidContactFieldGivenName );
-                  CContactItemField &field= fieldSet[index];                          
-                  if( aItem.GetNextString ( NewContactName ) == KErrNone )
-                      {                      
-                      field.TextStorage()->SetTextL( NewContactName );                          
-                      // Commit the change back to database and clean up
-                      db->CommitContactL( *contactItem );
-                      }
-                  CleanupStack::PopAndDestroy(contactItem)*/;                
-                  
-                  /*plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS) );
-                  iPluginTester->iWaitForHarvester->Start();
-                  error = doSearch( NewContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
-                  db->DeleteContactL( aContactId );*/
                   }                 
              }
          if( IndexAction.Compare( KActionDelete ) == 0 )
@@ -985,24 +992,97 @@ TInt CHarvesterPluginTester::TestCreateContactIndexItemL( CStifItemParser& aItem
                  //Add a contact to contactdatabase and later delete it
                  aContactId = CreateNewContactL( *db, ContactName, _L("123455"));                 
                  iPluginTester->iWaitForHarvester->Start();
-                 error = doSearch( ContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+                 error = doSearchL( ContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
                  if(error == KErrNone)
                      {
                      plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS));
                      db->DeleteContactL(aContactId);
                      iPluginTester->iWaitForHarvester->Start();
-                     error = doSearch( ContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeNoResultsExpected );
+                     error = doSearchL( ContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeNoResultsExpected );
                      }                                 
                  }             
              }
-        }
-        
+        }        
         delete db;
         delete plugin;
         delete iPluginTester;
-        
+        iPluginTester = NULL;
         doLog( iLog, error, KSearchError );
         return KErrNone;    
+    }
+
+TInt CHarvesterPluginTester::TestCreateAllContactFieldsL( CStifItemParser& aItem )
+    {
+    TInt error = KErrNone;
+    TPtrC ContactName;
+    _LIT( KBirthDate, "19970107:");
+    _LIT( KSearchError, "Search Failed" );
+    
+    CContactsPlugin* plugin = CContactsPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    CContactDatabase* db = CContactDatabase::OpenL();
+    if( aItem.GetNextString ( ContactName ) == KErrNone )
+        {
+        plugin->StartHarvestingL( _L(CONTACT_QBASEAPPCLASS) );
+        CContactCard* newCard = CContactCard::NewLC();
+        
+        // Create the firstName field and add the data to it
+        CContactItemField* firstName = CContactItemField::NewLC( KStorageTypeText, KUidContactFieldGivenName );
+        firstName->TextStorage()->SetTextL(ContactName);    
+        newCard->AddFieldL(*firstName);
+        CleanupStack::Pop(firstName);
+        
+        CContactItemField* suffix = CContactItemField::NewLC( KStorageTypeText, KUidContactFieldSuffixName );        
+        suffix->TextStorage()->SetTextL(_L("Mr"));
+        newCard->AddFieldL(*suffix);
+        CleanupStack::Pop(suffix);
+        
+        CContactItemField* assistant = CContactItemField::NewLC( KStorageTypeText, KUidContactFieldAssistant );        
+        assistant->TextStorage()->SetTextL(_L("Jane"));
+        newCard->AddFieldL(*assistant);
+        CleanupStack::Pop(assistant);
+        
+        CContactItemField* department = CContactItemField::NewLC( KStorageTypeText, KUidContactFieldDepartmentName );
+        department->TextStorage()->SetTextL(_L("Services"));
+        newCard->AddFieldL(*department);
+        CleanupStack::Pop(department);
+        
+        CContactItemField* birthday = CContactItemField::NewLC( KStorageTypeDateTime, KUidContactFieldBirthday );
+        TTime time(KBirthDate);
+        birthday->DateTimeStorage()->SetTime(time);
+        newCard->AddFieldL(*birthday);
+        CleanupStack::Pop(birthday);        
+
+        CContactItemField*  anniversary = CContactItemField::NewLC( KStorageTypeText, KUidContactFieldAnniversary );        
+        anniversary->TextStorage()->SetTextL(_L("2002-10-10"));
+        newCard->AddFieldL(*anniversary);
+        CleanupStack::Pop(anniversary);      
+        
+        // Create the phoneNo field and add the data to it
+        CContactItemField* phoneNumber = CContactItemField::NewLC( KStorageTypeText, KUidContactFieldPhoneNumber );        
+        phoneNumber->TextStorage()->SetTextL(_L("1234"));
+        newCard->AddFieldL(*phoneNumber);
+        CleanupStack::Pop(phoneNumber);
+        
+        // Add newCard to the database     
+        const TContactItemId contactId = db->AddNewContactL(*newCard);    
+        CleanupStack::PopAndDestroy(newCard);
+        
+        iPluginTester->iWaitForHarvester->Start();
+        
+        error = doSearchL( ContactName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+        if( error == KErrNone )
+            {
+            error = doSearchL( _L("jan"), _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+            }
+        }
+    delete db;
+    delete plugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    doLog( iLog, error, KSearchError );
+    return error;
     }
 TInt CHarvesterPluginTester::TestCreateContactGroupL( CStifItemParser& aItem )
     {
@@ -1021,7 +1101,7 @@ TInt CHarvesterPluginTester::TestCreateContactGroupL( CStifItemParser& aItem )
         CContactItem* newitem = db->CreateContactGroupL( _L("TestGroup") );
         db->AddContactToGroupL( aContactId, newitem->Id() );       
         iPluginTester->iWaitForHarvester->Start();    
-        error = doSearch( GroupName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+        error = doSearchL( GroupName, _L( CONTACT_QBASEAPPCLASS ), ESearchTypeResultsExpected );
         
         //update the group by adding a new contact, to get update event
         CContactGroup* group = static_cast<CContactGroup*>(db->OpenContactLX(newitem->Id()));        
@@ -1043,6 +1123,7 @@ TInt CHarvesterPluginTester::TestCreateContactGroupL( CStifItemParser& aItem )
     
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     delete db;
     doLog( iLog, error, KSearchError );
     return KErrNone;    
@@ -1057,6 +1138,7 @@ TInt CHarvesterPluginTester::TestStartCalenderHarvesterL( CStifItemParser& /*aIt
     iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, KErrNone, KNoErrorString );
     return KErrNone;    
     }
@@ -1075,7 +1157,7 @@ TInt CHarvesterPluginTester::TestCalenderEntryL( CStifItemParser& /*aItem*/ )
     session->AddEntryL();
     iPluginTester->iWaitForHarvester->Start();
     User::After((TTimeIntervalMicroSeconds32)30000000);
-    error = doSearch( _L("Meeting"), _L( CALENDAR_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+    error = doSearchL( _L("Meeting"), _L( CALENDAR_QBASEAPPCLASS ), ESearchTypeResultsExpected );
     doLog( iLog, error, KSearchError );
     
     // For update event
@@ -1087,7 +1169,7 @@ TInt CHarvesterPluginTester::TestCalenderEntryL( CStifItemParser& /*aItem*/ )
     session->DeleteEntryL();
     iPluginTester->iWaitForHarvester->Start();
     //Delete the calender entry added previously and search for result    
-    error = doSearch( _L("scheduled"), _L( CALENDAR_QBASEAPPCLASS ), ESearchTypeResultsExpected );
+    error = doSearchL( _L("scheduled"), _L( CALENDAR_QBASEAPPCLASS ), ESearchTypeResultsExpected );
         
     //If the entery is succesfully deleted, make error to KErrNone.To show testcase success
     if(error == KErrNotFound)
@@ -1096,6 +1178,7 @@ TInt CHarvesterPluginTester::TestCalenderEntryL( CStifItemParser& /*aItem*/ )
     delete session;
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, error, KSearchError );     
     return KErrNone;
     }
@@ -1133,6 +1216,7 @@ TInt CHarvesterPluginTester::TestCreateMmsL( CStifItemParser& aItem )
     MessagingUtils::RemoveMmsEntryL( msgSession, msgid );
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     delete sessionobserver;
     delete msgSession;    
     doLog(iLog,error,KSearchError);
@@ -1164,6 +1248,7 @@ TInt CHarvesterPluginTester::TestCreateEmailL( CStifItemParser& /*aItem */)
     MessagingUtils::RemoveMmsEntryL( msgSession, msgid );
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     delete sessionobserver;
     delete msgSession;    
     doLog(iLog,error,KSearchError);
@@ -1183,7 +1268,7 @@ TInt CHarvesterPluginTester::TestAudioHarvestingL( CStifItemParser& /*aItem*/ )
     plugin->StartPluginL(); //Initialize the Plugin
     //Copy file path
     RFs fileSession;
-    fileSession.Connect();
+    User::LeaveIfError( fileSession.Connect() );
     _LIT(KPathToMusic,"c:\\data\\music\\");
     fileSession.Delete(_L("c:\\data\\music\\Eagle_Landed.mp3")); //Delete if already exist
     //pause harvester while copy
@@ -1208,6 +1293,7 @@ TInt CHarvesterPluginTester::TestAudioHarvestingL( CStifItemParser& /*aItem*/ )
     doLog(iLog,error,_L("Error in TestAudioHarvestingL"));
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     fileSession.Close();    
     //End search
     return error;
@@ -1225,7 +1311,7 @@ TInt CHarvesterPluginTester::TestAudioHarvestingUpdateIndexL( CStifItemParser& a
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    fSession.Connect();
+    User::LeaveIfError( fSession.Connect());
     CleanupClosePushL( fSession );
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {
@@ -1263,6 +1349,7 @@ TInt CHarvesterPluginTester::TestAudioHarvestingUpdateIndexL( CStifItemParser& a
         CleanupStack::PopAndDestroy();
         delete plugin;
         delete iPluginTester;
+        iPluginTester = NULL;
         return error;
         }
 
@@ -1276,7 +1363,7 @@ TInt CHarvesterPluginTester::TestAudioHarvestingDeleteIndexL( CStifItemParser& a
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    fSession.Connect();
+    User::LeaveIfError( fSession.Connect());
     CleanupClosePushL( fSession );
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {
@@ -1310,6 +1397,7 @@ TInt CHarvesterPluginTester::TestAudioHarvestingDeleteIndexL( CStifItemParser& a
     CleanupStack::PopAndDestroy();
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     return error;
     }
         
@@ -1416,7 +1504,7 @@ TInt CHarvesterPluginTester::TestVideoHarvestingIndexL( CStifItemParser& aItem )
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    fSession.Connect();
+    User::LeaveIfError( fSession.Connect());
     CleanupClosePushL( fSession );
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {        
@@ -1450,6 +1538,7 @@ TInt CHarvesterPluginTester::TestVideoHarvestingIndexL( CStifItemParser& aItem )
     CleanupStack::PopAndDestroy();
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     doLog( iLog, error, _L("Error in TestVideoHarvestingIndexL") );
     return error;
     }
@@ -1467,7 +1556,7 @@ TInt CHarvesterPluginTester::TestVideoHarvestingUpdateIndexL( CStifItemParser& a
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    fSession.Connect();
+    User::LeaveIfError( fSession.Connect());
     CleanupClosePushL( fSession );
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {
@@ -1505,6 +1594,7 @@ TInt CHarvesterPluginTester::TestVideoHarvestingUpdateIndexL( CStifItemParser& a
     CleanupStack::PopAndDestroy();
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     return error;
     }
 
@@ -1518,7 +1608,7 @@ TInt CHarvesterPluginTester::TestVideoHarvestingDeleteIndexL( CStifItemParser& a
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    fSession.Connect();
+    User::LeaveIfError( fSession.Connect());
     CleanupClosePushL( fSession );
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {
@@ -1552,6 +1642,7 @@ TInt CHarvesterPluginTester::TestVideoHarvestingDeleteIndexL( CStifItemParser& a
     CleanupStack::PopAndDestroy();
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     return error;
     }
 
@@ -1565,7 +1656,7 @@ TInt CHarvesterPluginTester::TestImageHarvestingAddIndexL( CStifItemParser& aIte
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    fSession.Connect();
+    User::LeaveIfError( fSession.Connect());
     CleanupClosePushL( fSession );
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {        
@@ -1599,6 +1690,7 @@ TInt CHarvesterPluginTester::TestImageHarvestingAddIndexL( CStifItemParser& aIte
     CleanupStack::PopAndDestroy();
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     return error;
     }
 
@@ -1615,7 +1707,7 @@ TInt CHarvesterPluginTester::TestImageHarvestingUpdateIndexL( CStifItemParser& a
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    fSession.Connect();
+    User::LeaveIfError( fSession.Connect());
     CleanupClosePushL( fSession );
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {
@@ -1652,6 +1744,7 @@ TInt CHarvesterPluginTester::TestImageHarvestingUpdateIndexL( CStifItemParser& a
     CleanupStack::PopAndDestroy();
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     return error;
     }
 
@@ -1665,7 +1758,7 @@ TInt CHarvesterPluginTester::TestImageHarvestingDeleteIndexL( CStifItemParser& a
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    fSession.Connect();
+    User::LeaveIfError( fSession.Connect() );
     CleanupClosePushL( fSession );
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {
@@ -1699,6 +1792,7 @@ TInt CHarvesterPluginTester::TestImageHarvestingDeleteIndexL( CStifItemParser& a
     CleanupStack::PopAndDestroy();
     delete plugin;
     delete iPluginTester;
+    iPluginTester = NULL;
     return error;
     }
 
@@ -1716,7 +1810,8 @@ TInt CHarvesterPluginTester::TestAudioMMCEventL( CStifItemParser& aItem )
     //iPluginTester->iWaitForHarvester->Start(); //Start Wait AO and let it complete
     doLog(iLog,error,_L("Error in TestAudioMMCEventL"));
     delete plugin;
-    delete iPluginTester;    
+    delete iPluginTester;
+    iPluginTester = NULL;
     //End search
     return err;
     }
@@ -1735,7 +1830,8 @@ TInt CHarvesterPluginTester::TestVideoMMCEventL( CStifItemParser& aItem )
     //iPluginTester->iWaitForHarvester->Start(); //Start Wait AO and let it complete
     doLog(iLog,error,_L("Error in TestVideoMMCEventL"));
     delete plugin;
-    delete iPluginTester;    
+    delete iPluginTester;
+    iPluginTester = NULL;
     //End search
     return err;
     }
@@ -1754,7 +1850,8 @@ TInt CHarvesterPluginTester::TestImageMMCEventL( CStifItemParser& aItem )
     //iPluginTester->iWaitForHarvester->Start(); //Start Wait AO and let it complete
     doLog(iLog,error,_L("Error in TestImageMMCEventL"));
     delete plugin;
-    delete iPluginTester;    
+    delete iPluginTester;
+    iPluginTester = NULL;
     //End search
     return err;
     }

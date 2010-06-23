@@ -151,6 +151,7 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 		{
 		case EContactDbObserverEventContactChanged:
 		case EContactDbObserverEventGroupChanged:
+		case EContactDbObserverEventOwnCardChanged:
 			OstTrace1( TRACE_NORMAL, DUP3_CCONTACTSPLUGIN_HANDLEDATABASEEVENTL, "CContactsPlugin::HandleDatabaseEventL;Monitored update id=%d", aEvent.iContactId );			
 			CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Monitored update id=%d.", aEvent.iContactId);
 #ifdef __PERFORMANCE_DATA
@@ -164,6 +165,7 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 
 		case EContactDbObserverEventContactDeleted:
 		case EContactDbObserverEventGroupDeleted:
+		case EContactDbObserverEventOwnCardDeleted:
 			OstTrace1( TRACE_NORMAL, CCONTACTSPLUGIN_HANDLEDATABASEEVENTL, "CContactsPlugin::HandleDatabaseEventL();Monitored delete id=%d", aEvent.iContactId );
 			CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Monitored delete id=%d.", aEvent.iContactId);
 #ifdef __PERFORMANCE_DATA

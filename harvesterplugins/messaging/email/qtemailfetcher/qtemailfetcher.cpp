@@ -34,6 +34,7 @@ _LIT(KMsgRecipients, "Recipients");
 _LIT(KMsgBody, "Body");
 _LIT(KMailBoxId, "MailBoxId");
 _LIT(KFolderId, "FolderId");
+_LIT(KHasAttachment, "HasAttachment");
 _LIT(KMailBoxName, "MailBoxName");
 _LIT(KFolderName, "FolderName");
 _LIT(KMimeTypeField, CPIX_MIMETYPE_FIELD);
@@ -195,13 +196,13 @@ CSearchDocument* QEmailFetcher::getSearchDocument( const NmApiMessageEnvelope& a
     //Use qt_Qstring2TPtrC since we are working with <b>const</b> EmailMessageEnvelope.
     doc = CSearchDocument::NewL( qt_QString2TPtrC( QString().setNum( aEnvelope.id() ) ), 
                                  KMsgBaseAppClassGeneric );
-    doc->AddFieldL( KMimeTypeField, KMimeTypeMsg, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+    doc->AddFieldL( KMimeTypeField, KMimeTypeMsg, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized | CDocumentField::EAggregateNo);
     doc->AddFieldL( KMsgSubject, qt_QString2TPtrC( aEnvelope.subject() ), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
     doc->AddFieldL( KMsgRecipients, qt_QString2TPtrC( recipients ), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
     doc->AddFieldL( KMsgBody, qt_QString2TPtrC( msgBody ), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-    doc->AddFieldL( KMailBoxId, qt_QString2TPtrC( QString().setNum( aMailboxId ) ), CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized );
-    doc->AddFieldL( KFolderId, qt_QString2TPtrC( QString().setNum( aFolderId ) ), CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized );
-    
+    doc->AddFieldL( KMailBoxId, qt_QString2TPtrC( QString().setNum( aMailboxId ) ), CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized | CDocumentField::EAggregateNo );
+    doc->AddFieldL( KFolderId, qt_QString2TPtrC( QString().setNum( aFolderId ) ), CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized | CDocumentField::EAggregateNo );
+    doc->AddFieldL( KHasAttachment, qt_QString2TPtrC( QString().setNum( aEnvelope.hasAttachments() ) ), CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized | CDocumentField::EAggregateNo);
 //    NmApiMailbox aMailBox;
 //    iEmailService->getMailbox( aMailboxId, aMailBox );
 //    doc->AddFieldL( KMailBoxName, qt_QString2TPtrC(aMailBox.name()) , CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized );

@@ -36,8 +36,6 @@ win32 {
     LIBS += -L$$PWD/../../../bin/debug
 }
 
-
-LIBS += -lstatemodel
 LIBS += -lsearchindevicehandler
 LIBS += -lxqservice 
 LIBS += -lqcpixsearchclient
@@ -46,9 +44,13 @@ LIBS += -lfbscli
 LIBS += -laknicon
 LIBS += -lapgrfx
 LIBS += -lbitgdi
-LIBS += -lnoteseditor
+#LIBS += -lnoteseditor
 LIBS += -lxqutils
-
+LIBS += -lapparc
+LIBS += -lefsrv
+LIBS += -lapgrfx
+LIBS += -lws32
+LIBS += -lavkon
 
 coverage:DEFINES += COVERAGE_MEASUREMENT
 
@@ -74,6 +76,16 @@ symbian {
     TARGET.EPOCALLOWDLLDATA=1
     TARGET.CAPABILITY = ALL -TCB -DRM
     INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE 
+    INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE
+    
+    defBlock = \      
+	"$${LITERAL_HASH}if defined(EABI)" 	\
+	"DEFFILE  ../eabi/" 				\
+    "$${LITERAL_HASH}else" 				\
+    "DEFFILE  ../bwins/" 				\
+    "$${LITERAL_HASH}endif"
+	
+	MMP_RULES += defBlock
     #include(searchstateprovider_installs_symbian.pri)
    # BLD_INF_RULES.prj_exports += "./inc/searchstateprovider.h |../../inc/"
 

@@ -152,7 +152,7 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
         */
         virtual TInt TestStartHarvesterL( CStifItemParser& aItem );
 		
-        virtual TInt TestFormBaseAppClass( CStifItemParser& aItem );
+        virtual TInt TestFormBaseAppClassL( CStifItemParser& aItem );
 		
 		virtual TInt TestDatabasePathL( CStifItemParser& aItem );
 		
@@ -214,6 +214,8 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
         TContactItemId CreateNewContactL(CContactDatabase& database,const TDesC& aName,const TDesC& aPhoneNumber);
                         
         virtual TInt TestCreateContactIndexItemL( CStifItemParser& aItem );
+        
+        virtual TInt TestCreateAllContactFieldsL( CStifItemParser& aItem );
         
         virtual TInt TestCreateContactGroupL( CStifItemParser& aItem );
         

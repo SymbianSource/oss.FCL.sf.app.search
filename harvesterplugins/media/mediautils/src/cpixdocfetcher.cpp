@@ -38,6 +38,7 @@ _LIT(KNameField, "Name");
 _LIT(KMediaIdField, "MediaId");
 _LIT(KExtensionField, "Extension");
 _LIT(KExcerptDelimiter, " ");
+_LIT(KFormatDateTime, "%04d %02d %02d %02d %02d");    // yyyy mm dd hh mm
 
 // -----------------------------------------------------------------------------
 // CCPIXDocFetcher::NewL()
@@ -126,7 +127,8 @@ CSearchDocument* CCPIXDocFetcher::GetCpixDocumentL(const CMdEObject& aObject,
         //Uri is our Document ID
         AddFiledtoDocumentL(*index_item,
                                KNameField, //URI as Name field
-                               name);
+                               name,
+                               CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
         //Store media ID for client to generate path and launch corresponding Item
         TBuf<KMaxMediaLength> mediaBuf;        
         
@@ -143,7 +145,8 @@ CSearchDocument* CCPIXDocFetcher::GetCpixDocumentL(const CMdEObject& aObject,
         //Get the media file extension and store
         TBuf<KMaxExtLength> extension;        
         GetExtension(aObject.Uri(),extension);
-        AddFiledtoDocumentL( *index_item, KExtensionField, extension );
+        AddFiledtoDocumentL( *index_item, KExtensionField, extension,
+                CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
         
         CMdEProperty* property(NULL);
         CMdEPropertyDef& titlePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KTitleProperty );
@@ -153,24 +156,41 @@ CSearchDocument* CCPIXDocFetcher::GetCpixDocumentL(const CMdEObject& aObject,
         if(aObject.Property( titlePropDef, property ) != KErrNotFound)
            {
            //Add field to document
-           CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
+           CMdETextProperty* textProperty = static_cast< CMdETextProperty* > (property );
            if(textProperty->Value() != KNullDesC)
                {
                AddFiledtoDocumentL(*index_item,
                                      MdeConstants::Object::KTitleProperty,
-                                     textProperty->Value());
+                                     textProperty->Value(),
+                                     CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
                }
            }
+        
         //Item type as MIME type
         CMdEPropertyDef& mimeTypePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KItemTypeProperty);
         if(aObject.Property( mimeTypePropDef, property )!= KErrNotFound)
            {
            //Add field to document
-           CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
+           CMdETextProperty* textProperty = static_cast< CMdETextProperty* > (property );
            AddFiledtoDocumentL(*index_item,
                                _L(CPIX_MIMETYPE_FIELD),
                                textProperty->Value(),
                                CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+           }
+        //Get ratings field
+        CMdEPropertyDef& ratingsPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KRatingProperty );
+        if(aObject.Property( ratingsPropDef, property )!= KErrNotFound)
+           {
+           //Add field to document
+           if( property->Def().PropertyType() == EPropertyInt32 )
+               {
+               CMdEInt32Property& ratingProperty = static_cast < CMdEInt32Property& > (*property );               
+               TBuf<32> buf;
+               buf.Format(_L("%d"), ratingProperty.Value());
+               AddFiledtoDocumentL(*index_item,
+                                  MdeConstants::MediaObject::KRatingProperty,
+                                  buf );
+               }
            }
         CleanupStack::Pop(index_item);//pop up
         }    

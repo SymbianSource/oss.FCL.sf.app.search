@@ -24,4 +24,5 @@ EXPORTS
 	_ZNK13QEmailFetcher10metaObjectEv @ 23 NONAME
 	_ZTI13QEmailFetcher @ 24 NONAME
 	_ZTV13QEmailFetcher @ 25 NONAME
+	_ZN13QEmailFetcher32getMailboxorfolderSearchDocumentEyy13TEmailDocType7QString @ 26 NONAME
 

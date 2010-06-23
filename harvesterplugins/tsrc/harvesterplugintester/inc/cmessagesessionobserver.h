@@ -20,7 +20,7 @@
 
 #include <msvapi.h>
 
-class CMessageSessionObserver : public MMsvSessionObserver 
+class CMessageSessionObserver : public CBase, public MMsvSessionObserver 
 {
 public:
     static CMessageSessionObserver* NewL();

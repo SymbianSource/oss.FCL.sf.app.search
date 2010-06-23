@@ -169,7 +169,7 @@ TInt MessagingUtils::CreateMmsMessageL(CMsvSession* aMsgSession, const TDesC& aM
     TMsvAttachmentId attaId = KMsvNullIndexEntryId;    
     
     RFs iFSsession;
-    iFSsession.Connect();
+    User::LeaveIfError( iFSsession.Connect());
     RFile testfile;
     
     CMsvMimeHeaders* mimeHeaders = CMsvMimeHeaders::NewL();
@@ -216,8 +216,8 @@ TInt MessagingUtils::CreateMmsMessageL(CMsvSession* aMsgSession, const TDesC& aM
     entry.SetUnread( EFalse );
     iMmsClient->Entry().ChangeL( entry );
     iMmsClient->SaveMessageL();
-    
     delete iMmsClient;
+    iMmsClient = NULL;
     delete mtmReg;
     return newMsgId;
     }
@@ -290,6 +290,7 @@ TInt MessagingUtils::CreateEmailEntryL(CMsvSession* aMsgSession)
     
  
     delete iSmtpClient;
+    iSmtpClient = NULL;
     delete mtmReg;
     return newMsgId;
     }

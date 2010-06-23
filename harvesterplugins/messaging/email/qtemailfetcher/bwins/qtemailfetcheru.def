@@ -24,4 +24,5 @@ EXPORTS
 	?handleMailFoldersListed@QEmailFetcher@@QAEXH@Z @ 23 NONAME ; void QEmailFetcher::handleMailFoldersListed(int)
 	??0QEmailFetcher@@AAE@AAVMEmailItemObserver@@@Z @ 24 NONAME ; QEmailFetcher::QEmailFetcher(class MEmailItemObserver &)
 	?metaObject@QEmailFetcher@@UBEPBUQMetaObject@@XZ @ 25 NONAME ; struct QMetaObject const * QEmailFetcher::metaObject(void) const
+	?getMailboxorfolderSearchDocument@QEmailFetcher@@AAEPAVCSearchDocument@@_K0W4TEmailDocType@@VQString@@@Z @ 26 NONAME ; class CSearchDocument * QEmailFetcher::getMailboxorfolderSearchDocument(unsigned long long, unsigned long long, enum TEmailDocType, class QString)
 

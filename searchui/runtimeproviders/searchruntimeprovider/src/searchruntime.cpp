@@ -23,10 +23,10 @@
 #include <qstate.h>
 #include <qfinalstate.h>
 #include <qdebug.h>
-
+#include <hbapplication.h>
 #include <hbmainwindow.h>
 
-
+#define hbApp qobject_cast<HbApplication*>(qApp)
 
 // states
 const char wizardProgressiveStateUri[] =
@@ -133,7 +133,32 @@ void SearchRuntime::createStates()
             wizardProgressiveState, SLOT(_customizeGoButton(bool)));
 
     // set initial state for statemachine
-    searchRootState->setInitialState(wizardProgressiveState);
+    if (hbApp->activateReason() == Hb::ActivationReasonActivity)
+        {
+
+        QVariantHash params = hbApp->activateParams();
+        QString var = params.value("activityname").toString();
+
+        if (var == "SearchView")
+            {
+            searchRootState->setInitialState(wizardProgressiveState);
+            }
+        else if (var == "SearchDeviceQueryView")
+            {
+            searchRootState->setInitialState(wizardProgressiveState);
+           
+            }
+        else if (var == "SearchWebQueryView")
+            {
+            //set initial state as internet
+            }
+        }
+    else if (hbApp->activateReason() == Hb::ActivationReasonNormal)
+        {
+
+        searchRootState->setInitialState(wizardProgressiveState);        
+
+        }
     guiRootState->setInitialState(searchRootState);
     this->setInitialState(parallel);
 

@@ -630,7 +630,8 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
     if (pos > 0)
         {
         fileFoldername.Copy(aFilePath.Mid(pos+1));
-        index_item->AddFieldL(KNameField, fileFoldername);
+        index_item->AddFieldL(KNameField, fileFoldername, 
+                    CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
         }
     
     //check for the extension, for folders names store the extension field as NULL
@@ -640,7 +641,7 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
         if( file.ExtPresent())
             {
             TPtrC extension = file.Ext();
-            index_item->AddFieldL(KExtensionField, extension);
+            index_item->AddFieldL(KExtensionField, extension, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
             }
         index_item->AddFieldL(KMimeTypeField, KMimeTypeFile, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
        }

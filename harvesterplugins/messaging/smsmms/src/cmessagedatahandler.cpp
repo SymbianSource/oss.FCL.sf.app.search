@@ -66,7 +66,8 @@ _LIT(KFromField, FROM_FIELD);
 _LIT(KFolderField, FOLDER_FIELD);
 _LIT(KBodyField, BODY_FIELD);
 _LIT(KSubjectField, SUBJECT_FIELD);
-
+_LIT(KAttachmentField, ATTACHMENT_FIELD);
+_LIT(KValueAttachment, "Attachment");
 // ============================ MEMBER FUNCTIONS ===============================
 
 // ---------------------------------------------------------------------------
@@ -358,7 +359,8 @@ CSearchDocument* CMessageDataHandler::CreateSmsDocumentL(const TMsvId& aMsvId, c
 	TMsvId service = 0;
 	iMsvSession.GetEntry(aMsvId, service, entry);
 	HBufC *fromNameOrNumberBuf = entry.iDetails.AllocLC();
-	index_item->AddFieldL(KFromField, *fromNameOrNumberBuf);
+	index_item->AddFieldL(KFromField, *fromNameOrNumberBuf,
+	        CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
 
 	// Add the recipients as content items
 	TBuf<64> to_field;
@@ -370,7 +372,8 @@ CSearchDocument* CMessageDataHandler::CreateSmsDocumentL(const TMsvId& aMsvId, c
 		to_field = KToField;
 		if (i>0)
 			to_field.AppendNum(i);
-		index_item->AddFieldL(to_field, recipientArray.MdcaPoint(i));
+		index_item->AddFieldL(to_field, recipientArray.MdcaPoint(i),
+		        CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
 		}
 
 	// Add the body text as a content item
@@ -436,6 +439,11 @@ CSearchDocument* CMessageDataHandler::CreateMmsDocumentL(const TMsvId& aMsvId, c
     CMsvStore* msvStore = iMmsMtm->Entry().ReadStoreL();
 	CleanupStack::PushL( msvStore );
 	MMsvAttachmentManager& attManager = msvStore->AttachmentManagerL();
+	//Add attachment value field
+	TInt count = attManager.AttachmentCount();
+	if (count > 0)
+	   index_item->AddFieldL(KAttachmentField, KValueAttachment);	
+	
 	for ( TInt i = 0; i < attManager.AttachmentCount(); i++ )
 	    {
 		CMsvAttachment* attInfo = attManager.GetAttachmentInfoL(i);

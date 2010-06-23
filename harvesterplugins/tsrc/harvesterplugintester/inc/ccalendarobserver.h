@@ -24,7 +24,7 @@
 #include "calprogresscallback.h"
 _LIT8(KGuid, "AGlobalUid");
 
-class CCalendarObserver : public MCalProgressCallBack 
+class CCalendarObserver : public CBase, public MCalProgressCallBack 
 {
 public:
     static CCalendarObserver* NewL();   

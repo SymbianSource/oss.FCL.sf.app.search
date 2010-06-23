@@ -30,10 +30,9 @@
 #include "search_global.h"
 #include <f32file.h>
 
-//Uncomment to enable performance measurements.
-//#define OST_TRACE_COMPILER_IN_USE
 
-#ifdef OST_TRACE_COMPILER_IN_USE
+
+#ifdef OST_TRACE_COMPILER_IN_USE //defined in Search_global.h 
 
 #define PERF_CAT_API_TIME_RESTART  m_categorySearchApiTime.restart();
 #define PERF_CAT_UI_TIME_RESTART  m_categorySearchUiTime.restart();
@@ -46,7 +45,9 @@
 #define PERF_CAT_GETDOC_TIME_ACCUMULATE m_getDocumentCatergoryTimeAccumulator += m_categoryGetDocumentApiTime.elapsed();
 #define PERF_CAT_GETDOC_ACCUMULATOR_RESET m_getDocumentCatergoryTimeAccumulator = 0;
 #define PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG qDebug() << "Get Doc on category (API): " << mTemplist.at( mDatabasecount-1 ) << "took " << m_getDocumentCatergoryTimeAccumulator << "msec";
-
+#define PERF_RESULT_ITEM_LAUNCH_TIME_RESTART m_resultItemLaunchTime.restart();
+#define PERF_RESULT_ITEM_FOR_LAUNCHING(string) qDebug() <<"Result_Item_Launching: Launching "<<string ;
+#define PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG(string) qDebug() <<"Result_Item_Launching:"<<string<<"took "<<m_resultItemLaunchTime.elapsed()<<" msec";
 #else
 
 #define PERF_CAT_API_TIME_RESTART  
@@ -60,7 +61,9 @@
 #define PERF_CAT_GETDOC_TIME_ACCUMULATE 
 #define PERF_CAT_GETDOC_ACCUMULATOR_RESET
 #define PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG
-
+#define PERF_RESULT_ITEM_LAUNCH_TIME_RESTART
+#define PERF_RESULT_ITEM_FOR_LAUNCHING(string)
+#define PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG(string)
 #endif //OST_TRACE_COMPILER_IN_USE
 class HbMainWindow;
 class HbView;
@@ -71,8 +74,9 @@ class HbSearchPanel;
 class CFbsBitmap;
 class InDeviceHandler;
 class QCPixDocument;
-class NotesEditor;
+class NotesEditorInterface;
 class EventViewerPluginInterface;
+class QPluginLoader;
 SEARCH_CLASS( SearchStateProviderTest)
 /** @ingroup group_searchstateprovider
  * @brief The state where progressive search state is shown
@@ -228,6 +232,11 @@ public slots:
      */
 
     void _viewingCompleted();
+    
+
+    void viewReady();
+
+    
 private:
 
     /**
@@ -437,7 +446,13 @@ private:
      * to create Notes editor 
      * 
      */
-    NotesEditor *notesEditor;
+    NotesEditorInterface *mNotesEditor;
+
+    /**
+     * to create Notes plugin loader 
+     * 
+     */
+    QPluginLoader *mNotespluginLoader;
 
 private:
     /**
@@ -462,6 +477,7 @@ private:
     QTime m_categorySearchUiTime;
     QTime m_categorySearchApiTime;
     QTime m_categoryGetDocumentApiTime;
+    QTime m_resultItemLaunchTime;
     //use long to safeguard overflow from long running operations.
     long m_getDocumentCatergoryTimeAccumulator; 
 #endif

@@ -40,9 +40,7 @@ _LIT(KExcerptDelimiter, " ");
 
 /** The delay between harvesting chunks. */
 const TInt KHarvestingDelay = 2000;
-
-_LIT(KCalendarTimeFormat,"%F%/0%Y %M %D %H%T"); // Locale independent YYYYMMDDHHSS
-
+_LIT(KCalendarTimeFormat,"%04d %02d %02d %02d %02d");
 // ---------------------------------------------------------------------------
 // CMessagePlugin::NewL
 // ---------------------------------------------------------------------------
@@ -352,6 +350,7 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 	{
 	if (!iIndexer)
     	return;
+	
 
 	OstTrace1( TRACE_NORMAL, CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Uid=%d", aLocalUid );
 	CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL():  Uid = %d.", aLocalUid);
@@ -387,17 +386,53 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 		index_item->AddFieldL(KCalendarSummaryField, entry->SummaryL());
 		index_item->AddFieldL(KCalendarDescriptionField, entry->DescriptionL());
 		index_item->AddFieldL(KCalendarLocationField, entry->LocationL());
+		
+		TUint priority = entry->PriorityL();
+		
+		switch(priority)
+		    {
+		    case 1:
+		        index_item->AddFieldL(KCalendarPriorityField, KCalendarPriorityHigh);
+		        break;
+		    case 2:
+		        index_item->AddFieldL(KCalendarPriorityField, KCalendarPriorityMedium);
+                break;
+		    case 3:
+		        index_item->AddFieldL(KCalendarPriorityField, KCalendarPriorityLow);
+                break;
+		    default:
+	            index_item->AddFieldL(KCalendarPriorityField, KNullDesC);
+	            break;
+		    }
 
 		TBuf<30> dateString;
-
-		TTime startTime = entry->StartTimeL().TimeUtcL();
-		startTime.FormatL(dateString, KCalendarTimeFormat);
+		TDateTime datetime = entry->StartTimeL().TimeUtcL().DateTime();       
+		dateString.Format( KCalendarTimeFormat, datetime.Year(),
+		                                     TInt(datetime.Month()+ 1),
+		                                     datetime.Day() + 1,
+		                                     datetime.Hour()+ 1,
+		                                     datetime.Minute());
 		index_item->AddFieldL(KCalendarStartTimeField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 
-		TTime endTime = entry->EndTimeL().TimeUtcL();
-		endTime.FormatL(dateString, KCalendarTimeFormat);
+		TDateTime endTime = entry->EndTimeL().TimeUtcL().DateTime();		
+		dateString.Format( KCalendarTimeFormat, endTime.Year(),
+                                                TInt(endTime.Month()+ 1),
+                                                endTime.Day() + 1,
+                                                endTime.Hour()+ 1,
+                                                endTime.Minute());
 		index_item->AddFieldL(KCalendarEndTimeField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-
+		
+		TTime completedTime = entry->CompletedTimeL().TimeUtcL();
+		if( completedTime != Time::NullTTime() && CCalEntry::ETodo == entry->EntryTypeL())
+		    {
+            TDateTime compTime = completedTime.DateTime();
+            dateString.Format( KCalendarTimeFormat, compTime.Year(),
+                                                TInt(compTime.Month()+ 1),
+                                                compTime.Day() + 1,
+                                                compTime.Hour()+ 1,
+                                                compTime.Minute());
+            index_item->AddFieldL(KCalenderCompletedField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+		    }
 		index_item->AddFieldL(KMimeTypeField, KMimeTypeCalendar, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 
     	TInt excerptLength = 1 /*single 1-character delimiters*/ + entry->DescriptionL().Length() + entry->LocationL().Length();
