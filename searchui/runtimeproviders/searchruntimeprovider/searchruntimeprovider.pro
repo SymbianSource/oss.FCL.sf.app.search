@@ -63,6 +63,16 @@ symbian {
     TARGET.CAPABILITY = ALL -TCB -DRM
     appkey:DEFINES += S60APP_KEY
     INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE
+    INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE
+    
+    defBlock = \      
+	"$${LITERAL_HASH}if defined(EABI)" 	\
+	"DEFFILE  ../eabi/" 				\
+    "$${LITERAL_HASH}else" 				\
+    "DEFFILE  ../bwins/" 				\
+    "$${LITERAL_HASH}endif"
+	
+	MMP_RULES += defBlock
     #include(searchruntimeprovider_installs_symbian.pri)
    # BLD_INF_RULES.prj_exports += "./inc/searchruntimeprovider.h |../../inc/" \
     #                             "./inc/searchruntime.h |../../inc/"

@@ -38,8 +38,17 @@ symbian {
     TARGET.EPOCALLOWDLLDATA=1
     TARGET.CAPABILITY = ALL -TCB -DRM
     INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE
-    
-    
+    INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE
+        
+    defBlock = \      
+	"$${LITERAL_HASH}if defined(EABI)" 	\
+	"DEFFILE  ../eabi/" 				\
+    "$${LITERAL_HASH}else" 				\
+    "DEFFILE  ../bwins/" 				\
+    "$${LITERAL_HASH}endif"
+	
+	MMP_RULES += defBlock
+
 }
 
 

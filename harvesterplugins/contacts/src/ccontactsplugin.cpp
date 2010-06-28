@@ -78,16 +78,15 @@ CContactsPlugin::CContactsPlugin()
 //
 CContactsPlugin::~CContactsPlugin()
 	{
-    if (iAsynchronizer)
-        iAsynchronizer->CancelCallback();
+    if( iAsynchronizer ) iAsynchronizer->CancelCallback(); 
 	delete iAsynchronizer;
 	iContacts = NULL;
 	delete iChangeNotifier;
 	delete iDatabase;
 	delete iIndexer;
-	
-	if (iExcerpt)
-		delete iExcerpt;
+	//delete NULL is safe - so no need to test nullity of iExceprt (which routinely
+	//keeps getting deleted in the plugin).
+	delete iExcerpt;
 	}
 	
 // -----------------------------------------------------------------------------
@@ -151,6 +150,7 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 		{
 		case EContactDbObserverEventContactChanged:
 		case EContactDbObserverEventGroupChanged:
+		case EContactDbObserverEventOwnCardChanged:
 			OstTrace1( TRACE_NORMAL, DUP3_CCONTACTSPLUGIN_HANDLEDATABASEEVENTL, "CContactsPlugin::HandleDatabaseEventL;Monitored update id=%d", aEvent.iContactId );			
 			CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Monitored update id=%d.", aEvent.iContactId);
 #ifdef __PERFORMANCE_DATA
@@ -164,6 +164,7 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 
 		case EContactDbObserverEventContactDeleted:
 		case EContactDbObserverEventGroupDeleted:
+		case EContactDbObserverEventOwnCardDeleted:
 			OstTrace1( TRACE_NORMAL, CCONTACTSPLUGIN_HANDLEDATABASEEVENTL, "CContactsPlugin::HandleDatabaseEventL();Monitored delete id=%d", aEvent.iContactId );
 			CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Monitored delete id=%d.", aEvent.iContactId);
 #ifdef __PERFORMANCE_DATA
@@ -340,6 +341,8 @@ void CContactsPlugin::AddFieldToDocumentAndExcerptL(CSearchDocument& aDocument, 
 //	    
 void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType aActionType )
     {
+    //indexer is created only when StartPlugin() is called. Don't create contact 
+    //if index is not ready. 
 	if (!iIndexer)
     	return;
     
@@ -481,8 +484,9 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 void CContactsPlugin::GetDateL(const TDesC& aTime, TDes& aDateString)
     {
     TTime time;
-    //sort the date string to the requried format dd/mm/yyyy from returned
-    //format yyyy/mm/dd as parse API is currently not supporting japanese date format
+    //aTime is of the form yyyy-mm-dd.
+    //aDateString is of the form dd Month(spelled out) Year.
+    //example: i/p: 2010-10-10; o/p: 10 October 2010.
     if( aTime.Length() >= KDateFieldLength)
         {
         aDateString.Copy(aTime.Mid( KDayPosition, KDayLength ));
@@ -497,6 +501,7 @@ void CContactsPlugin::GetDateL(const TDesC& aTime, TDes& aDateString)
             }
         }
     }
+
 // ---------------------------------------------------------------------------
 // CContactsPlugin::UpdatePerformaceDataL
 // ---------------------------------------------------------------------------

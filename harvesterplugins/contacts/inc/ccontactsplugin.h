@@ -142,6 +142,11 @@ private:
 	// CPix database 
     CCPixIndexer* iIndexer;
 
+//for helping with testing.
+#ifdef HARVESTERPLUGINTESTER_FRIEND
+    friend class CHarvesterPluginTester;
+#endif
+    
 #ifdef __PERFORMANCE_DATA
     TTime iStartTime;
     TTime iCompleteTime;

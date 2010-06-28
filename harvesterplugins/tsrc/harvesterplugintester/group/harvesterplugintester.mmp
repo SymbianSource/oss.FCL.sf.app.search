@@ -39,6 +39,7 @@ APP_LAYER_SYSTEMINCLUDE
 OS_LAYER_SYSTEMINCLUDE
 SYSTEMINCLUDE /epoc32/include/ecom
 SYSTEMINCLUDE /epoc32/include/mmf/common
+SYSTEMINCLUDE /epoc32/include/mw
 
 SOURCEPATH      ../src
 
@@ -76,6 +77,13 @@ END
 */
 // DEFFILE ?filename
 // AIF ?filename
+
+//Used for adding friend classes for unit testing
+//Example (in class header file):
+//#ifdef HARVESTERPLUGINTESTER_FRIEND
+// friend class CHarvesterPluginTester
+//#endif
+MACRO HARVESTERPLUGINTESTER_FRIEND
 
 //------------------------Added for testing FilePlugin-------------------
 USERINCLUDE ./../../../file/inc
@@ -205,6 +213,29 @@ SOURCEPATH  ./../../../media/image/src
 SOURCE        cpixmediaimagedoc.cpp
 SOURCE        imageplugin.cpp
 //------------------End for image plugin -----------------------------
+
+//---------------Additions for Email plugin----------------------------
+USERINCLUDE ./../../../messaging/email/inc
+USERINCLUDE ./../../../messaging/email/qtemailfetcher
+SOURCEPATH  ./../../../messaging/email/src
+
+SOURCE        cemailplugin.cpp
+
+SYSTEMINCLUDE		/epoc32/include/mw/QtCore
+SYSTEMINCLUDE		/epoc32/include/stdapis
+SYSTEMINCLUDE		/epoc32/include/stdapis/sys
+SYSTEMINCLUDE		.
+SYSTEMINCLUDE		/epoc32/include/stdapis/stlport
+
+
+LIBRARY       qtemailfetcher.lib
+LIBRARY       qtcore.lib
+LIBRARY       libstdcpp.lib
+
+OPTION CW -wchar_t on
+MACRO _WCHAR_T_DECLARED
+//EPOCALLOWDLLDATA
+//------------------End for Eail plugin -----------------------------
 
 USERINCLUDE ../../../applications/traces 
 USERINCLUDE ../../../bookmarks/traces 

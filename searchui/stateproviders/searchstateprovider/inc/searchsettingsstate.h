@@ -14,14 +14,12 @@
  * Description:  
  *
  */
-
 #ifndef SEARCH_STATES_SETTINGS_H
 #define SEARCH_STATES_SETTINGS_H
-
 #include <qstate.h>
 #include <qabstractitemmodel.h>
 #include "search_global.h"
-
+#include <hbicon.h>
 SEARCH_CLASS( SearchStateProviderTest)
 
 class QGraphicsWidget;
@@ -85,7 +83,6 @@ protected:
 
 private:
 
-   
     /**
      * checking whether internet search is selected 
      * @since S60 ?S60_version.
@@ -93,10 +90,10 @@ private:
 
     void isInternetOn();
 public slots:
-   /**
-    * Called when it receive the selected category information from the settingwidget class
-    * @since S60 ?S60_version.
-    */
+    /**
+     * Called when it receive the selected category information from the settingwidget class
+     * @since S60 ?S60_version.
+     */
 
     void getItemCategory(int, bool);
 
@@ -106,14 +103,19 @@ public slots:
      */
     void handleBackEvent(bool);
 
+    void slotISProvidersIcon(HbIcon icon, int id);
+
 signals:
 
     /**
      * Emitted when the menu state is to be activated.
      * @since S60 ?S60_version.
      */
-    void backEventTriggered();
-    
+
+    void switchToProState();
+
+    void settingslaunched();
+
     /**
      * Emitted when ok/cancel clicked on settings page
      * @since S60 ?S60_version.
@@ -130,7 +132,9 @@ signals:
      * Emitted when internet search is selectead 
      * @since S60 ?S60_version.
      */
-    void customizeGoButton(bool);
+    void switchToOnlineState();
+
+    void publishISProviderIcon(int, HbIcon);
 
 private:
 
@@ -154,7 +158,7 @@ private:
     /**
      * friend class for unit testing
      */
-SEARCH_FRIEND_CLASS    (SearchStateProviderTest)
+    SEARCH_FRIEND_CLASS (SearchStateProviderTest)
     };
 
 #endif //SEARCH_STATES_SETTINGS_H

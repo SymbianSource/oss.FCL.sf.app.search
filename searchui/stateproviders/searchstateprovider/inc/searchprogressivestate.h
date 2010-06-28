@@ -18,7 +18,6 @@
 #ifndef PROGRESSIVE_SEARCH_STATE_H
 #define PROGRESSIVE_SEARCH_STATE_H
 
-#include <qabstractitemmodel.h>
 #include <qstate.h>
 #include <qstringlist.h>
 #include <qdatetime.h>
@@ -30,11 +29,7 @@
 #include "search_global.h"
 #include <f32file.h>
 
-//Uncomment to enable performance measurements.
-//#define OST_TRACE_COMPILER_IN_USE
-
-#ifdef OST_TRACE_COMPILER_IN_USE
-
+#ifdef OST_TRACE_COMPILER_IN_USE //defined in Search_global.h 
 #define PERF_CAT_API_TIME_RESTART  m_categorySearchApiTime.restart();
 #define PERF_CAT_UI_TIME_RESTART  m_categorySearchUiTime.restart();
 #define PERF_CAT_TOTAL_TIME_RESTART  m_totalSearchUiTime.restart();
@@ -46,7 +41,9 @@
 #define PERF_CAT_GETDOC_TIME_ACCUMULATE m_getDocumentCatergoryTimeAccumulator += m_categoryGetDocumentApiTime.elapsed();
 #define PERF_CAT_GETDOC_ACCUMULATOR_RESET m_getDocumentCatergoryTimeAccumulator = 0;
 #define PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG qDebug() << "Get Doc on category (API): " << mTemplist.at( mDatabasecount-1 ) << "took " << m_getDocumentCatergoryTimeAccumulator << "msec";
-
+#define PERF_RESULT_ITEM_LAUNCH_TIME_RESTART m_resultItemLaunchTime.restart();
+#define PERF_RESULT_ITEM_FOR_LAUNCHING(string) qDebug() <<"Result_Item_Launching: Launching "<<string ;
+#define PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG(string) qDebug() <<"Result_Item_Launching:"<<string<<"took "<<m_resultItemLaunchTime.elapsed()<<" msec";
 #else
 
 #define PERF_CAT_API_TIME_RESTART  
@@ -60,19 +57,22 @@
 #define PERF_CAT_GETDOC_TIME_ACCUMULATE 
 #define PERF_CAT_GETDOC_ACCUMULATOR_RESET
 #define PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG
-
+#define PERF_RESULT_ITEM_LAUNCH_TIME_RESTART
+#define PERF_RESULT_ITEM_FOR_LAUNCHING(string)
+#define PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG(string)
 #endif //OST_TRACE_COMPILER_IN_USE
 class HbMainWindow;
 class HbView;
-class HbListView;
 class HbDocumentLoader;
-class QStandardItemModel;
 class HbSearchPanel;
 class CFbsBitmap;
 class InDeviceHandler;
 class QCPixDocument;
-class NotesEditor;
+class NotesEditorInterface;
 class EventViewerPluginInterface;
+class HbListWidget;
+class HbListWidgetItem;
+class QPluginLoader;
 SEARCH_CLASS( SearchStateProviderTest)
 /** @ingroup group_searchstateprovider
  * @brief The state where progressive search state is shown
@@ -172,7 +172,7 @@ public slots:
      * @since S60 ?S60_version.
      * @param aIndex index of the activated item.
      */
-    void openResultitem(QModelIndex aIndex);
+    void openResultitem(HbListWidgetItem * item);
 
     /**
      * slot connects to settings state to get the selected category information
@@ -194,12 +194,6 @@ public slots:
      * @param aKeyword search keyword.
      */
     void startNewSearch(const QString &aKeyword);
-
-    /**
-     * slot connects to search state  for internet search
-     * @since S60 ?S60_version.
-     */
-    void _customizeGoButton(bool avalue);
 
     /**
      * slot implemented to avoid repeated search for the same category 
@@ -228,6 +222,13 @@ public slots:
      */
 
     void _viewingCompleted();
+
+    void viewReady();
+    
+    void slotOnlineQuery(QString);
+    
+    void slotISProvidersIcon(int, HbIcon);
+
 private:
 
     /**
@@ -255,7 +256,7 @@ private:
      * 
      * @param aKeyword search keyword.
      */
-    void createSuggestionLink(bool aFlag);
+    void createSuggestionLink();
 
     /**
      * Function to include corrrect Qimage format to be taken from bitmap
@@ -310,8 +311,11 @@ signals:
      * Signalled when user selects an to switch the settings state
      * setting state will be  activated.
      */
-    void settingsState();
+    void switchProToSettingsState();
+    
+    void inDeviceSearchQuery(QString);
 
+    void launchLink(int,QString);
 private:
 
     HbMainWindow* mMainWindow;
@@ -326,7 +330,7 @@ private:
      * The List View widget.
      * Own.
      */
-    HbListView* mListView;
+    HbListWidget* mListView;
 
     /**
      * Document handler to load .docml.
@@ -340,11 +344,7 @@ private:
      */
     HbSearchPanel* mSearchPanel;
 
-    /**
-     * model for list view
-     * Own.
-     */
-    QStandardItemModel* mModel;
+ 
 
     /**
      * qt interface for CPix engine
@@ -437,7 +437,17 @@ private:
      * to create Notes editor 
      * 
      */
-    NotesEditor *notesEditor;
+    NotesEditorInterface *mNotesEditor;
+
+    /**
+     * to create Notes plugin loader 
+     * 
+     */
+    QPluginLoader *mNotespluginLoader;
+    
+    QMap<int, HbIcon> mISprovidersIcon;
+    
+    bool mOnlineQueryAvailable;
 
 private:
     /**
@@ -462,11 +472,12 @@ private:
     QTime m_categorySearchUiTime;
     QTime m_categorySearchApiTime;
     QTime m_categoryGetDocumentApiTime;
+    QTime m_resultItemLaunchTime;
     //use long to safeguard overflow from long running operations.
-    long m_getDocumentCatergoryTimeAccumulator; 
+    long m_getDocumentCatergoryTimeAccumulator;
 #endif
 
-SEARCH_FRIEND_CLASS    (SearchStateProviderTest)
+    SEARCH_FRIEND_CLASS (SearchStateProviderTest)
 
     };
 

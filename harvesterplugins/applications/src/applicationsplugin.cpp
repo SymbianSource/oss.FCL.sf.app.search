@@ -135,7 +135,7 @@ void CApplicationsPlugin::AddWidgetInfoL( CSearchDocument* aDocument, TUid aUid 
     OstTraceExt1( TRACE_NORMAL, CAPPLICATIONSPLUGIN_ADDWIDGETINFOL, "CApplicationsPlugin::AddWidgetInfoL;PATH=%S", &temp );
 
     //GetWidgetPropertyValueL returns CWidgetPropertyValue* which in turn has an operator to convert to TDesC
-    aDocument->AddFieldL(KApplicationFieldCaption, *(iWidgetRegistry.GetWidgetPropertyValueL( aUid, EBundleDisplayName )),  CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+    aDocument->AddFieldL(KApplicationFieldCaption, *(iWidgetRegistry.GetWidgetPropertyValueL( aUid, EBundleDisplayName )), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
 
     //For applications, no content to go into exceprt field.
     //For more info, check the appclass-hierarchy.txt
@@ -157,7 +157,7 @@ void AddApplicationInfoL( CSearchDocument* aDocument, TApaAppInfo& aAppInfo )
     //We index the exe name (without extension), only if the title is not present.
     if( aAppInfo.iShortCaption.Compare(KNullDesC) )
         {
-        aDocument->AddFieldL(KApplicationFieldCaption, aAppInfo.iShortCaption, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+        aDocument->AddFieldL(KApplicationFieldCaption, aAppInfo.iShortCaption, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
         }
     else
         {

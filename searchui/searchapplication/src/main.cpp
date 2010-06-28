@@ -30,7 +30,7 @@
 int main(int argc, char *argv[])
     {
     SEARCH_FUNC_ENTRY("SEARCH::Search::main");
-
+    PERF_APP_LAUNCH_END("SearchApplication Main Called");
     HbApplication app(argc, argv);
 
     QTranslator translator;
@@ -58,8 +58,9 @@ int main(int argc, char *argv[])
     QTranslator notesTranslator;
     notesTranslator.load("notes_" + lang, path);
     app.installTranslator(&notesTranslator);
-
+    PERF_APP_LAUNCH_END("Search Component Cunstructions starts");
     Search search;
+    PERF_APP_LAUNCH_END("Search Component Cunstructions Ends");
 #ifdef ROM
     QDir::setCurrent("Z:/");
 #else
@@ -70,6 +71,7 @@ int main(int argc, char *argv[])
     QObject::connect(&search, SIGNAL(exit()), &app, SLOT(quit()),
             Qt::QueuedConnection);
     search.start();
+    PERF_APP_LAUNCH_END("SearchApplication Ends, Main Event Loop");
     int ret = app.exec();
     SEARCH_FUNC_EXIT("SEARCH::Search::main");
     return ret;

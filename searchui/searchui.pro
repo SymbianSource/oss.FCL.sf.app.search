@@ -11,11 +11,12 @@
 #
 # Contributors:
 #
-# Description:  SEARCH project file
+# Description:  SEARCHUI project file
 #
 TEMPLATE = subdirs
 
-SUBDIRS  += indevicehandler \ 
+SUBDIRS  += onlinehandler \  
+	   indevicehandler \ 
 	   stateproviders  \     
 	   runtimeproviders \
 	   searchapplication               

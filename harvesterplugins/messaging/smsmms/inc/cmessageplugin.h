@@ -141,6 +141,10 @@ private:
     TInt     iCurrentDrive;
     // CPix indexer 
     CCPixIndexer* iIndexer[EDriveZ+1]; // EDriveZ enum value is 25, so add 1.
+    
+#ifdef HARVESTERPLUGINTESTER_FRIEND
+    friend class CHarvesterPluginTester;
+#endif
 
 #ifdef __PERFORMANCE_DATA
     TTime iStartTime;

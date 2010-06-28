@@ -34,9 +34,9 @@ Search::Search(QObject* aParent) :
     if (mRuntime)
         {
         mRuntime->setParent(this);
-        connect(mRuntime, SIGNAL(started()), SLOT(handleRuntimeStarted()));
-        connect(mRuntime, SIGNAL(stopped()), SLOT(handleRuntimeStopped()));
-        connect(mRuntime, SIGNAL(faulted()), SLOT(handleRuntimeFaulted()));
+        connect(mRuntime, SIGNAL(started()),this, SLOT(handleRuntimeStarted()));
+        connect(mRuntime, SIGNAL(stopped()),this, SLOT(handleRuntimeStopped()));
+        connect(mRuntime, SIGNAL(faulted()),this, SLOT(handleRuntimeFaulted()));
         } 
 		SEARCH_FUNC_EXIT("SEARCH::Search::Search");
     }

@@ -23,23 +23,24 @@
 #include <qstate.h>
 #include <qfinalstate.h>
 #include <qdebug.h>
-
+#include <hbapplication.h>
 #include <hbmainwindow.h>
 
-
+#define hbApp qobject_cast<HbApplication*>(qApp)
 
 // states
 const char wizardProgressiveStateUri[] =
         "search.nokia.com/state/wizardprogressivestate";
 const char wizardSettingStateUri[] =
         "search.nokia.com/state/wizardsettingstate";
-
+const char wizardOnlineStateUri[] =
+        "search.nokia.com/state/wizardonlinestate";
 // ---------------------------------------------------------------------------
 // searchRuntime::SearchRuntime
 // ---------------------------------------------------------------------------
 //
 SearchRuntime::SearchRuntime(QObject* aParent) :
-QStateMachine(aParent),mWindow(0)
+    QStateMachine(aParent), mWindow(0)
     {
     createGuiServiceParts();
     createStates();
@@ -52,7 +53,7 @@ QStateMachine(aParent),mWindow(0)
 SearchRuntime::~SearchRuntime()
     {
     delete mWindow;
-  //  delete mStateMachine;
+    //  delete mStateMachine;
     }
 
 // ---------------------------------------------------------------------------
@@ -61,7 +62,7 @@ SearchRuntime::~SearchRuntime()
 //
 void SearchRuntime::handleStateMachineStarted()
     {
-   // emit started();
+    // emit started();
     }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +92,7 @@ void SearchRuntime::createStates()
     {
 
     SearchStateProvider stateProvider;
-    
+
     QFinalState* finalState = new QFinalState();
     this->addState(finalState);
 
@@ -105,43 +106,88 @@ void SearchRuntime::createStates()
 
     QState* searchRootState = new QState(guiRootState);
 
-
-    QState* wizardProgressiveState = stateProvider.createState(wizardProgressiveStateUri);
+    QState* wizardProgressiveState = stateProvider.createState(
+            wizardProgressiveStateUri);
     // set state specific data
     wizardProgressiveState->setParent(searchRootState);
     wizardProgressiveState->setObjectName(wizardProgressiveStateUri);
 
-
-    QState* wizardSettingState = stateProvider.createState(wizardSettingStateUri);
+    QState* wizardSettingState = stateProvider.createState(
+            wizardSettingStateUri);
     wizardSettingState->setParent(searchRootState);
     wizardSettingState->setObjectName(wizardSettingStateUri);
 
-    wizardProgressiveState->addTransition(wizardProgressiveState,
-            SIGNAL(settingsState()), wizardSettingState);
+    QState* wizardOnlineState = stateProvider.createState(
+            wizardOnlineStateUri);
+    wizardOnlineState->setParent(searchRootState);
+    wizardOnlineState->setObjectName(wizardOnlineStateUri);
 
-    // From activated back to menu
+    // progressive to settings
+    wizardProgressiveState->addTransition(wizardProgressiveState,
+            SIGNAL(switchProToSettingsState()), wizardSettingState);
+
+    // settings to progressive 
     wizardSettingState->addTransition(wizardSettingState,
-            SIGNAL(backEventTriggered()), wizardProgressiveState);
-    
+            SIGNAL(switchToProState()), wizardProgressiveState);
+
+    // online to settings
+    wizardOnlineState->addTransition(wizardOnlineState,
+            SIGNAL(switchOnlineToSettingsState()), wizardSettingState);
+
+    // settings to online 
+    wizardSettingState->addTransition(wizardSettingState,
+            SIGNAL(switchToOnlineState()), wizardOnlineState);
+
     connect(wizardSettingState, SIGNAL(clickstatus(bool)),
-                wizardProgressiveState, SLOT(settingsaction(bool)));
+            wizardProgressiveState, SLOT(settingsaction(bool)));
 
     connect(wizardSettingState, SIGNAL(publishSelectedCategory(int,bool)),
             wizardProgressiveState, SLOT(getSettingCategory(int,bool)));
+    
+    connect(wizardSettingState, SIGNAL(publishISProviderIcon(int,HbIcon)),
+            wizardProgressiveState, SLOT(slotISProvidersIcon(int,HbIcon)));
 
-    connect(wizardSettingState, SIGNAL(customizeGoButton(bool)),
-            wizardProgressiveState, SLOT(_customizeGoButton(bool)));
+    connect(wizardProgressiveState, SIGNAL(inDeviceSearchQuery(QString)),
+            wizardOnlineState, SLOT(slotIndeviceQuery(QString)));
+    
+    connect(wizardProgressiveState, SIGNAL(launchLink(int,QString)),
+            wizardOnlineState, SLOT(slotlaunchLink(int,QString)));
+
+    connect(wizardOnlineState, SIGNAL(onlineSearchQuery(QString)),
+            wizardProgressiveState, SLOT(slotOnlineQuery(QString)));
 
     // set initial state for statemachine
-    searchRootState->setInitialState(wizardProgressiveState);
+    if (hbApp->activateReason() == Hb::ActivationReasonActivity)
+        {
+
+        QVariantHash params = hbApp->activateParams();
+        QString var = params.value("activityname").toString();
+
+        if (var == "SearchView")
+            {
+            searchRootState->setInitialState(wizardProgressiveState);
+            }
+        else if (var == "SearchDeviceQueryView")
+            {
+            searchRootState->setInitialState(wizardProgressiveState);
+
+            }
+        else if (var == "SearchWebQueryView")
+            {
+            searchRootState->setInitialState(wizardOnlineState);
+            }
+        }
+    else if (hbApp->activateReason() == Hb::ActivationReasonNormal)
+        {
+
+        searchRootState->setInitialState(wizardProgressiveState);
+
+        }
     guiRootState->setInitialState(searchRootState);
     this->setInitialState(parallel);
 
-    connect(this, SIGNAL(started()),
-            SLOT(handleStateMachineStarted()));
-    connect(this, SIGNAL(stopped()),
-            SLOT(handleStateMachineStopped()));
-    connect(this, SIGNAL(finished()),
-            SLOT(handleStateMachineStopped()));
+    connect(this, SIGNAL(started()), SLOT(handleStateMachineStarted()));
+    connect(this, SIGNAL(stopped()), SLOT(handleStateMachineStopped()));
+    connect(this, SIGNAL(finished()), SLOT(handleStateMachineStopped()));
 
     }

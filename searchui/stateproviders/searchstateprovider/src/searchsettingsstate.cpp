@@ -46,6 +46,9 @@ SearchSettingsState::SearchSettingsState(QState *parent) :
 
     connect(mWidget, SIGNAL(selectedItemCategory(int, bool)), this,
             SLOT(getItemCategory(int, bool)));
+    
+    connect(mWidget, SIGNAL(ISProvidersIcon(HbIcon, int)), this,
+                SLOT(slotISProvidersIcon(HbIcon, int)));
 
     }
 // ---------------------------------------------------------------------------
@@ -58,6 +61,15 @@ SearchSettingsState::~SearchSettingsState()
     delete mWidget;
 
     }
+// ---------------------------------------------------------------------------
+// SearchSettingsState::slotISProvidersIcon
+// ---------------------------------------------------------------------------
+//
+void SearchSettingsState::slotISProvidersIcon(HbIcon icon, int id)
+    {
+    emit publishISProviderIcon(id,icon);
+    }
+
 // ---------------------------------------------------------------------------
 // SearchSettingsState::getItemCategory
 // ---------------------------------------------------------------------------
@@ -74,19 +86,21 @@ void SearchSettingsState::onEntry(QEvent *event)
     {
     qDebug() << "search:SearchSettingsState::onEntry";
     QState::onEntry(event);
+    emit settingslaunched();
     if (minitialCount)
         {
         mWidget->loadBaseSettings();
         mWidget->loadDeviceSettings();
+        mWidget->loadIS();
         isInternetOn();
         minitialCount = false;
-        emit backEventTriggered();
+       // isInternetOn();
+        //emit backEventTriggered();
         }
     else
         {
-
         mWidget->launchSettingWidget();
-        }
+        }    
     }
 // ---------------------------------------------------------------------------
 // SearchSettingsState::onExit
@@ -103,7 +117,6 @@ void SearchSettingsState::onExit(QEvent *event)
 //
 void SearchSettingsState::handleBackEvent(bool aStatus)
     {
-    emit backEventTriggered();
     if (mWidget)
         {
         isInternetOn();
@@ -118,10 +131,10 @@ void SearchSettingsState::isInternetOn()
     {
     if (mWidget->isInternetSearchOptionSelected())
         {
-        emit customizeGoButton(true);
+        emit switchToOnlineState();
         }
     else
         {
-        emit customizeGoButton(false);
+        emit switchToProState();
         }
     }

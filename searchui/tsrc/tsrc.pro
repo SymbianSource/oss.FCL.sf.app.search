@@ -17,8 +17,10 @@
 TEMPLATE = subdirs
 
 SUBDIRS  += indexdb \ 
-../indevicehandler/tsrc/t_indevicehandler \
-	   ../stateproviders/searchstateprovider/tsrc/t_searchstateprovider
+../indevicehandler/tsrc \
+	   ../stateproviders/searchstateprovider/tsrc \
+../onlinehandler/tsrc
+
 	   
            
 CONFIG  += ordered

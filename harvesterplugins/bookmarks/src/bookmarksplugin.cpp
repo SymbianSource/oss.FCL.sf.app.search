@@ -69,7 +69,8 @@ CBookmarksPlugin::~CBookmarksPlugin()
 	{
 	if (iAsynchronizer)
         iAsynchronizer->CancelCallback();
-	iFavoritesNotifier->Cancel();
+	if ( iFavoritesNotifier )
+	    iFavoritesNotifier->Cancel();
 	delete iFavoritesNotifier;
 	delete iAsynchronizer;
 	delete iIndexer;
