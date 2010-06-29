@@ -15,7 +15,7 @@
  *
  */
 
-#include "search.h"
+#include "searchapplication.h"
 #include "search_global.h"
 
 #include <QtGui>
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     notesTranslator.load("notes_" + lang, path);
     app.installTranslator(&notesTranslator);
     PERF_APP_LAUNCH_END("Search Component Cunstructions starts");
-    Search search;
+    SearchApplication search;
     PERF_APP_LAUNCH_END("Search Component Cunstructions Ends");
 #ifdef ROM
     QDir::setCurrent("Z:/");
