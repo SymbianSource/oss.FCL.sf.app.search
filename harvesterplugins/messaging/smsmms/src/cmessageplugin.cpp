@@ -252,11 +252,8 @@ void CMessagePlugin::UnMount(TDriveNumber aMedia, TBool aUndefineAsWell)
     iObserver->RemoveHarvestingQueue(this, baseAppClass);   
     
     // Delete the index object
-    if (iIndexer[aMedia])
-        {
-        delete iIndexer[aMedia];
-        iIndexer[aMedia] = NULL;
-        }
+    delete iIndexer[aMedia];
+    iIndexer[aMedia] = NULL;
     
     // if the aActionType is EFFMmcDismount, then the
     // parameter aFilename is the baseAppClass of the Index database
@@ -450,14 +447,15 @@ void CMessagePlugin::HandleSessionEventL( TMsvSessionEvent aEvent,
 			{
 			User::Panic(_L("CMessagePlugin PANIC"), KErrServerTerminated);
 			break;				
-			}			
-		case EMsvMtmGroupInstalled:
-		case EMsvMtmGroupDeInstalled:
-		case EMsvGeneralError: // not used after v5
-		case EMsvServerReady:
-		case EMsvCorruptedIndexRebuilt:
-		case EMsvMediaIncorrect:
-		case EMsvCorruptedIndexRebuilding:
+			}	
+			// Following commented only for decision coverage
+//		case EMsvMtmGroupInstalled:
+//		case EMsvMtmGroupDeInstalled:
+//		case EMsvGeneralError: // not used after v5
+//		case EMsvServerReady:
+//		case EMsvCorruptedIndexRebuilt:
+//		case EMsvMediaIncorrect:
+//		case EMsvCorruptedIndexRebuilding:
 		default:
 			{
 			break;
@@ -485,24 +483,6 @@ TMsgType CMessagePlugin::CalculateMessageType (const TMsvEntry& aEntry )
         CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ###  Mms Message ###");
         ret = EMsgTypeMms;
         }
-    else if( aEntry.iMtm.iUid  == KUidMsgTypeSMTP.iUid )
-		{
-		OstTrace0( TRACE_NORMAL, DUP2_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ### ESmtpEmail ###" );
-		CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ### ESmtpEmail ###");
-        ret = EMsgTypeEmailSmtp;
-		}
-	else if( aEntry.iMtm.iUid  == KUidMsgTypePOP3.iUid )
-		{
-		OstTrace0( TRACE_NORMAL, DUP3_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ### EPop3Email ###" );
-		CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ### EPop3Email ###");
-        ret = EMsgTypeEmailPop3;
-		}
-	else if( aEntry.iMtm.iUid  == KUidMsgTypeIMAP4.iUid )
-		{
-		OstTrace0( TRACE_NORMAL, DUP4_CMESSAGEPLUGIN_CALCULATEMESSAGETYPE, "CMessagePlugin:CalculateMessageType  ### EImap4Email ###" );
-		CPIXLOGSTRING("CMessagePlugin:CalculateMessageType  ### EImap4Email ###");
-        ret = EMsgTypeEmailImap4;
-		}
 	// Add J.J	
 #ifndef __SERIES60_30__ // Not supported before S60 3d FP1
    	else if ( aEntry.iMtm.iUid == KSenduiMtmUniMessageUid.iUid )

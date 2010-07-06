@@ -97,9 +97,17 @@ CSearchDocument* CCPIXMediaVideoDoc::GetCpixDocumentL(const CMdEObject& aObject,
     ResetExcerpt(); //Reset excerpt initially
     TInt slashpos = GetUri().LocateReverse('\\');
     TPtrC name = GetUri().Mid( (slashpos+1) );
-    AddToFieldExcerptL(name); //Add name to excerpt field
-    //URI and Excerpt is done add additional properties here 
+
     CMdEProperty* property(NULL);
+    //Add Name field to document excerpt, ONLY if title field is not empty.
+    CMdEPropertyDef& titlePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KTitleProperty );
+    if(aObject.Property( titlePropDef, property ) != KErrNotFound)
+        {
+        CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
+        if( textProperty->Value().Compare(KNullDesC) > 0 )AddToFieldExcerptL(name); //Add name to excerpt field
+        }
+
+    //URI and Excerpt is done add additional properties here 
     CMdEPropertyDef& descriptionPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KDescriptionProperty );
     if(aObject.Property( descriptionPropDef, property ) != KErrNotFound)
        {

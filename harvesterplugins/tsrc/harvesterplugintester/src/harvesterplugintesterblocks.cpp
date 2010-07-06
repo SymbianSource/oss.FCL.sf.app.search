@@ -29,8 +29,11 @@
 #include <favouritesdb.h>
 #include <msvapi.h>
 #include <bautils.h>
+#include <csearchdocument.h>
 #include "harvesterobserver.h"
 #include "cmessageplugin.h"
+#include "cmessagemonitor.h"
+#include "cmessageharvester.h"
 #include "cmessagesessionobserver.h" //For CMsvSession
 #include "ccpixsearcher.h"
 #include "bookmarksplugin.h"
@@ -43,11 +46,12 @@
 #include "mdsitementity.h"
 #include "cpixmdedbmanager.h"
 #include "cfolderrenamedharvester.h"
-//#include "CBlacklistMgr.h"
 #include "videoplugin.h"
 #include "imageplugin.h"
-
+#include "cemailplugin.h"
+#include "cmessagedatahandler.h"
 _LIT(KAppBasePath,"@c:root file content");
+_LIT(KEmailAppBasePath,"@c:root msg email");
 _LIT(KAppBaseFolderFilePath,"@c:root file folder");
 const TInt KMsgPluginBaseAppClassMaxLen = 64;
 
@@ -56,10 +60,8 @@ const TInt KMsgPluginBaseAppClassMaxLen = 64;
 #include <utf.h>
 #include "notesplugin.h"
 
-//Test Uid for testing Blacklist manager
-
-//const TUid KTestUid = { 0x101D6348 };
-
+_LIT( KemailId, "1" );
+_LIT(KMsgBaseAppClassGeneric, "root msg email");
 #define MEDIA_QBASEAPPCLASS   "@c:root media audio"
 #define LMEDIA_QBASEAPPCLASS  L"@c:root media audio"
 #define VIDEO_QBASEAPPCLASS   "@c:root media video"
@@ -100,6 +102,19 @@ TInt CHarvesterPluginTester::RunMethodL(
         ENTRY( "TestMessaging", CHarvesterPluginTester::TestMessageHarvesterL ),
         ENTRY( "TestMessageHarvesting", CHarvesterPluginTester::TestMessageHarvesterWithMessageL ),
         ENTRY( "TestMessageDriveChange", CHarvesterPluginTester::TestMessageHarvesterChangeDriveL ),
+        ENTRY( "TestMessageRunErrorL", CHarvesterPluginTester::TestMessageRunErrorL ),
+        ENTRY( "TestMessageIsMediaRemovableL", CHarvesterPluginTester::TestMessageIsMediaRemovableL ),
+        ENTRY( "TestMessageMountNoIndexerL", CHarvesterPluginTester::TestMessageMountNoIndexerL ),        
+        ENTRY( "TestQualifiedBaseAppClass", CHarvesterPluginTester::TestQualifiedBaseAppClassL ),
+        ENTRY( "TestHandleMsgMoved", CHarvesterPluginTester::TestHandleMsgMovedL ),
+        ENTRY( "TestMessageDataHandler", CHarvesterPluginTester::TestMessageDataHandlerL ),
+        ENTRY( "TestMsgUnMount", CHarvesterPluginTester::TestMsgUnMountL ),
+        ENTRY( "TestFormBaseAppClass", CHarvesterPluginTester::TestFormFormBaseAppClassL ),
+        ENTRY( "TestMsgDelete", CHarvesterPluginTester::TestMsgDeleteL ),
+        ENTRY( "TestMsgHandlesession", CHarvesterPluginTester::TestMsgHandlesessionL ),
+        ENTRY( "TestMsgHandlesessionPanic", CHarvesterPluginTester::TestMsgHandlesessionPanicL ),
+        ENTRY( "TestMsgOverwriteOrAddToQuere", CHarvesterPluginTester::TestMsgOverwriteOrAddToQuereL ),
+        ENTRY( "TestMsgMessageHarvester", CHarvesterPluginTester::TestMsgMessageHarvesterL ),
         ENTRY( "TestStartBookmarksHarvesterL", CHarvesterPluginTester::TestStartBookmarksHarvesterL ),
         ENTRY( "TestAddBookmarkL", CHarvesterPluginTester::TestAddBookmarkL ),
         ENTRY( "TestAddGetDomainL", CHarvesterPluginTester::TestAddGetDomainL ),
@@ -116,6 +131,12 @@ TInt CHarvesterPluginTester::RunMethodL(
         ENTRY( "TestCreateAllContactFields", CHarvesterPluginTester::TestCreateAllContactFieldsL ),
         ENTRY( "TestCreateContactIndexItemL_Edit", CHarvesterPluginTester::TestCreateContactIndexItemL ),
         ENTRY( "TestCreateContactIndexItemL_Delete", CHarvesterPluginTester::TestCreateContactIndexItemL ),
+        ENTRY( "TestCreateContactIndexItemL_NoIndexer", CHarvesterPluginTester::TestCreateContactIndexItemNoIndexerL ),
+        ENTRY( "TestContactGetDateL", CHarvesterPluginTester::TestContactGetDateL ),
+        ENTRY( "TestContactDelayedErrorL", CHarvesterPluginTester::TestContactDelayedErrorL ),
+        ENTRY( "TestContactDelayedCallbackNoIContactsL", CHarvesterPluginTester::TestContactDelayedCallbackNoIContactsL ),        
+        ENTRY( "TestContactDelayedCallbackNoIObserverL", CHarvesterPluginTester::TestContactDelayedCallbackNoIObserverL ),        
+        ENTRY( "TestContactDelayedCallbackWrongCountL", CHarvesterPluginTester::TestContactDelayedCallbackWrongCountL ),        
         ENTRY( "TestCreateContactGroup", CHarvesterPluginTester::TestCreateContactGroupL ),
         ENTRY( "TestCalenderHarvesting", CHarvesterPluginTester::TestStartCalenderHarvesterL ),
         ENTRY( "TestCalenderEntry",CHarvesterPluginTester::TestCalenderEntryL ),
@@ -136,6 +157,8 @@ TInt CHarvesterPluginTester::RunMethodL(
 		ENTRY( "TestAudioMMCEventL",CHarvesterPluginTester::TestAudioMMCEventL ),
 		ENTRY( "TestVideoMMCEventL",CHarvesterPluginTester::TestVideoMMCEventL ),
 		ENTRY( "TestImageMMCEventL",CHarvesterPluginTester::TestImageMMCEventL ),
+		ENTRY( "TestStartEmailPlugin",CHarvesterPluginTester::TestStartEmailPluginL ),
+		ENTRY( "TestHandleEmailDoc",CHarvesterPluginTester::TestHandleEmailDocL ),
         //ADD NEW ENTRY HERE
         // [test cases entries] - Do not remove
         };
@@ -156,6 +179,12 @@ void doLog( CStifLogger* logger, TInt error, const TDesC& errorString )
     else logger->Log( errorString );
     }
 
+CSearchDocument* CHarvesterPluginTester::prepareemaildocument()
+    {    
+    CSearchDocument* doc = CSearchDocument::NewL( KemailId, 
+            KMsgBaseAppClassGeneric ); 
+    return doc;
+    }
 // Example test method function.
 // -----------------------------------------------------------------------------
 TInt CHarvesterPluginTester::TestStartHarvesterL( CStifItemParser& /*aItem*/ )
@@ -576,6 +605,224 @@ TInt CHarvesterPluginTester::TestMessageHarvesterChangeDriveL( CStifItemParser& 
     return error;
     }
 
+//Only for coverage.
+TInt CHarvesterPluginTester::TestMessageRunErrorL( CStifItemParser& /*aItem */)
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    plugin->iMessageMonitor->RunError( KErrNone );
+    delete plugin;
+    return KErrNone;
+    }
+TInt CHarvesterPluginTester::TestQualifiedBaseAppClassL( CStifItemParser& )
+    {
+    //For coverage
+    TDriveNumber drive ( EDriveA ); 
+    _LIT( appcls1 ,"@c:root media image" );
+    _LIT( appcls2 ,"@*:root media image" );
+    _LIT( appcls3 ,"d:root media image" );    
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );    
+    plugin->MountL( EDriveC );
+    TRAPD(err, plugin->StartHarvestingL(appcls1));
+    delete plugin->iIndexer[EDriveC];
+    plugin->iIndexer[EDriveC] = NULL;
+    TRAP(err, plugin->StartHarvestingL(appcls1));
+    TRAP(err, plugin->StartHarvestingL(appcls2));
+    TRAP(err, plugin->StartHarvestingL(appcls3));
+    delete plugin;
+    delete iPluginTester;
+    return err;
+    }
+TInt CHarvesterPluginTester::TestMsgUnMountL( CStifItemParser& )
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->MountL(EDriveC);
+    plugin->UnMount( EDriveC );
+    plugin->MountL(EDriveC);
+    plugin->UnMount( EDriveC , EFalse);
+    delete plugin;
+    delete iPluginTester;
+    return KErrNone;
+    }
+
+TAny CHarvesterPluginTester::TestHandleMsgMovedL( CStifItemParser& )
+    {
+    const TMsvId id1 = 1;
+    CMsvEntrySelection* selection = new( ELeave ) CMsvEntrySelection;
+    // Current entry will be the one to send
+    selection->AppendL( id1 );
+//    CMsvEntrySelection entry;
+    const long int ref = 2;
+    
+    const TMsvId id2 = 2;
+//    entry.AppendL(id1);
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    plugin->iMessageMonitor->HandleMsgMovedL(id1, id2, *selection);
+    selection->Reset();
+    delete plugin;
+    }
+
+TAny CHarvesterPluginTester::TestMessageDataHandlerL( CStifItemParser& )
+    {
+    CMessagePlugin* plugin3 = CMessagePlugin::NewL();
+    _LIT8(Des1, "0xFFFFF");
+    _LIT8(Des2, "0xF");
+    _LIT8(Des3, "FFx0");
+    _LIT8(Des4, "F");
+    _LIT8(Des5, "0xFEFF");
+    _LIT8(Des6, "0xFFFE");
+    const TMsvId id1 = 1;
+    const TMsvId id2 = 2;
+    CMessageDataHandler* idatahandler = CMessageDataHandler::NewL( *plugin3, *(plugin3->iMsvSession) );
+    idatahandler->CreateMessageIndexItemL(id1,ECPixAddAction,id1);
+    idatahandler->IsTextUcs2(Des1);
+    idatahandler->IsTextUcs2(Des2);
+    idatahandler->IsTextUcs2(Des3);
+    idatahandler->IsTextUcs2(Des4);
+    idatahandler->IsTextUcs2(Des5);
+    idatahandler->IsTextUcs2(Des6);
+    const TInt KUtf8BomLength = 3;
+    const TUint8 KUtf8Bom[KUtf8BomLength] = {0xEF, 0xBB, 0xBF};
+    const TUint8 KUtf8Bom1[KUtf8BomLength+1] = {0xEF, 0x5, 0xF, 0xE};
+    TPtrC8 ptr(KUtf8Bom, KUtf8BomLength);
+    TPtrC8 ptr1(KUtf8Bom1, KUtf8BomLength+1); 
+    idatahandler->TextContainsUtf8Bom(ptr);
+    idatahandler->TextContainsUtf8Bom(ptr1);
+    idatahandler->DoCancel();
+    idatahandler->RunError(0);
+    delete plugin3;
+
+    }
+TInt CHarvesterPluginTester::TestMessageMountNoIndexerL( CStifItemParser& )
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    RSearchServerSession session;
+    User::LeaveIfError( session.Connect() );
+    plugin->iIndexer[EDriveA] = CCPixIndexer::NewL( session );
+    TRAPD( err, plugin->MountL( EDriveA, EFalse ) );
+    TRAP( err, plugin->MountL( EDriveA, EFalse ) ); //For coverage
+    delete plugin->iIndexer[EDriveA];
+    plugin->iIndexer[EDriveA] = NULL;
+    delete plugin;      
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestMessageIsMediaRemovableL( CStifItemParser& aItem )
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    TInt error;
+    TInt driveNumber = 0;
+    //TODO add a while loop.
+    while( aItem.GetNextInt( driveNumber ) == KErrNone )
+        {
+        error = 0;
+        TDriveNumber number(static_cast<TDriveNumber>(driveNumber) );
+        TRAP( error, plugin->IsMediaRemovableL( number ) );
+        if( error ) break;
+        }
+    delete plugin;
+    return error;
+    }
+
+TInt CHarvesterPluginTester::TestFormFormBaseAppClassL( CStifItemParser& /*aItem*/ )
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    TBuf<20> appclass;
+    //To test proper case
+    plugin->FormBaseAppClass( EDriveA , appclass);
+    //To test failure case
+    plugin->FormBaseAppClass( (TDriveNumber)29 , appclass);
+    //cleanup
+    delete plugin;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestMsgDeleteL( CStifItemParser& /*aItem*/ )
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    CMessageDataHandler* idatahandler = CMessageDataHandler::NewL( *plugin, *(plugin->iMsvSession) );
+    const TMsvId id1 = 1;
+    RSearchServerSession session;
+    User::LeaveIfError( session.Connect() );
+    plugin->iIndexer[plugin->iCurrentDrive] = CCPixIndexer::NewL( session );       
+    idatahandler->CreateMessageIndexItemL( id1, ECPixRemoveAction, id1 );
+    delete idatahandler;
+    delete plugin;
+    session.Close();
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestMsgHandlesessionL( CStifItemParser& /*aItem*/ )
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    TMsvId id = 1;
+    TDriveNumber drive1 = EDriveB;
+    TDriveNumber drive2 = EDriveC;
+    CMsvEntrySelection* selection = new( ELeave ) CMsvEntrySelection;
+    // Current entry will be the one to send
+    selection->AppendL( id );    
+    TRAPD(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvEntriesDeleted , (TAny*)selection ,NULL , NULL));
+    TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvEntriesMoved , (TAny*)selection ,NULL , NULL));
+    TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvEntriesMoved , (TAny*)selection ,(TAny*)selection , NULL));
+    TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvEntriesMoved , (TAny*)selection ,(TAny*)selection , (TAny*)selection));
+    TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvEntriesMoved , NULL ,(TAny*)selection , (TAny*)selection));
+    TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvMediaChanged , (TAny*)&drive1 ,(TAny*)&drive2 , NULL));
+    TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvMediaUnavailable , (TAny*)&drive2 ,NULL , NULL));
+    TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvMediaAvailable , (TAny*)&drive1 ,NULL , NULL));
+    selection->Reset();
+    delete plugin;
+    delete iPluginTester;
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestMsgHandlesessionPanicL( CStifItemParser& aItem )
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    TInt num = 0;
+    TInt err = KErrNone;
+    aItem.GetNextInt( num );
+    if ( num == 0)
+        {
+        TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvServerFailedToStart , NULL ,NULL , NULL));
+        }
+    else if ( num ==1 )
+        {
+        TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvCloseSession , NULL ,NULL , NULL));
+        }
+    else
+        TRAP(err , plugin->HandleSessionEventL(MMsvSessionObserver::EMsvServerTerminated , NULL ,NULL , NULL));
+    
+    delete plugin;
+    delete iPluginTester;
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestMsgOverwriteOrAddToQuereL( CStifItemParser& /*aItem*/ )
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    plugin->iMessageMonitor->OverwriteOrAddToQuereL( 1 , ECPixAddAction , 1 );
+    plugin->iMessageMonitor->OverwriteOrAddToQuereL( 1 , ECPixAddAction , 1 );
+    plugin->iMessageMonitor->RunL();
+    delete plugin;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestMsgMessageHarvesterL( CStifItemParser& /*aItem*/ )
+    {
+    CMessagePlugin* plugin = CMessagePlugin::NewL();
+    CMessageHarvester* messageHarvester = CMessageHarvester::NewL( *plugin, *(plugin->iMsvSession) );
+    messageHarvester->RunError(KErrNone);
+    messageHarvester->HandleNextRequest();
+    delete messageHarvester;
+    delete plugin;
+    return KErrNone;
+    }
+
 TInt CHarvesterPluginTester::SearchForTextL(const TDesC& aQueryString, const TDesC& aBaseAppclass,const TDesC& aDefaultField)
     {
     TInt DocumentCount(KErrNotFound);
@@ -914,6 +1161,70 @@ TContactItemId CHarvesterPluginTester::CreateNewContactL( CContactDatabase& data
     const TContactItemId contactId = database.AddNewContactL(*newCard);    
     CleanupStack::PopAndDestroy(newCard);    
     return contactId;
+    }
+
+TInt CHarvesterPluginTester::TestContactDelayedCallbackNoIContactsL( CStifItemParser& /*aItem*/ )
+    {
+    CContactsPlugin* plugin = CContactsPlugin::NewL();
+    //for coverage
+    delete plugin->iContacts;
+    plugin->iContacts = NULL;
+    TRAPD( err, plugin->DelayedCallbackL( KErrNone ) );
+    delete plugin;
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestContactDelayedCallbackNoIObserverL( CStifItemParser& /*aItem*/ )
+    {
+    CContactsPlugin* plugin = CContactsPlugin::NewL();
+    //for coverage
+    delete plugin->iObserver;
+    plugin->iObserver = NULL;
+    TRAPD( err, plugin->DelayedCallbackL( KErrNone ) );
+    delete plugin;
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestContactDelayedCallbackWrongCountL( CStifItemParser& /*aItem*/ )
+    {
+    //This case can happen if a contact was deleted while harvesting is going on.
+    CContactsPlugin* plugin = CContactsPlugin::NewL();
+    plugin->iCurrentIndex = plugin->iContacts->Count()+1;
+    TRAPD( err, plugin->DelayedCallbackL( KErrNone ) );
+    delete plugin;
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestContactDelayedErrorL(CStifItemParser& /*aItem*/)
+    {
+    CContactsPlugin* plugin = CContactsPlugin::NewL();
+    plugin->DelayedError( KErrGeneral );
+    delete plugin;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestContactGetDateL( CStifItemParser& aItem )
+    {
+    CContactsPlugin* plugin = CContactsPlugin::NewL();
+    
+    TPtrC dateString;
+    TInt error = 0;
+    if( aItem.GetNextString ( dateString ) == KErrNone )
+        {
+        TBuf<30> date; //Picked up 30 from contactsplugin.cpp file.
+        TRAP(error, plugin->GetDateL(dateString, date) );
+        }
+    delete plugin;
+    return error;
+    }
+
+TInt CHarvesterPluginTester::TestCreateContactIndexItemNoIndexerL( CStifItemParser& /*aItem*/ )
+    {
+    //Create contact plugin, call CreateContactIndexItemL without creating indexer.
+    CContactsPlugin* plugin = CContactsPlugin::NewL();
+    TRAPD(err, plugin->CreateContactIndexItemL(0, ECPixUpdateAction) );
+    delete plugin;
+    return err;
     }
 
 TInt CHarvesterPluginTester::TestCreateContactIndexItemL( CStifItemParser& aItem )
@@ -1853,6 +2164,43 @@ TInt CHarvesterPluginTester::TestImageMMCEventL( CStifItemParser& aItem )
     delete iPluginTester;
     iPluginTester = NULL;
     //End search
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestStartEmailPluginL( CStifItemParser& /*aItem*/ )
+    {
+    _LIT( KHarvesterPluginTester, "HarvesterPluginTester: %S" );
+    _LIT( KExample, "In TestStartEmailPluginL" );
+    TestModuleIf().Printf( 0, KHarvesterPluginTester, KExample );
+
+    // Print to log file
+    iLog->Log( KExample );
+    CEmailPlugin* emailPlugin = CEmailPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( emailPlugin );    
+    emailPlugin->StartPluginL(); //Calls Add
+    emailPlugin->StartHarvestingL( KEmailAppBasePath );
+    delete emailPlugin;
+    delete iPluginTester;
+    doLog( iLog, KErrNone, KNoErrorString );
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestHandleEmailDocL( CStifItemParser& /*aItem*/ )
+    {
+    _LIT( KHarvesterPluginTester, "HarvesterPluginTester: %S" );
+    _LIT( KExample, "In TestHandleEmailDocL" );
+    TestModuleIf().Printf( 0, KHarvesterPluginTester, KExample );
+
+    // Print to log file
+    iLog->Log( KExample );
+    CEmailPlugin* emailPlugin = CEmailPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( emailPlugin );   
+    CSearchDocument* doc = prepareemaildocument();
+    TRAPD(err , emailPlugin->HandleDocumentL( doc , ECPixAddAction));
+    iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    delete emailPlugin;
+    delete iPluginTester;
+    doLog( iLog, err, KNoErrorString );
     return err;
     }
 

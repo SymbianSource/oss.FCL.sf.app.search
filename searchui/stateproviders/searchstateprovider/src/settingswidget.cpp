@@ -38,6 +38,7 @@
 #include <qsqldatabase.h>
 #include <qsqlquery.h>
 #include <cpixcontentinfocommon.h>
+#include "onlinehandler.h"
 const char *DELIMETER_DOCML = ":/xml/delimeterscreen.docml";
 const char *DIALOG = "dialog";
 const char *DATAFORM = "dataForm";
@@ -48,8 +49,10 @@ const char *DATAFORM = "dataForm";
 //----------------------------------------------------------------------------------------------------------------------------
 SettingsWidget::SettingsWidget() :
     signalMapper(NULL), popup(NULL), mDocumentLoader(NULL), dataform(NULL),
-            mModel(NULL),mSelectedScope(0),mSelectedProvider(0),comboBox(NULL)
+            mModel(NULL), mSelectedScope(0), mSelectedProvider(0), comboBox(
+                    NULL), mInternetHandler(NULL)
     {
+    setSettingsFilePath();
     for (int i = 0; i < 8; i++)
         {
         mDeviceMapping.append(false);
@@ -61,6 +64,7 @@ SettingsWidget::SettingsWidget() :
     mchangestate = true;
     mInstialize = true;
     isInternetSelected = false;
+
     storeDefaultSettings();
     }
 //----------------------------------------------------------------------------------------------------------------------------
@@ -72,7 +76,7 @@ void SettingsWidget::initialize()
     bool ok = false;
     if (!mDocumentLoader)
         {
-        mDocumentLoader = new HbDocumentLoader();        
+        mDocumentLoader = new HbDocumentLoader();
         mDocumentLoader->load(DELIMETER_DOCML, &ok);
         }
     QGraphicsWidget *widget = NULL;
@@ -132,17 +136,16 @@ void SettingsWidget::createGui()
             HbDataFormModelItem::ComboBoxItem, hbTrId(
                     "txt_search_info_select_search_scope"));
 
-    themeComboGeneral->setContentWidgetData(QString("items"), mCategoryList);
+    themeComboGeneral->setContentWidgetData("items", mCategoryList);
 
-    themeComboGeneral->setContentWidgetData(QString("currentIndex"),
-            mSelectedScope);
+    themeComboGeneral->setContentWidgetData("currentIndex", mSelectedScope);
 
     QModelIndex index = mModel->indexFromItem(themeComboGeneral);
 
-    HbDataFormViewItem *formItem = static_cast<HbDataFormViewItem *> (dataform->itemByIndex(index));
+    HbDataFormViewItem *formItem =
+            static_cast<HbDataFormViewItem *> (dataform->itemByIndex(index));
 
-      comboBox =
-            static_cast<HbComboBox*> (formItem->dataItemContentWidget());
+    comboBox = static_cast<HbComboBox*> (formItem->dataItemContentWidget());
 
     q_currentIndexChanged(mSelectedScope);
 
@@ -161,7 +164,7 @@ void SettingsWidget::q_currentIndexChanged(int avalue)
         mModel->removeItem(mModelItemList.at(i));
         }
     mModelItemList.clear();
-   // int ret = mModel->rowCount();
+    // int ret = mModel->rowCount();
     if (!avalue) //device category creation
         {
         isInternetSelected = false;
@@ -175,7 +178,9 @@ void SettingsWidget::q_currentIndexChanged(int avalue)
             mModelItemList.append(mModelItem);
             QModelIndex index = mModel->indexFromItem(mModelItem);
 
-            HbDataFormViewItem *formItem = static_cast<HbDataFormViewItem *> (dataform->itemByIndex(index));
+            HbDataFormViewItem *formItem =
+                    static_cast<HbDataFormViewItem *> (dataform->itemByIndex(
+                            index));
 
             checkboxitem
                     = static_cast<HbCheckBox*> (formItem->dataItemContentWidget());
@@ -201,25 +206,36 @@ void SettingsWidget::q_currentIndexChanged(int avalue)
         HbDataFormModelItem* mModelItem = mModel->appendDataFormItem(
                 HbDataFormModelItem::RadioButtonListItem);
         mModelItemList.append(mModelItem);
+        QStringList internetCategoryList;
+        QMapIterator<int, QString> i(mServiceProviders);
+        int selectedindex = 0;
+        int Iterator = 0;
+        while (i.hasNext())
+            {
+            i.next();
+            if (i.key() == mSelectedProvider)
+                selectedindex = Iterator;
+            Iterator++;
+            internetCategoryList.append(i.value());
+            qDebug() << i.value();
+            }
         mModelItem->setContentWidgetData("items", internetCategoryList);
+
+        mModelItem->setContentWidgetData("previewMode",
+                HbRadioButtonList::NoPreview);
+
+        mModelItem->setContentWidgetData("selected", selectedindex);
 
         QModelIndex index = mModel->indexFromItem(mModelItem);
 
-        HbDataFormViewItem *formItem = static_cast<HbDataFormViewItem *> (dataform->itemByIndex(index));
-
+        HbDataFormViewItem *formItem =
+                static_cast<HbDataFormViewItem *> (dataform->itemByIndex(
+                        index));
         mradiolist
                 = static_cast<HbRadioButtonList*> (formItem->dataItemContentWidget());
 
-        mradiolist->setPreviewMode(HbRadioButtonList::NoPreview);
-
-        mradiolist->setSelected(mSelectedProvider);
         connect(mradiolist, SIGNAL(itemSelected(int)), this,
-                SLOT(q_itemSelected(int)));
-
-        for (int i = 0; i < mActions.count(); i++)
-            popup->removeAction(mActions.at(i));
-        popup->addActions(mActions);
-        popup->removeAction(mActions.at(0));
+                SLOT(slotitemSelected(int)));
         }
     }
 //----------------------------------------------------------------------------------------------------------------------------
@@ -229,8 +245,6 @@ void SettingsWidget::q_currentIndexChanged(int avalue)
 void SettingsWidget::preparecategories()
     {
     // read form database
-
-
     QString mConnectionName("cpixcontentinfo.sq");
     QString mDatabaseName("c:\\Private\\2001f6fb\\cpixcontentinfo.sq");
 
@@ -254,24 +268,24 @@ void SettingsWidget::preparecategories()
             {
             mCategoryDbMapping.insert(category_name, true);
             }
-        qDebug() <<"string db= "<<category_name;
+        qDebug() << "string db= " << category_name;
         }
-    db.close();         
-    
-  /*  mCategoryDbMapping.insert("Contacts", true); 
-    mCategoryDbMapping.insert("Audios", true); 
-    mCategoryDbMapping.insert("Images", true); 
-    mCategoryDbMapping.insert("Videos", true); 
-    mCategoryDbMapping.insert("Messages", true); 
-    mCategoryDbMapping.insert("email", true); 
-    mCategoryDbMapping.insert("Calendar", true); 
-    mCategoryDbMapping.insert("Notes", true); 
-    mCategoryDbMapping.insert("Applications", true); 
-    mCategoryDbMapping.insert("Bookmarks", true); 
-    mCategoryDbMapping.insert("Files", true); */
-    
-   // mCategoryDbMapping.insert("email", true); // to remove once email starts working
-    
+    db.close();
+
+    /*  mCategoryDbMapping.insert("Contacts", true); 
+     mCategoryDbMapping.insert("Audios", true); 
+     mCategoryDbMapping.insert("Images", true); 
+     mCategoryDbMapping.insert("Videos", true); 
+     mCategoryDbMapping.insert("Messages", true); 
+     mCategoryDbMapping.insert("email", true); 
+     mCategoryDbMapping.insert("Calendar", true); 
+     mCategoryDbMapping.insert("Notes", true); 
+     mCategoryDbMapping.insert("Applications", true); 
+     mCategoryDbMapping.insert("Bookmarks", true); 
+     mCategoryDbMapping.insert("Files", true); */
+
+    // mCategoryDbMapping.insert("email", true); // to remove once email starts working
+
     mDeviceListDisplay.append(hbTrId("txt_search_list_select_all"));
     mDeviceMapping.insert(0, true);
 
@@ -281,9 +295,8 @@ void SettingsWidget::preparecategories()
         mDeviceListDisplay.append(hbTrId("txt_search_list_contatcs"));
         }
 
-    if (mCategoryDbMapping.value("Audios")
-            || mCategoryDbMapping.value("Images") || mCategoryDbMapping.value(
-            "Videos"))
+    if (mCategoryDbMapping.value("Audios") || mCategoryDbMapping.value(
+            "Images") || mCategoryDbMapping.value("Videos"))
         {
         mDeviceListDisplay.append(hbTrId("txt_search_list_media"));
         mDeviceMapping.insert(2, true);
@@ -320,10 +333,17 @@ void SettingsWidget::preparecategories()
         mDeviceListDisplay.append(hbTrId("txt_search_list_all_other_files"));
         mDeviceMapping.insert(7, true);
         }
-    internetCategoryList = (QStringList());
+    // internetCategoryList = (QStringList() << "Google" << "Bing" << "Yahoo");
 
-    mCategoryList = (QStringList() << hbTrId("txt_search_list_device")
-            << hbTrId("txt_search_list_internet"));
+    if (mServiceProviders.count())
+        {
+        mCategoryList = (QStringList() << hbTrId("txt_search_list_device")
+                << hbTrId("txt_search_list_internet"));
+        }
+    else
+        {
+        mCategoryList = (QStringList() << hbTrId("txt_search_list_device"));
+        }
     }
 
 //----------------------------------------------------------------------------------------------------------------------------
@@ -342,6 +362,7 @@ SettingsWidget::~SettingsWidget()
     mModelItemList.clear();
     mActions.clear();
     delete mDocumentLoader;
+    delete mInternetHandler;
     //delete popup;
     }
 //----------------------------------------------------------------------------------------------------------------------------
@@ -374,12 +395,15 @@ void SettingsWidget::setActionVisibility()
             noItemSelected = false;
             }
         }
-    for (int i = 0; i < mActions.count(); i++)
-        popup->removeAction(mActions.at(i));
-    popup->addActions(mActions);
-    if (noItemSelected)
+    if (!isInternetSelected)
         {
-        popup->removeAction(mActions.at(0));
+        for (int i = 0; i < mActions.count(); i++)
+            popup->removeAction(mActions.at(i));
+        popup->addActions(mActions);
+        if (noItemSelected)
+            {
+            popup->removeAction(mActions.at(0));
+            }
         }
     }
 //----------------------------------------------------------------------------------------------------------------------------
@@ -465,7 +489,8 @@ void SettingsWidget::checkBoxOkEvent()
 
 void SettingsWidget::storeSettingsToiniFile()
     {
-    QSettings appSettings("search.ini", QSettings::IniFormat);
+    QSettings appSettings(mSettingFileName, QSettings::IniFormat);
+    isInternetSelected ? (mSelectedScope = 1) : (mSelectedScope = 0);
     appSettings.setValue("selectedcategory", mSelectedScope);
     appSettings.setValue("devicecount", mDeviceCategoryRefList.count());
     if (!isInternetSelected)
@@ -495,8 +520,7 @@ void SettingsWidget::storeSettingsToiniFile()
 
             }
         }
-    appSettings.setValue("internetcount", internetCategoryList.count());
-    appSettings.setValue("selectedprovider", mSelectedProvider);
+
     }
 //----------------------------------------------------------------------------------------------------------------------------
 //void SettingsWidget::loadBaseSettings()
@@ -504,26 +528,10 @@ void SettingsWidget::storeSettingsToiniFile()
 //----------------------------------------------------------------------------------------------------------------------------
 void SettingsWidget::loadBaseSettings()
     {
-    QSettings appSettings("search.ini", QSettings::IniFormat);
-    int value;
-    if (!(appSettings.contains("selectedcategory")))
-        {
-        value = 0;
-        }
-    else
-        {
-        value = appSettings.value("selectedcategory").toInt();
-        }
-    mSelectedScope = value;
-    if (mSelectedScope)
-        {
-        isInternetSelected = true;
-        }
-    else
-        {
-        isInternetSelected = false;
-        }
-    mSelectedProvider = appSettings.value("selectedprovider").toInt();
+    QSettings appSettings(mSettingFileName, QSettings::IniFormat);
+    mSelectedScope = appSettings.value("selectedcategory", 0).toInt();
+    mSelectedScope ? (isInternetSelected = true) : (isInternetSelected
+            = false);
     }
 
 //----------------------------------------------------------------------------------------------------------------------------
@@ -532,22 +540,16 @@ void SettingsWidget::loadBaseSettings()
 //----------------------------------------------------------------------------------------------------------------------------
 void SettingsWidget::loadDeviceSettings()
     {
-    QSettings appSettings("search.ini", QSettings::IniFormat);
+    QSettings appSettings(mSettingFileName, QSettings::IniFormat);
     int value;
     if (!isInternetSelected)
         {
         int j = 0;
         for (int i = 0; i < mDeviceCategoryRefList.count(); i++)
             {
-            if (!(appSettings.contains(mDeviceCategoryRefList.at(i))))
-                {
-                value = 1;
-                }
-            else
-                {
-                value
-                        = appSettings.value(mDeviceCategoryRefList.at(i)).toInt();
-                }
+            value
+                    = appSettings.value(mDeviceCategoryRefList.at(i), 1).toInt();
+
             if (mDeviceMapping.count() && mDeviceCheckBoxList.count()
                     && mDeviceMapping.at(i))
                 {
@@ -561,14 +563,10 @@ void SettingsWidget::loadDeviceSettings()
                     }
                 j++;
                 }
-            if (value) // get the setting before ui preparation
-                {
-                emit selectedItemCategory(i, true);
-                }
-            else
-                {
-                emit selectedItemCategory(i, false);
-                }
+            value
+                  ? (emit selectedItemCategory(i, true))
+                     : (emit selectedItemCategory(i, false));
+
             }
         }
     }
@@ -588,16 +586,56 @@ bool SettingsWidget::isInternetSearchOptionSelected()
 //----------------------------------------------------------------------------------------------------------------------------
 void SettingsWidget::storeDefaultSettings()
     {
-    QSettings appSettings("search.ini", QSettings::IniFormat);
+    QSettings appSettings(mSettingFileName, QSettings::IniFormat);
     if (!appSettings.contains("selectedcategory")) // change the settings for the first time only
         {
         mSelectedScope = 0;
-        mSelectedProvider = 0;
         appSettings.setValue("selectedcategory", mSelectedScope);
         appSettings.setValue("devicecount", mDeviceCategoryRefList.count());
         for (int i = 0; i < mDeviceCategoryRefList.count(); i++)
             appSettings.setValue(mDeviceCategoryRefList.at(i), 1);
-        appSettings.setValue("internetcount", internetCategoryList.count());
-        appSettings.setValue("selectedprovider", mSelectedProvider);
+        }
+    }
+void SettingsWidget::slotproviderDetails(QString name, HbIcon icon, int id)
+    {
+    mServiceProviders.insert(id, name);
+    emit ISProvidersIcon(icon, id);
+    }
+void SettingsWidget::slotdefaultProvider(const int value)
+    {
+    mSelectedProvider = value;
+    }
+void SettingsWidget::slotitemSelected(int value)
+    {
+    QMapIterator<int, QString> i(mServiceProviders);
+    int selectedindex = 0;
+    while (i.hasNext())
+        {
+        i.next();
+        if (selectedindex == value)
+            {
+            mInternetHandler->setDefaultProvider(i.key());
+            break;
+            }
+        selectedindex++;
+        }
+    }
+void SettingsWidget::setSettingsFilePath()
+    {
+    mSettingFileName.append(QDir::currentPath());
+    mSettingFileName.append(QString("/searchsettings.ini"));
+    }
+void SettingsWidget::loadIS()
+    {
+    if (!mInternetHandler)
+        {
+        mInternetHandler = new OnlineHandler();
+        connect(mInternetHandler,
+                SIGNAL(providerDetails(QString, HbIcon, int)), this,
+                SLOT(slotproviderDetails(QString, HbIcon, int)));
+
+        connect(mInternetHandler, SIGNAL(defaultProvider(const int)), this,
+                SLOT(slotdefaultProvider(const int)));
+        mInternetHandler->readSettings();
         }
     }

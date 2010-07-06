@@ -128,7 +128,11 @@ class CMessageHarvester : public CActive
         // UID of current folder searched
         TMsvId iCurrentFolder;
         // Current folder message items 
-        CMsvEntrySelection* iChildren;         
+        CMsvEntrySelection* iChildren;
+        
+#ifdef HARVESTERPLUGINTESTER_FRIEND
+    friend class CHarvesterPluginTester;
+#endif
     };
 
 #endif // CMESSAGEHARVESTER_H

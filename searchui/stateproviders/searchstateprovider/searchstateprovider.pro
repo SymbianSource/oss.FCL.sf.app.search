@@ -46,6 +46,7 @@ LIBS += -lapgrfx
 LIBS += -lbitgdi
 #LIBS += -lnoteseditor
 LIBS += -lxqutils
+LIBS += -lsearchonlinehandler
 LIBS += -lapparc
 LIBS += -lefsrv
 LIBS += -lapgrfx
@@ -66,8 +67,9 @@ DEPENDPATH += ./inc \
 
 INCLUDEPATH += ./inc \
                ../../inc \
-               ../../indevicehandler/inc
-               
+               ../../onlinehandler/inc \
+               ../../indevicehandler/inc 
+                
 
 
 symbian {

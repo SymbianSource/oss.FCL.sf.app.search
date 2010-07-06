@@ -2,7 +2,8 @@
 #include "searchprogressivestate.h"
 #include <qsignalspy.h>
 #include "indevicehandler.h"
-#include <qstandarditemmodel.h>
+#include <hblistwidget.h>
+#include <hblistwidgetitem.h>
 #include <fbs.h>
 #include <AknsUtils.h>
 #include <bitdev.h> 
@@ -29,7 +30,6 @@ void SearchStateProviderTest::testProgressiveStateConstruction()
     QVERIFY(progressiveState->mListView);
     QVERIFY(progressiveState->mDocumentLoader);
     QVERIFY(progressiveState->mSearchPanel);
-    QVERIFY(progressiveState->mModel);
     //QVERIFY(progressiveState->mSearchHandler);
 
     delete progressiveState;
@@ -130,14 +130,14 @@ void SearchStateProviderTest::testonGetDocumentComplete()
     progressiveState->onEntry(event);
     // progressiveState->mSearchHandler = progressiveState->mSearchHandlerList.at(1);
     progressiveState->onGetDocumentComplete(0, NULL);
-    QCOMPARE(progressiveState->mModel->rowCount(),0);
+    QCOMPARE(progressiveState->mListView->count(),0);
 
     progressiveState->onGetDocumentComplete(-1, NULL);
-    QCOMPARE(progressiveState->mModel->rowCount(),0);
+    QCOMPARE(progressiveState->mListView->count(),0);
     progressiveState->startNewSearch("contact");
     QTest::qWait(2000);
-    int i = progressiveState->mModel->rowCount();
-    QVERIFY(progressiveState->mModel->rowCount());
+    int i = progressiveState->mListView->count();
+    QVERIFY(progressiveState->mListView->count());
     delete progressiveState;
     //  delete wind;
     }
@@ -237,18 +237,7 @@ void SearchStateProviderTest::teststartNewSearch()
    
     progressiveState->startNewSearch("jpg");
     QTest::qWait(2000);
-    QVERIFY(progressiveState->mModel->rowCount());
-    delete progressiveState;
-    }
-void SearchStateProviderTest::test_customizeGoButton()
-    {
-    SearchProgressiveState* progressiveState = new SearchProgressiveState();
-    QEvent *event = new QEvent(QEvent::None);
-    progressiveState->onEntry(event);
-    progressiveState->_customizeGoButton(true);
-    QVERIFY(!(progressiveState->mSearchPanel->isProgressive()));
-    progressiveState->_customizeGoButton(false);
-    QVERIFY(progressiveState->mSearchPanel->isProgressive());
+    QVERIFY(progressiveState->mListView->count());
     delete progressiveState;
     }
 // ---------------------------------------------------------------------------
@@ -305,9 +294,9 @@ void SearchStateProviderTest::testclear()
     progressiveState->onEntry(event);
 
     progressiveState->noResultsFound("aaa");
-    QCOMPARE(progressiveState->mModel->rowCount(),1);
+    QCOMPARE(progressiveState->mListView->count(),1);
     progressiveState->clear();
-    QCOMPARE(progressiveState->mModel->rowCount(),0);
+    QCOMPARE(progressiveState->mListView->count(),0);
 
     delete progressiveState;
     }
@@ -322,10 +311,10 @@ void SearchStateProviderTest::testnoResultsFound()
     progressiveState->onEntry(event);
 
     progressiveState->noResultsFound(NULL);
-    QCOMPARE(progressiveState->mModel->rowCount(),0);
+    QCOMPARE(progressiveState->mListView->count(),0);
 
     progressiveState->noResultsFound("aaa");
-    QCOMPARE(progressiveState->mModel->rowCount(),1);
+    QCOMPARE(progressiveState->mListView->count(),1);
 
     delete progressiveState;
     }
@@ -337,12 +326,9 @@ void SearchStateProviderTest::testcreateSuggestionLink()
     {
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
-    progressiveState->onEntry(event);
-
-    progressiveState->createSuggestionLink(true);
-    QCOMPARE(progressiveState->mModel->rowCount(), 0);
-    progressiveState->createSuggestionLink(false);
-    QCOMPARE(progressiveState->mModel->rowCount(), 1);
+    progressiveState->onEntry(event);    
+    progressiveState->createSuggestionLink();
+    QCOMPARE(progressiveState->mListView->count(), 1);
     delete progressiveState;
     }
 void SearchStateProviderTest::testTDisplayMode2Format()
@@ -391,9 +377,9 @@ void SearchStateProviderTest::testgetDrivefromMediaId()
     progressiveState->mSelectedCategory.insert(2, true);
     progressiveState->onEntry(event);
     progressiveState->startNewSearch("3gpp");
-    QTest::qWait(200);
-    QModelIndex index = progressiveState->mModel->index(1, 0);
-    QStandardItem* item = progressiveState->mModel->itemFromIndex(index);
+    QTest::qWait(200);  
+    
+    HbListWidgetItem* item = progressiveState->mListView->item(0);
     if(item)
     QString uid = progressiveState->getDrivefromMediaId(item->data(
             Qt::UserRole + 2).toString());

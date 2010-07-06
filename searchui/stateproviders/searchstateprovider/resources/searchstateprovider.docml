@@ -2,16 +2,10 @@
 <hbdocument version="1.0">
     <widget name="tocView" type="HbView">
         <widget name="content" role="HbView:widget" type="HbWidget">
-            <widget name="listView" type="HbListView">
-                <widget name="prototype" role="HbAbstractView:prototype" type="HbListViewItem">
-                    <enums name="graphicsSize" value="LargeIcon"/>
-                </widget>
-                <string name="layoutName" value="default"/>
-                <sizehint height="47.7612un" type="PREFERRED" width="35.8209un"/>
-            </widget>
             <widget name="searchPanel" type="HbSearchPanel">
                 <sizepolicy horizontalPolicy="Preferred" horizontalStretch="0" verticalPolicy="Preferred" verticalStretch="0"/>
             </widget>
+            <widget name="listView" type="HbListWidget"/>
             <layout orientation="Vertical" type="linear">
                 <linearitem itemname="listView"/>
                 <linearitem itemname="searchPanel"/>
@@ -21,6 +15,5 @@
     </widget>
     <metadata activeUIState="Common ui state" display="NHD portrait" unit="un">
         <uistate name="Common ui state" sections="#common"/>
-        <dummydata objectName="listView" section="#common" value="0"/>
     </metadata>
 </hbdocument>

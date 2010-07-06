@@ -38,7 +38,6 @@ _LIT(KNameField, "Name");
 _LIT(KMediaIdField, "MediaId");
 _LIT(KExtensionField, "Extension");
 _LIT(KExcerptDelimiter, " ");
-_LIT(KFormatDateTime, "%04d %02d %02d %02d %02d");    // yyyy mm dd hh mm
 
 // -----------------------------------------------------------------------------
 // CCPIXDocFetcher::NewL()

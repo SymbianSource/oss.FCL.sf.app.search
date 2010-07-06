@@ -37,13 +37,6 @@
 
 using namespace EmailClientApi;
 
-enum TEmailDocType
-        {
-        EEmailTypeMail = 0,
-        EEmailTypeFolder,
-        EEmailTypeMailBox
-        };
-
 //How this works:
 //1. List all mail boxes.
 //2. In each mail box, list the folders
@@ -64,22 +57,19 @@ public:
     
 private:
     QEmailFetcher(MEmailItemObserver& aObserver );
-    static void initialize(QEmailFetcher* aThis); //helper (2nd phase constructor).
+    void initialize(); //helper (2nd phase constructor).
     void processNextMailbox();
     void processNextFolder();
     void processNextEnvelope();
     void NotifyHarvestingComplete();
-    CSearchDocument* getSearchDocument( const NmApiMessageEnvelope& aEnvelope ,quint64 aMailboxId, quint64 aFolderId );
-    CSearchDocument* getMailboxorfolderSearchDocument( quint64 aMailboxId, quint64 aFolderId, TEmailDocType aDocType, QString aFoldername );
+    CSearchDocument* getSearchDocumentL( const NmApiMessageEnvelope& aEnvelope ,quint64 aMailboxId, quint64 aFolderId );
 public slots: //public since they need to be called by *other* objects.
     void emailServiceIntialized( bool );
     void handleMailboxesListed( qint32 );
     void handleMailFoldersListed( qint32 );
     void processMessages( qint32 );
     //Connect to messageEvent signal
-    void handleMessageEvent( NmApiMessageEvent aEvent, quint64 mailboxId, quint64 folderId, QList<quint64> messageList ); 
-    //Connect to Mailbox event signal
-    void handlemailboxEvent(EmailClientApi::NmApiMailboxEvent event, QList<quint64> id);
+    void handleMessageEvent( EmailClientApi::NmApiMessageEvent aEvent, quint64 mailboxId, quint64 folderId, QList<quint64> messageList );
     
 private:
     MEmailItemObserver& iEmailObserver;     //The parent/creator. Not owned.
@@ -88,7 +78,6 @@ private:
     NmApiMailboxListing* iMailBoxListings;     //owned.
     NmApiFolderListing* iMailFolderList;       //owned.
     NmApiEnvelopeListing* iEnvelopeListing;    //owned.
-    NmApiMessageEnvelope* iMessageListing;     //owned.
     
     //These are needed to asynchronously process *all* mailboxes/folders.
     int iCurrentMailboxIndex;

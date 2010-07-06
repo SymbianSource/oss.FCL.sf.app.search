@@ -114,7 +114,6 @@ class CMessageMonitor : public CActive
 			TCPixActionType iAction;
 			TMsvId iFolderId;
 		};
-	
 	private:
 		// Queue of documents to be indexed
 		RArray<TMessageRecord> iMessages; 
@@ -127,6 +126,9 @@ class CMessageMonitor : public CActive
 		
 		CMsvSession&		iMsvSession;
 		CMessagePlugin&      iMessagePlugin;
+#ifdef HARVESTERPLUGINTESTER_FRIEND
+    friend class CHarvesterPluginTester;
+#endif
 	};
 
 #endif //  CMESSAGEMONITOR_H

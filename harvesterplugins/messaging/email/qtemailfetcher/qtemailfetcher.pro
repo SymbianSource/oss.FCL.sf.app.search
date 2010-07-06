@@ -31,7 +31,7 @@ symbian{
     TARGET.VID = VID_DEFAULT
     TARGET.CAPABILITY = CAP_GENERAL_DLL -DRM
     VERSION = 1.0.0
-    
+    INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE
     INCLUDEPATH += ../inc
     
     HEADERS += ../inc/memailitemobserver.h

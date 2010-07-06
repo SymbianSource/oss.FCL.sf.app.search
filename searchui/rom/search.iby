@@ -32,6 +32,9 @@ data=DATAZ_/private/10003a3f/import/apps/Searchapplication_reg.rsc	/private/1000
 //SearchIndevice handler
 file=/epoc32/release/armv5/urel/searchindevicehandler.dll SHARED_LIB_DIR/searchindevicehandler.dll
 
+//Searchonline handler
+file=/epoc32/release/armv5/urel/searchonlinehandler.dll SHARED_LIB_DIR/searchonlinehandler.dll
+
 
 
 //runtime provider dll

@@ -35,7 +35,7 @@ class CImap4ClientMtm;
 
 class CMessageDataHandler : public CActive
 	{
-public:
+public:    
 	/**
 	 * Construction
 	 * @return Harvester image plugin
@@ -163,6 +163,9 @@ private:
 	CPop3ClientMtm*				iPop3Mtm;                   // client for opening pop3
 	CImap4ClientMtm*			iImap4Mtm;                  // client for opening imap4
 	RFs							iFs;
+#ifdef HARVESTERPLUGINTESTER_FRIEND
+    friend class CHarvesterPluginTester;
+#endif
 	};
 
 #endif // CMESSAGEDATAHANDLER_H

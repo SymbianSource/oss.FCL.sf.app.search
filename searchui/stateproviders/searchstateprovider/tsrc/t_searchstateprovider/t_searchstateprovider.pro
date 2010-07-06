@@ -41,7 +41,7 @@ LIBS += -lfbscli
 LIBS += -laknicon
 LIBS += -lapgrfx
 LIBS += -lbitgdi
-#LIBS += -lnoteseditor
+LIBS += -lsearchonlinehandler
 LIBS += -lxqutils
 LIBS += -lapparc
 LIBS += -lefsrv
@@ -69,7 +69,8 @@ INCLUDEPATH += .\
                ./inc \
                ../../inc \
                ../../../../inc \               
-               ../../../../indevicehandler/inc 
+               ../../../../indevicehandler/inc \
+               ../../../../onlinehandler/inc
 symbian {         
 CONFIG += symbian_test               
 TARGET.UID2 = 0x100039CE

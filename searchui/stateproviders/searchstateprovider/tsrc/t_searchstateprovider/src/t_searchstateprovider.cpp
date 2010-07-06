@@ -19,8 +19,6 @@
 //#include "searchruntimeprovider.h"
 #include "searchstateprovider.h"
 
-#include <hsstatefactory.h>
-
 #include <qmetatype.h>
 #include <qstate.h>
 
@@ -51,8 +49,8 @@ SearchStateProviderTest::~SearchStateProviderTest()
 //
 void SearchStateProviderTest::init()
     {
-    
-   // delete mMainWindow;
+
+    // delete mMainWindow;
     }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +66,7 @@ void SearchStateProviderTest::initTestCase()
 //
 void SearchStateProviderTest::cleanupTestCase()
     {
-    
+
     }
 
 // ---------------------------------------------------------------------------
@@ -78,15 +76,15 @@ void SearchStateProviderTest::testCreateAndDestructSearchStateProvider()
     {
     SearchStateProvider provider;
 
- /*   QVERIFY(provider.mWizardMenuStateToken.mLibrary == "searchstateprovider.dll");
-    QVERIFY(provider.mWizardMenuStateToken.mUri == "search.nokia.com/state/wizardprogressivestate");
+    /*   QVERIFY(provider.mWizardMenuStateToken.mLibrary == "searchstateprovider.dll");
+     QVERIFY(provider.mWizardMenuStateToken.mUri == "search.nokia.com/state/wizardprogressivestate");
 
-    QVERIFY(provider.mWizardActivatedStateToken.mLibrary == "searchstateprovider.dll");
-    QVERIFY(provider.mWizardActivatedStateToken.mUri == "search.nokia.com/state/wizardsettingstate");
+     QVERIFY(provider.mWizardActivatedStateToken.mLibrary == "searchstateprovider.dll");
+     QVERIFY(provider.mWizardActivatedStateToken.mUri == "search.nokia.com/state/wizardsettingstate");
 
-    QVERIFY(provider.mInitStateToken.mLibrary == "searchstateprovider.dll");
-    QVERIFY(provider.mInitStateToken.mUri == "search.nokia.com/state/initstate");
- */   }
+     QVERIFY(provider.mInitStateToken.mLibrary == "searchstateprovider.dll");
+     QVERIFY(provider.mInitStateToken.mUri == "search.nokia.com/state/initstate");
+     */}
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -94,23 +92,19 @@ void SearchStateProviderTest::testCreateAndDestructSearchStateProvider()
 void SearchStateProviderTest::testStates()
     {
     /*  SearchStateProvider provider;
-   QList<HsStateToken> states = provider.states();
+    
+     QCOMPARE(states.count(), 3);
 
-    QCOMPARE(states.count(), 3);
-
-    QVERIFY(findStateInStateList(states, "searchstateprovider.dll","search.nokia.com/state/wizardprogressivestate"));
-    QVERIFY(findStateInStateList(states, "searchstateprovider.dll","search.nokia.com/state/wizardsettingstate"));
-    QVERIFY(findStateInStateList(states, "searchstateprovider.dll","search.nokia.com/state/initstate"));
-   */ }
+     */}
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 //
 void SearchStateProviderTest::testCreateProgressiveState()
     {
-    
+
     QVERIFY(verifyStateCreation("search.nokia.com/state/wizardprogressivestate"));
-   // delete wind;
+    // delete wind;
     }
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -119,7 +113,7 @@ void SearchStateProviderTest::testCreateSettingsState()
     {
     //HbMainWindow* wind = mainWindow();   
     QVERIFY(verifyStateCreation("search.nokia.com/state/wizardsettingstate"));
-   // delete wind;
+    // delete wind;
     }
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -128,16 +122,15 @@ void SearchStateProviderTest::testCreateinitState()
     {
     //HbMainWindow* wind = mainWindow();   
     QVERIFY(verifyStateCreation("search.nokia.com/state/initstate"));
-  //  delete wind;
+    //  delete wind;
     }
-
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 //
 bool SearchStateProviderTest::verifyStateCreation(const QString& uri)
     {
-    SearchStateProvider provider;   
+    SearchStateProvider provider;
     QState* state = provider.createState(uri);
     bool result = (state != NULL);
     if (state)
@@ -145,23 +138,6 @@ bool SearchStateProviderTest::verifyStateCreation(const QString& uri)
         delete state;
         }
     return result;
-    }
-
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-//
-bool SearchStateProviderTest::findStateInStateList(
-        const QList<HsStateToken>& states, const QString& library,
-        const QString& uri)
-    {
-    foreach(HsStateToken token, states)
-            {
-            if (token.mLibrary == library && token.mUri == uri)
-                {
-                return true;
-                }
-            }
-    return false;
     }
 
 // ---------------------------------------------------------------------------
@@ -185,7 +161,7 @@ HbMainWindow* SearchStateProviderTest::mainWindow()
 int main(int argc, char *argv[])
     {
     QApplication app(argc, argv);
-    int error =0;
+    int error = 0;
     TRAPD(err,
             QTEST_DISABLE_KEYPAD_NAVIGATION
             SearchStateProviderTest tc;

@@ -18,7 +18,7 @@
 #include "../messaging/group/bld.inf"
 #include "../file/group/bld.inf"
 #include "../calendar/group/bld.inf"
-#include "../bookmarks/group/bld.inf"
+//#include "../bookmarks/group/bld.inf"
 #include "../applications/group/bld.inf"
 #include "../notes/group/bld.inf"
 #include "../media/group/bld.inf"
