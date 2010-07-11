@@ -385,53 +385,55 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 		// Add fields
 		index_item->AddFieldL(KCalendarSummaryField, entry->SummaryL());
 		index_item->AddFieldL(KCalendarDescriptionField, entry->DescriptionL());
-		index_item->AddFieldL(KCalendarLocationField, entry->LocationL());
-		
-		TUint priority = entry->PriorityL();
-		
-		switch(priority)
-		    {
-		    case 1:
-		        index_item->AddFieldL(KCalendarPriorityField, KCalendarPriorityHigh);
-		        break;
-		    case 2:
-		        index_item->AddFieldL(KCalendarPriorityField, KCalendarPriorityMedium);
-                break;
-		    case 3:
-		        index_item->AddFieldL(KCalendarPriorityField, KCalendarPriorityLow);
-                break;
-		    default:
-	            index_item->AddFieldL(KCalendarPriorityField, KNullDesC);
-	            break;
-		    }
+		index_item->AddFieldL(KCalendarLocationField, entry->LocationL());		
 
 		TBuf<30> dateString;
-		TDateTime datetime = entry->StartTimeL().TimeUtcL().DateTime();       
+		TDateTime datetime = entry->StartTimeL().TimeLocalL().DateTime();       
 		dateString.Format( KCalendarTimeFormat, datetime.Year(),
 		                                     TInt(datetime.Month()+ 1),
 		                                     datetime.Day() + 1,
-		                                     datetime.Hour()+ 1,
+		                                     datetime.Hour(),
 		                                     datetime.Minute());
 		index_item->AddFieldL(KCalendarStartTimeField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 
-		TDateTime endTime = entry->EndTimeL().TimeUtcL().DateTime();		
+		TDateTime endTime = entry->EndTimeL().TimeLocalL().DateTime();		
 		dateString.Format( KCalendarTimeFormat, endTime.Year(),
                                                 TInt(endTime.Month()+ 1),
                                                 endTime.Day() + 1,
-                                                endTime.Hour()+ 1,
+                                                endTime.Hour(),
                                                 endTime.Minute());
 		index_item->AddFieldL(KCalendarEndTimeField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 		
-		TTime completedTime = entry->CompletedTimeL().TimeUtcL();
-		if( completedTime != Time::NullTTime() && CCalEntry::ETodo == entry->EntryTypeL())
+		
+		if( CCalEntry::ETodo == entry->EntryTypeL())
 		    {
-            TDateTime compTime = completedTime.DateTime();
-            dateString.Format( KCalendarTimeFormat, compTime.Year(),
-                                                TInt(compTime.Month()+ 1),
-                                                compTime.Day() + 1,
-                                                compTime.Hour()+ 1,
-                                                compTime.Minute());
-            index_item->AddFieldL(KCalenderCompletedField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+            TUint priority = entry->PriorityL();        
+            switch(priority)
+                {
+                case 1:
+                    index_item->AddFieldL(KCalendarPriorityField, KCalendarPriorityHigh);
+                    break;
+                case 2:
+                    index_item->AddFieldL(KCalendarPriorityField, KCalendarPriorityMedium);
+                    break;
+                case 3:
+                    index_item->AddFieldL(KCalendarPriorityField, KCalendarPriorityLow);
+                    break;
+                default:
+                    index_item->AddFieldL(KCalendarPriorityField, KNullDesC);
+                    break;
+                }
+            TTime completedTime = entry->CompletedTimeL().TimeLocalL();
+            if( completedTime != Time::NullTTime())
+                {
+                TDateTime compTime = completedTime.DateTime();
+                dateString.Format( KCalendarTimeFormat, compTime.Year(),
+                                                    TInt(compTime.Month()+ 1),
+                                                    compTime.Day() + 1,
+                                                    compTime.Hour(),
+                                                    compTime.Minute());
+                index_item->AddFieldL(KCalenderCompletedField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+                }
 		    }
 		index_item->AddFieldL(KMimeTypeField, KMimeTypeCalendar, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 

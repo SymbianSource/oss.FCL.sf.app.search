@@ -397,13 +397,12 @@ void SettingsWidget::setActionVisibility()
         }
     if (!isInternetSelected)
         {
-        for (int i = 0; i < mActions.count(); i++)
-            popup->removeAction(mActions.at(i));
-        popup->addActions(mActions);
-        if (noItemSelected)
-            {
-            popup->removeAction(mActions.at(0));
-            }
+           mActions.at(0)->setVisible(true);
+     
+           if (noItemSelected)
+             {     
+               mActions.at(0)->setVisible(false);
+              }
         }
     }
 //----------------------------------------------------------------------------------------------------------------------------

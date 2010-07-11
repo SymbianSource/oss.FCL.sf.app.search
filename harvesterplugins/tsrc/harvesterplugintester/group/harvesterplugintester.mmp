@@ -234,7 +234,7 @@ LIBRARY       libstdcpp.lib
 
 OPTION CW -wchar_t on
 MACRO _WCHAR_T_DECLARED
-//EPOCALLOWDLLDATA
+EPOCALLOWDLLDATA
 //------------------End for Eail plugin -----------------------------
 
 USERINCLUDE ../../../applications/traces 

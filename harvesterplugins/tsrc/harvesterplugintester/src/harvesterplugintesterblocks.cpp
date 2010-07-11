@@ -45,11 +45,14 @@
 #include <harvesterclient.h>
 #include "mdsitementity.h"
 #include "cpixmdedbmanager.h"
+#include "cpixindexerutils.h"
 #include "cfolderrenamedharvester.h"
 #include "videoplugin.h"
 #include "imageplugin.h"
 #include "cemailplugin.h"
 #include "cmessagedatahandler.h"
+#include <common.h>
+
 _LIT(KAppBasePath,"@c:root file content");
 _LIT(KEmailAppBasePath,"@c:root msg email");
 _LIT(KAppBaseFolderFilePath,"@c:root file folder");
@@ -142,21 +145,24 @@ TInt CHarvesterPluginTester::RunMethodL(
         ENTRY( "TestCalenderEntry",CHarvesterPluginTester::TestCalenderEntryL ),
         ENTRY( "TestCreateMMS",CHarvesterPluginTester::TestCreateMmsL ),
         ENTRY( "TestCreateEmail",CHarvesterPluginTester::TestCreateEmailL ),
-		ENTRY( "TestAudioHarvesting",CHarvesterPluginTester::TestAudioHarvestingL ),
-        ENTRY( "TestAudioHarvestingUpdateIndex",CHarvesterPluginTester::TestAudioHarvestingUpdateIndexL ),
-        ENTRY( "TestAudioHarvestingDeleteIndex",CHarvesterPluginTester::TestAudioHarvestingDeleteIndexL ),
+		ENTRY( "TestAudioHarvesting",CHarvesterPluginTester::TestAudioHarvestingL ),        
 		ENTRY( "TestMdsSyncController",CHarvesterPluginTester::TestMdsSyncControllerL ),
+		ENTRY( "TestAudioHandleItem",CHarvesterPluginTester::TestAudioHandleItemL ),
+		ENTRY( "TestAudioSyncDbManager",CHarvesterPluginTester::TestAudioSyncDbManagerL ),
+        ENTRY( "TestAudioMMCEventL",CHarvesterPluginTester::TestAudioMMCEventL ),
+        ENTRY( "TestAudioNoIndexer",CHarvesterPluginTester::TestAudioNoIndexerL ),
 		//ENTRY( "TestBlacklistPlugin",CHarvesterPluginTester::TestBlacklistPluginL ),
 		//ENTRY( "TestBlacklistPluginVersion",CHarvesterPluginTester::TestBlacklistPluginVersionL ),
-		ENTRY( "TestVideoHarvestingIndex",CHarvesterPluginTester::TestVideoHarvestingIndexL ),		
-		ENTRY( "TestVideoHarvestingUpdateIndex",CHarvesterPluginTester::TestVideoHarvestingUpdateIndexL ),
-		ENTRY( "TestVideoHarvestingDeleteIndex",CHarvesterPluginTester::TestVideoHarvestingDeleteIndexL ),
-		ENTRY( "TestImageHarvestingAddIndex",CHarvesterPluginTester::TestImageHarvestingAddIndexL ),
-		ENTRY( "TestImageHarvestingUpdateIndex",CHarvesterPluginTester::TestImageHarvestingUpdateIndexL ),
-		ENTRY( "TestImageHarvestingDeleteIndex",CHarvesterPluginTester::TestImageHarvestingDeleteIndexL ),
-		ENTRY( "TestAudioMMCEventL",CHarvesterPluginTester::TestAudioMMCEventL ),
-		ENTRY( "TestVideoMMCEventL",CHarvesterPluginTester::TestVideoMMCEventL ),
+		ENTRY( "TestVideoHarvesting",CHarvesterPluginTester::TestVideoHarvestingL ),		
+        ENTRY( "TestVideoHandleItem",CHarvesterPluginTester::TestVideoHandleItemL ),
+		ENTRY( "TestVideoSyncDbManager",CHarvesterPluginTester::TestVideoSyncDbManagerL ),
+        ENTRY( "TestVideoMMCEventL",CHarvesterPluginTester::TestVideoMMCEventL ),
+        ENTRY( "TestVideoNoIndexer",CHarvesterPluginTester::TestVideoNoIndexerL ),
+		ENTRY( "TestImageHarvesting",CHarvesterPluginTester::TestImageHarvestingL ),				
+		ENTRY( "TestImageHandleItem",CHarvesterPluginTester::TestImageHandleItemL ),
+		ENTRY( "TestImageSyncDbManager",CHarvesterPluginTester::TestImageSyncDbManagerL ),
 		ENTRY( "TestImageMMCEventL",CHarvesterPluginTester::TestImageMMCEventL ),
+		ENTRY( "TestImageNoIndexer",CHarvesterPluginTester::TestImageNoIndexerL ),
 		ENTRY( "TestStartEmailPlugin",CHarvesterPluginTester::TestStartEmailPluginL ),
 		ENTRY( "TestHandleEmailDoc",CHarvesterPluginTester::TestHandleEmailDocL ),
         //ADD NEW ENTRY HERE
@@ -835,6 +841,7 @@ TInt CHarvesterPluginTester::SearchForTextL(const TDesC& aQueryString, const TDe
         {
         DocumentCount = searcher->SearchL(aQueryString, aDefaultField);
         }
+    session.Close();
     return DocumentCount;
     }
 
@@ -1596,119 +1603,14 @@ TInt CHarvesterPluginTester::TestAudioHarvestingL( CStifItemParser& /*aItem*/ )
     //Wait for one minutes after doc processing to Index and Flush to happen
     iPluginTester->SetWaitTime((TTimeIntervalMicroSeconds32)60000000);
     iPluginTester->iWaitForHarvester->Start(); //Start Wait AO and let it complete
-    TInt count = SearchForTextL(_L("Eagle"),_L(MEDIA_QBASEAPPCLASS),KNullDesC);
-    if(count <= 0)
-        {
-        error = KErrNotFound;
-        }
-    doLog(iLog,error,_L("Error in TestAudioHarvestingL"));
+    error = doSearchL( _L("Eagle"),_L(MEDIA_QBASEAPPCLASS), ESearchTypeResultsExpected ); 
+    
     delete plugin;
     delete iPluginTester;
     iPluginTester = NULL;
     fileSession.Close();    
     //End search
-    return error;
-    }
-TInt CHarvesterPluginTester::TestAudioHarvestingUpdateIndexL( CStifItemParser& aItem )
-    {
-    TInt error = KErrNone;
-    TPtrC filepath;
-    TPtrC filename;
-    TPtrC newFile;
-    TBuf<KMaxFileName> srcPath(_L("c:\\data\\Sounds\\"));
-    TBuf<KMaxFileName> desPath;
-    desPath.Copy( srcPath );
-    CAudioPlugin* plugin = CAudioPlugin::NewL();
-    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
-    plugin->StartPluginL();
-    RFs fSession;
-    User::LeaveIfError( fSession.Connect());
-    CleanupClosePushL( fSession );
-    if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
-        {
-        srcPath.Append( filename );
-        if( aItem.GetNextString(newFile) == KErrNone )
-            {
-            desPath.Append( newFile );
-            RHarvesterClient harvester;
-            User::LeaveIfError(harvester.Connect());
-            harvester.Pause();
-            TBool fileExist = BaflUtils::FileExists( fSession, srcPath );        
-            if(!fileExist)
-            {
-            BaflUtils::EnsurePathExistsL( fSession, srcPath );//Create folder
-            BaflUtils::CopyFile( fSession, filepath, srcPath );                    
-            }            
-            BaflUtils::RenameFile( fSession, srcPath, desPath );
-            harvester.Resume();
-            harvester.Close();
-            plugin->StartHarvestingL( _L(MEDIA_QBASEAPPCLASS) );
-            //wait for index to flush
-            iPluginTester->SetWaitTime( (TTimeIntervalMicroSeconds32)60000000 );
-            //wait till video harvesting completes
-            iPluginTester->iWaitForHarvester->Start();
-            TInt count = SearchForTextL(_L("testaudio"), _L(MEDIA_QBASEAPPCLASS), KNullDesC );
-            if(count <= 0)
-               {
-               error = KErrNotFound;
-               }
-            doLog( iLog, error, _L("Error in TestAudioHarvestingUpdateIndexL") );
-            }        
-        }
-        else
-            doLog( iLog, KErrNotFound, _L("Error in TestAudioHarvestingUpdateIndexL") );           
-        CleanupStack::PopAndDestroy();
-        delete plugin;
-        delete iPluginTester;
-        iPluginTester = NULL;
-        return error;
-        }
-
-TInt CHarvesterPluginTester::TestAudioHarvestingDeleteIndexL( CStifItemParser& aItem )
-    {
-    TInt error = KErrNone;
-    TPtrC filepath;
-    TPtrC filename;    
-    TBuf<KMaxFileName> srcPath(_L("c:\\data\\Sounds\\"));
-    CAudioPlugin* plugin = CAudioPlugin::NewL();
-    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
-    plugin->StartPluginL();
-    RFs fSession;
-    User::LeaveIfError( fSession.Connect());
-    CleanupClosePushL( fSession );
-    if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
-        {
-        srcPath.Append( filename );        
-        RHarvesterClient harvester;
-        User::LeaveIfError(harvester.Connect());
-        harvester.Pause();
-        TBool fileExist = BaflUtils::FileExists( fSession, srcPath );        
-        if(!fileExist)
-        {
-        BaflUtils::EnsurePathExistsL( fSession, srcPath );//Create folder
-        BaflUtils::CopyFile( fSession, filepath, srcPath );                    
-        }            
-        BaflUtils::DeleteFile( fSession, srcPath );        
-        harvester.Resume();
-        harvester.Close();
-        plugin->StartHarvestingL( _L(MEDIA_QBASEAPPCLASS) );
-        //wait for index to flush
-        iPluginTester->SetWaitTime( (TTimeIntervalMicroSeconds32)60000000 );
-        //wait till video harvesting completes
-        iPluginTester->iWaitForHarvester->Start();
-        TInt count = SearchForTextL(_L("eagle"), _L(MEDIA_QBASEAPPCLASS), KNullDesC );
-        if(count <= 0)
-           {
-           // If the search is not found,then testcase is success
-           doLog( iLog, error, _L("Error in TestAudioHarvestingDeleteIndexL") );
-           }
-        }
-    else
-        doLog( iLog, KErrNotFound, _L("Error in TestAudioHarvestingDeleteIndexL") );           
-    CleanupStack::PopAndDestroy();
-    delete plugin;
-    delete iPluginTester;
-    iPluginTester = NULL;
+    doLog(iLog,error,_L("Error in TestAudioHarvestingL"));
     return error;
     }
         
@@ -1748,7 +1650,83 @@ TInt CHarvesterPluginTester::TestMdsSyncControllerL( CStifItemParser& /*aItem*/ 
     delete dbcontroller;
     return error;
     }
-	
+
+TInt CHarvesterPluginTester::TestAudioHandleItemL( CStifItemParser& aItem)
+    {
+    TInt error = KErrNone;    
+    TInt objId;    
+    TInt actionType;
+    aItem.GetNextInt ( objId );
+    aItem.GetNextInt ( actionType );    
+    CAudioPlugin* plugin = CAudioPlugin::NewL(); 
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    TRAPD( err , plugin->HandleMdeItemL(objId, (TCPixActionType)actionType) );
+    doLog(iLog,error,_L("Error in TestAudioHandleItemL"));
+    delete plugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestAudioSyncDbManagerL( CStifItemParser& /* aItem */)
+    {    
+    CAudioPlugin* plugin = CAudioPlugin::NewL(); 
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    CMDSEntity* entity;    
+    entity = CMDSEntity::NewL();    
+    entity->Setkey(100);
+    entity->SetUri(_L("\\music\\audio.mp3"));
+    TDriveNumber drive = TDriveNumber(EDriveC);
+    entity->SetDrive(drive);    
+    plugin->iDBManager->AddL( entity->Key(),*entity );
+    TRAPD( err , plugin->HandleMdeItemL(entity->Key(), ECPixAddAction));
+    TRAP( err , plugin->HandleMdeItemL(entity->Key(), ECPixUpdateAction));
+    TRAP( err , plugin->HandleMdeItemL(entity->Key(), ECPixRemoveAction));
+    delete plugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestAudioMMCEventL( CStifItemParser& aItem )
+    {    
+    TInt error(KErrNone);
+    TInt drive;    
+    TInt mmcstatus;
+    aItem.GetNextInt ( drive );
+    aItem.GetNextInt ( mmcstatus );    
+    CAudioPlugin* plugin = CAudioPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL(); //Initialize the Plugin
+    TRAPD( err , plugin->HandleMMCEventL( (TDriveNumber)drive , mmcstatus) );
+    //iPluginTester->iWaitForHarvester->Start(); //Start Wait AO and let it complete
+    doLog(iLog,error,_L("Error in TestAudioMMCEventL"));
+    delete plugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    //End search
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestAudioNoIndexerL( CStifItemParser& aItem )
+    {
+    TInt drive;
+    TInt objId;
+    aItem.GetNextInt ( drive );
+    aItem.GetNextInt ( objId );
+    CAudioPlugin* plugin = CAudioPlugin::NewL(); 
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    plugin->iIndexerUtil->iIndexer[drive]= NULL;
+    TRAPD( err , plugin->HandleMdeItemL(objId, ECPixUpdateAction) );
+    delete plugin;
+    delete iPluginTester;
+    iPluginTester = NULL;    
+    return KErrNone;
+    }
+
 TInt CHarvesterPluginTester::TestBlacklistPluginL( CStifItemParser& /*aItem*/ )
     {
     //@todo: This test case shoud be in IDS middleware harvester STIF cases
@@ -1805,7 +1783,7 @@ TInt CHarvesterPluginTester::TestBlacklistPluginVersionL( CStifItemParser& /*aIt
     doLog( iLog, err, KNoErrorString );*/
     return err;
     }
-TInt CHarvesterPluginTester::TestVideoHarvestingIndexL( CStifItemParser& aItem )
+TInt CHarvesterPluginTester::TestVideoHarvestingL( CStifItemParser& aItem )
     {
     TInt error = KErrNone;
     TPtrC filepath;
@@ -1815,8 +1793,7 @@ TInt CHarvesterPluginTester::TestVideoHarvestingIndexL( CStifItemParser& aItem )
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    User::LeaveIfError( fSession.Connect());
-    CleanupClosePushL( fSession );
+    User::LeaveIfError( fSession.Connect());    
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {        
         TBuf<KMaxFileName> desPath(_L("c:\\data\\Videos\\"));
@@ -1843,121 +1820,72 @@ TInt CHarvesterPluginTester::TestVideoHarvestingIndexL( CStifItemParser& aItem )
            {
            error = KErrNotFound;
            }
-        }
-        else
-           error = KErrNotFound;
-    CleanupStack::PopAndDestroy();
+        }        
+    fSession.Close();
     delete plugin;
     delete iPluginTester;
     iPluginTester = NULL;
-    doLog( iLog, error, _L("Error in TestVideoHarvestingIndexL") );
+    doLog( iLog, error, _L("Error in TestVideoHarvesting") );
     return error;
     }
 
-TInt CHarvesterPluginTester::TestVideoHarvestingUpdateIndexL( CStifItemParser& aItem )
+TInt CHarvesterPluginTester::TestVideoHandleItemL( CStifItemParser& aItem )
     {
-    TInt error = KErrNone;
-    TPtrC filepath;
-    TPtrC filename;
-    TPtrC newFile;
-    TBuf<KMaxFileName> srcPath(_L("c:\\data\\Videos\\"));
-    TBuf<KMaxFileName> desPath;
-    desPath.Copy( srcPath );
-    CVideoPlugin* plugin = CVideoPlugin::NewL();
+    TInt error = KErrNone;    
+    TInt objId;    
+    TInt actionType;
+    aItem.GetNextInt ( objId );
+    aItem.GetNextInt ( actionType );    
+    CVideoPlugin* plugin = CVideoPlugin::NewL(); 
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
-    RFs fSession;
-    User::LeaveIfError( fSession.Connect());
-    CleanupClosePushL( fSession );
-    if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
-        {
-        srcPath.Append( filename );
-        if( aItem.GetNextString(newFile) == KErrNone )
-            {
-            desPath.Append( newFile );
-            RHarvesterClient harvester;
-            User::LeaveIfError(harvester.Connect());
-            harvester.Pause();
-            TBool fileExist = BaflUtils::FileExists( fSession, srcPath );        
-            if(!fileExist)
-            {
-            BaflUtils::EnsurePathExistsL( fSession, srcPath );//Create folder
-            BaflUtils::CopyFile( fSession, filepath, srcPath );                    
-            }            
-            BaflUtils::RenameFile( fSession, srcPath, desPath );
-            harvester.Resume();
-            harvester.Close();
-            plugin->StartHarvestingL( _L(VIDEO_QBASEAPPCLASS) );
-            //wait for index to flush
-            iPluginTester->SetWaitTime( (TTimeIntervalMicroSeconds32)60000000 );
-            //wait till video harvesting completes
-            iPluginTester->iWaitForHarvester->Start();
-            TInt count = SearchForTextL(_L("Falls"), _L(VIDEO_QBASEAPPCLASS), KNullDesC );
-            if(count <= 0)
-               {
-               error = KErrNotFound;
-               }
-            doLog( iLog, error, _L("Error in TestVideoHarvestingUpdateIndexL") );
-            }        
-        }
-    else
-        doLog( iLog, KErrNotFound, _L("Error in TestVideoHarvestingUpdateIndexL") );           
-    CleanupStack::PopAndDestroy();
+    TRAPD( err , plugin->HandleMdeItemL(objId, (TCPixActionType)actionType) );
+    doLog(iLog,error,_L("Error in TestVideoHandleItemL"));
     delete plugin;
     delete iPluginTester;
     iPluginTester = NULL;
-    return error;
+    return KErrNone;
     }
 
-TInt CHarvesterPluginTester::TestVideoHarvestingDeleteIndexL( CStifItemParser& aItem )
+TInt CHarvesterPluginTester::TestVideoSyncDbManagerL( CStifItemParser& /*aItem */)
     {
-    TInt error = KErrNone;
-    TPtrC filepath;
-    TPtrC filename;    
-    TBuf<KMaxFileName> srcPath(_L("c:\\data\\Videos\\"));
-    CVideoPlugin* plugin = CVideoPlugin::NewL();
+    CVideoPlugin* plugin = CVideoPlugin::NewL(); 
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
-    RFs fSession;
-    User::LeaveIfError( fSession.Connect());
-    CleanupClosePushL( fSession );
-    if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
-        {
-        srcPath.Append( filename );        
-        RHarvesterClient harvester;
-        User::LeaveIfError(harvester.Connect());
-        harvester.Pause();
-        TBool fileExist = BaflUtils::FileExists( fSession, srcPath );        
-        if(!fileExist)
-        {
-        BaflUtils::EnsurePathExistsL( fSession, srcPath );//Create folder
-        BaflUtils::CopyFile( fSession, filepath, srcPath );                    
-        }            
-        BaflUtils::DeleteFile( fSession, srcPath );        
-        harvester.Resume();
-        harvester.Close();
-        plugin->StartHarvestingL( _L(VIDEO_QBASEAPPCLASS) );
-        //wait for index to flush
-        iPluginTester->SetWaitTime( (TTimeIntervalMicroSeconds32)60000000 );
-        //wait till video harvesting completes
-        iPluginTester->iWaitForHarvester->Start();
-        TInt count = SearchForTextL(_L("Niagara"), _L(VIDEO_QBASEAPPCLASS), KNullDesC );
-        if(count <= 0)
-           {
-           // If the search is not found,then testcase is success
-           doLog( iLog, error, _L("Error in TestVideoHarvestingDeleteIndexL") );
-           }
-        }
-    else
-        doLog( iLog, KErrNotFound, _L("Error in TestVideoHarvestingDeleteIndexL") );           
-    CleanupStack::PopAndDestroy();
+    CMDSEntity* entity;    
+    entity = CMDSEntity::NewL();    
+    entity->Setkey(101);
+    entity->SetUri(_L("\\video\\video.mpg"));
+    TDriveNumber drive = TDriveNumber(EDriveC);
+    entity->SetDrive(drive);    
+    plugin->iDBManager->AddL( entity->Key(),*entity );
+    TRAPD( err , plugin->HandleMdeItemL(entity->Key(), ECPixAddAction));
+    TRAP( err , plugin->HandleMdeItemL(entity->Key(), ECPixUpdateAction));
+    TRAP( err , plugin->HandleMdeItemL(entity->Key(), ECPixRemoveAction));
     delete plugin;
     delete iPluginTester;
     iPluginTester = NULL;
-    return error;
+    return KErrNone;
     }
 
-TInt CHarvesterPluginTester::TestImageHarvestingAddIndexL( CStifItemParser& aItem )
+TInt CHarvesterPluginTester::TestVideoNoIndexerL( CStifItemParser& aItem )
+    {
+    TInt drive;
+    TInt objId;
+    aItem.GetNextInt ( drive );
+    aItem.GetNextInt ( objId );
+    CVideoPlugin* plugin = CVideoPlugin::NewL(); 
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    plugin->iIndexerUtil->iIndexer[drive]= NULL;
+    TRAPD( err , plugin->HandleMdeItemL(objId, ECPixUpdateAction) );
+    delete plugin;
+    delete iPluginTester;
+    iPluginTester = NULL;    
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestImageHarvestingL( CStifItemParser& aItem )
     {
     TInt error = KErrNone;
     TPtrC filepath;
@@ -1967,8 +1895,7 @@ TInt CHarvesterPluginTester::TestImageHarvestingAddIndexL( CStifItemParser& aIte
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
     RFs fSession;
-    User::LeaveIfError( fSession.Connect());
-    CleanupClosePushL( fSession );
+    User::LeaveIfError( fSession.Connect());    
     if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
         {        
         TBuf<KMaxFileName> desPath(_L("c:\\data\\Images\\"));
@@ -1998,135 +1925,68 @@ TInt CHarvesterPluginTester::TestImageHarvestingAddIndexL( CStifItemParser& aIte
         else
            error = KErrNotFound;
     doLog( iLog, error, _L("Error in TestImageHarvestingAddIndexL") );  
-    CleanupStack::PopAndDestroy();
+    fSession.Close();
     delete plugin;
     delete iPluginTester;
     iPluginTester = NULL;
     return error;
     }
 
-TInt CHarvesterPluginTester::TestImageHarvestingUpdateIndexL( CStifItemParser& aItem )
+TInt CHarvesterPluginTester::TestImageHandleItemL( CStifItemParser& aItem )
     {
-    TInt error = KErrNone;
-    TPtrC filepath;
-    TPtrC filename;
-    TPtrC newFile;
-    TBuf<KMaxFileName> srcPath(_L("c:\\data\\Images\\"));
-    TBuf<KMaxFileName> desPath;
-    desPath.Copy( srcPath );
-    CImagePlugin* plugin = CImagePlugin::NewL();
+    TInt error = KErrNone;    
+    TInt objId;    
+    TInt actionType;
+    aItem.GetNextInt ( objId );
+    aItem.GetNextInt ( actionType );    
+    CImagePlugin* plugin = CImagePlugin::NewL(); 
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
-    RFs fSession;
-    User::LeaveIfError( fSession.Connect());
-    CleanupClosePushL( fSession );
-    if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
-        {
-        srcPath.Append( filename );
-        if( aItem.GetNextString(newFile) == KErrNone )
-            {
-            desPath.Append( newFile );
-            RHarvesterClient harvester;
-            User::LeaveIfError(harvester.Connect());
-            harvester.Pause();
-            TBool fileExist = BaflUtils::FileExists( fSession, srcPath );        
-            if(!fileExist)
-            {
-            BaflUtils::EnsurePathExistsL( fSession, srcPath );//Create folder
-            BaflUtils::CopyFile( fSession, filepath, srcPath );                    
-            }            
-            BaflUtils::RenameFile( fSession, srcPath, desPath );
-            harvester.Resume();
-            harvester.Close();
-            plugin->StartHarvestingL( _L(IMAGE_QBASEAPPCLASS) );
-            //wait for index to flush
-            iPluginTester->SetWaitTime( (TTimeIntervalMicroSeconds32)60000000 );            
-            iPluginTester->iWaitForHarvester->Start();
-            TInt count = SearchForTextL(_L("Portrait"), _L(IMAGE_QBASEAPPCLASS), KNullDesC );
-            if(count <= 0)
-               {
-               error = KErrNotFound;
-               }
-            doLog( iLog, error, _L("Error in TestImageHarvestingUpdateIndexL") );
-            }        
-        }
-    else
-        doLog( iLog, KErrNotFound, _L("Error in TestImageHarvestingUpdateIndexL") );           
-    CleanupStack::PopAndDestroy();
+    TRAPD( err , plugin->HandleMdeItemL(objId, (TCPixActionType)actionType) );
+    doLog(iLog,error,_L("Error in TestImageHandleItemL"));
     delete plugin;
     delete iPluginTester;
     iPluginTester = NULL;
-    return error;
+    return KErrNone;
     }
 
-TInt CHarvesterPluginTester::TestImageHarvestingDeleteIndexL( CStifItemParser& aItem )
+TInt CHarvesterPluginTester::TestImageSyncDbManagerL( CStifItemParser& /*aItem */)
     {
-    TInt error = KErrNone;
-    TPtrC filepath;
-    TPtrC filename;    
-    TBuf<KMaxFileName> srcPath(_L("c:\\data\\Images\\"));
-    CImagePlugin* plugin = CImagePlugin::NewL();
+    CImagePlugin* plugin = CImagePlugin::NewL(); 
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL();
-    RFs fSession;
-    User::LeaveIfError( fSession.Connect() );
-    CleanupClosePushL( fSession );
-    if((aItem.GetNextString(filepath)==KErrNone) && (aItem.GetNextString(filename) == KErrNone))
-        {
-        srcPath.Append( filename );        
-        RHarvesterClient harvester;
-        User::LeaveIfError(harvester.Connect());
-        harvester.Pause();
-        TBool fileExist = BaflUtils::FileExists( fSession, srcPath );        
-        if(!fileExist)
-        {
-        BaflUtils::EnsurePathExistsL( fSession, srcPath );//Create folder
-        BaflUtils::CopyFile( fSession, filepath, srcPath );                    
-        }            
-        BaflUtils::DeleteFile( fSession, srcPath );        
-        harvester.Resume();
-        harvester.Close();
-        plugin->StartHarvestingL( _L(IMAGE_QBASEAPPCLASS) );
-        //wait for index to flush
-        iPluginTester->SetWaitTime( (TTimeIntervalMicroSeconds32)60000000 );
-        //wait till image harvesting completes
-        iPluginTester->iWaitForHarvester->Start();
-        TInt count = SearchForTextL(_L("Square"), _L(IMAGE_QBASEAPPCLASS), KNullDesC );
-        if(count <= 0)
-           {
-           // If the search is not found,then testcase is success
-           doLog( iLog, error, _L("Error in TestImageHarvestingDeleteIndexL") );
-           }
-        }
-    else
-        doLog( iLog, KErrNotFound, _L("Error in TestImageHarvestingDeleteIndexL") );           
-    CleanupStack::PopAndDestroy();
+    CMDSEntity* entity;    
+    entity = CMDSEntity::NewL();    
+    entity->Setkey(102);
+    entity->SetUri(_L("\\image\\image.jpg"));
+    TDriveNumber drive = TDriveNumber(EDriveC);
+    entity->SetDrive(drive);    
+    plugin->iDBManager->AddL( entity->Key(),*entity );
+    TRAPD( err , plugin->HandleMdeItemL(entity->Key(), ECPixAddAction));
+    TRAP( err , plugin->HandleMdeItemL(entity->Key(), ECPixUpdateAction));
+    TRAP( err , plugin->HandleMdeItemL(entity->Key(), ECPixRemoveAction));
     delete plugin;
     delete iPluginTester;
     iPluginTester = NULL;
-    return error;
+    return KErrNone;
     }
 
-TInt CHarvesterPluginTester::TestAudioMMCEventL( CStifItemParser& aItem )
-    {    
-    TInt error(KErrNone);
-    TInt drive;    
-    TInt mmcstatus;
+TInt CHarvesterPluginTester::TestImageNoIndexerL( CStifItemParser& aItem )
+    {
+    TInt drive;
+    TInt objId;
     aItem.GetNextInt ( drive );
-    aItem.GetNextInt ( mmcstatus );    
-    CAudioPlugin* plugin = CAudioPlugin::NewL();
+    aItem.GetNextInt ( objId );
+    CImagePlugin* plugin = CImagePlugin::NewL(); 
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
-    plugin->StartPluginL(); //Initialize the Plugin
-    TRAPD( err , plugin->HandleMMCEventL( (TDriveNumber)drive , mmcstatus) );
-    //iPluginTester->iWaitForHarvester->Start(); //Start Wait AO and let it complete
-    doLog(iLog,error,_L("Error in TestAudioMMCEventL"));
+    plugin->StartPluginL();
+    plugin->iIndexerUtil->iIndexer[drive]= NULL;
+    TRAPD( err , plugin->HandleMdeItemL(objId, ECPixUpdateAction) );
     delete plugin;
     delete iPluginTester;
-    iPluginTester = NULL;
-    //End search
-    return err;
-    }
-        
+    iPluginTester = NULL;    
+    return KErrNone;
+    }        
 TInt CHarvesterPluginTester::TestVideoMMCEventL( CStifItemParser& aItem )
     {
     TInt error(KErrNone);

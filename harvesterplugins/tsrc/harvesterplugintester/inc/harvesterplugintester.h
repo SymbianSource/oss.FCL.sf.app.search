@@ -247,33 +247,39 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
 		
 		virtual TInt TestAudioHarvestingL( CStifItemParser& aItem );
 		
-		virtual TInt TestAudioHarvestingUpdateIndexL( CStifItemParser& aItem );
-		        
-        virtual TInt TestAudioHarvestingDeleteIndexL( CStifItemParser& aItem );
+		virtual TInt TestAudioHandleItemL( CStifItemParser& aItem );
 		
 		virtual TInt TestMdsSyncControllerL( CStifItemParser& aItem );
+		
+		virtual TInt TestAudioSyncDbManagerL( CStifItemParser& aItem );
+		
+		virtual TInt TestAudioMMCEventL( CStifItemParser& aItem );
+		
+		virtual TInt TestAudioNoIndexerL( CStifItemParser& aItem );
 		
 		virtual TInt TestBlacklistPluginL( CStifItemParser& aItem );
 		
 		virtual TInt TestBlacklistPluginVersionL( CStifItemParser& aItem );
 		
-		virtual TInt TestVideoHarvestingIndexL( CStifItemParser& aItem );
-
-        virtual TInt TestVideoHarvestingUpdateIndexL( CStifItemParser& aItem );
+		virtual TInt TestVideoHarvestingL( CStifItemParser& aItem );        
 		
-		virtual TInt TestVideoHarvestingDeleteIndexL( CStifItemParser& aItem );
+		virtual TInt TestVideoHandleItemL( CStifItemParser& aItem );
 		
-		virtual TInt TestImageHarvestingAddIndexL( CStifItemParser& aItem );
-		
-		virtual TInt TestImageHarvestingUpdateIndexL( CStifItemParser& aItem );
-		
-		virtual TInt TestImageHarvestingDeleteIndexL( CStifItemParser& aItem );
-		
-		virtual TInt TestAudioMMCEventL( CStifItemParser& aItem );
+		virtual TInt TestVideoSyncDbManagerL ( CStifItemParser& aItem );
 		
 		virtual TInt TestVideoMMCEventL( CStifItemParser& aItem );
 		
+		virtual TInt TestVideoNoIndexerL( CStifItemParser& aItem );
+		
+		virtual TInt TestImageHarvestingL( CStifItemParser& aItem );		
+		
+		virtual TInt TestImageHandleItemL( CStifItemParser& aItem );
+		        
+        virtual TInt TestImageSyncDbManagerL ( CStifItemParser& aItem );		
+		
 		virtual TInt TestImageMMCEventL( CStifItemParser& aItem );
+		
+		virtual TInt TestImageNoIndexerL( CStifItemParser& aItem );
 		
 		virtual TInt TestStartEmailPluginL( CStifItemParser& aItem );
 		

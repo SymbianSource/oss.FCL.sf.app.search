@@ -315,7 +315,12 @@ signals:
     
     void inDeviceSearchQuery(QString);
 
-    void launchLink(int,QString);
+    void launchLink(int, QString);
+
+    /**
+     * Signalled when UI is ready on progressive state        
+     */
+    void applicationReady();
 private:
 
     HbMainWindow* mMainWindow;

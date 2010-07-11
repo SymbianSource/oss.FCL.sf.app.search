@@ -149,6 +149,11 @@ private:
     CCPixIndexer *iIndexer[EDriveZ + 1];//Array of all Indexers
     RFs           iFs; //File session
     RSearchServerSession iSearchSession; //Search session
+    
+    //for helping with testing.
+    #ifdef HARVESTERPLUGINTESTER_FRIEND
+        friend class CHarvesterPluginTester;
+    #endif
     };
 
 #endif /* CPIXINDERUTILS_H_ */

@@ -144,22 +144,22 @@ SearchProgressiveState::SearchProgressiveState(QState *parent) :
     loadSettings = true;
 
     //Icon creation in array
-    RArray<TUid> appUid;
-    appUid.Append(TUid::Uid(0x20022EF9));//contact
-    appUid.Append(TUid::Uid(0x10207C62));//audio
-    appUid.Append(TUid::Uid(0x200211FE));//video 
-    appUid.Append(TUid::Uid(0x20000A14));//image 
-    appUid.Append(TUid::Uid(0x2001FE79));//msg
-    appUid.Append(TUid::Uid(0x200255BA));//email 
-    appUid.Append(TUid::Uid(0x10005901));//calender
-    appUid.Append(TUid::Uid(0x20029F80));//notes
+    QList<TUid> appUid;
+    appUid.append(TUid::Uid(0x20022EF9));//contact
+    appUid.append(TUid::Uid(0x10207C62));//audio
+    appUid.append(TUid::Uid(0x200211FE));//video 
+    appUid.append(TUid::Uid(0x20000A14));//image 
+    appUid.append(TUid::Uid(0x2001FE79));//msg
+    appUid.append(TUid::Uid(0x200255BA));//email 
+    appUid.append(TUid::Uid(0x10005901));//calender
+    appUid.append(TUid::Uid(0x20029F80));//notes
     //appUid.Append(TUid::Uid(0x20022F35));//application
-    appUid.Append(TUid::Uid(0x10008D39));//bookmark
-    appUid.Append(TUid::Uid(0x2002BCC0));//files
+    appUid.append(TUid::Uid(0x10008D39));//bookmark
+    appUid.append(TUid::Uid(0x2002BCC0));//files
 
-    for (int i = 0; i < appUid.Count(); i++)
+    for (int i = 0; i < appUid.count(); i++)
         {
-        TRAP_IGNORE(mIconArray.append(getAppIconFromAppIdL(appUid[i])));
+        TRAP_IGNORE(mIconArray.append(getAppIconFromAppIdL(appUid.at(i))));
         }
 #ifdef OST_TRACE_COMPILER_IN_USE 
     //start() the timers to avoid worrying abt having to start()/restart() later
@@ -500,19 +500,15 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
         }
     else if (aDoc->baseAppClass().contains("msg"))
         {
-        QStringList msgList = filterDoc(aDoc, "Subject", "Body");
-        if (msgList.value(0, "").length())
+        QStringList msgList = filterDoc(aDoc, "Folder", "To", "From");
+        if (msgList.value(0).contains("Inbox"))
             {
-            firstrow.append(msgList.at(0));
+            firstrow.append(msgList.at(2));
             }
         else
             {
             if (msgList.value(1, "").length())
                 firstrow.append(msgList.at(1));
-            }
-        if (firstrow.length() == 0)
-            {
-            firstrow = " ";// space if subject and body are missing
             }
         liststr << firstrow << secondrow;
         listitem->setData(mIconArray.at(4), Qt::DecorationRole);
@@ -605,7 +601,7 @@ void SearchProgressiveState::openResultitem(HbListWidgetItem * item)
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("contact")
         mRequest = mAiwMgr->create("com.nokia.services.phonebookservices",
-                "Fetch", "open(int)", false);
+                "Fetch", "open(int)", true);
 
         int uid = (item->data(Qt::UserRole)).toInt(&t);
         args << uid;
@@ -646,7 +642,7 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
         PERF_RESULT_ITEM_FOR_LAUNCHING("file")
         QString uid = item->data(Qt::UserRole).toString();
         QFile file(uid);
-        mRequest = mAiwMgr->create(file, false);
+        mRequest = mAiwMgr->create(file, true);
         args << file.fileName();
         }
     else if ((item->data(Qt::UserRole + 1).toString().contains("video"))
@@ -659,7 +655,7 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
         uid.append(':');
         uid.append(item->data(Qt::UserRole).toString());
         QFile file(uid);
-        mRequest = mAiwMgr->create(file, false);
+        mRequest = mAiwMgr->create(file, true);
         args << file.fileName();
         }
 
@@ -677,7 +673,7 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
 
         mRequest = mAiwMgr->create("nmail",
                 "com.nokia.symbian.IEmailMessageView",
-                "viewMessage(QVariant,QVariant,QVariant)", false);
+                "viewMessage(QVariant,QVariant,QVariant)", true);
 
         args << item->data(Qt::UserRole + 2).toULongLong(&t) << item->data(
                 Qt::UserRole + 3).toULongLong(&t) << item->data(Qt::UserRole).toULongLong(&t);
@@ -686,7 +682,7 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("msg")
         mRequest = mAiwMgr->create("com.nokia.services.hbserviceprovider",
-                "conversationview", "view(int)", false);
+                "conversationview", "view(int)", true);
 
         int uid = (item->data(Qt::UserRole)).toInt(&t);
         args << uid;
@@ -1344,6 +1340,7 @@ void SearchProgressiveState::viewReady()
                 mSearchPanel->setCriteria(searchKey);
             }
         }PERF_APP_LAUNCH_END("SearchAppplication View is ready");
+     emit applicationReady();
     }
 void SearchProgressiveState::slotOnlineQuery(QString str)
     {

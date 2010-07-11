@@ -73,6 +73,7 @@ CVideoPlugin::~CVideoPlugin()
     delete iObjectJobQueueManager;
     delete iMdsUtils;
     delete iVideoDocument;
+    iIndexerUtil->UnMountAllDrivesL(_L(MEDIAGENERICAPPCLASS));
     delete iIndexerUtil;
     delete iMMcMonitor;
     delete iDBManager;
@@ -211,7 +212,7 @@ void CVideoPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                 CPIXLOGSTRING2("CVideoPlugin::HandleMdeItemL(): Error %d in adding.", err);
                 }           
             }
-        else if (aActionType == ECPixUpdateAction)
+        else
             {
             //If DocID for e.g \video\something.3gpp itself changes the we have to compare
             //existing URI with new one and Remove that first and Update to avoid 

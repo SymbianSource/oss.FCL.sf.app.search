@@ -86,6 +86,7 @@ CImagePlugin::~CImagePlugin()
 	delete iObjectJobQueueManager;
 	delete iMdsUtils;
 	delete iImageDocument;
+	iIndexerUtil->UnMountAllDrivesL(_L(MEDIAGENERICAPPCLASS));
 	delete iIndexerUtil;
 	delete iMMcMonitor;
 	delete iDBManager;
@@ -231,7 +232,7 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                 CPIXLOGSTRING2("CImagePlugin::HandleMdeItemL(): Error %d in adding.", err);
                 }
             }
-        else if (aActionType == ECPixUpdateAction)
+        else
             {
             //If DocID for e.g \image\something.jpeg itself changes the we have to compare
             //existing URI with new one and Remove that first and Update to avoid 

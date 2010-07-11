@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/xml">
-        <file alias="searchstateprovider.docml">searchstateprovider.docml</file>
+        <file alias="searchstateprovider.docml">searchstateprovider.docml.bin</file>
         <file alias="delimeterscreen.docml">delimeterscreen.docml</file>
     </qresource>
 </RCC>

@@ -221,18 +221,15 @@ CSearchDocument* CCPIXMediaAudioDoc::GetCpixDocumentL(const CMdEObject& aObject,
     CMdEPropertyDef& sizePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KSizeProperty);
     if(aObject.Property( sizePropDef, property )!= KErrNotFound)
        {
-       //Add field to document
-       if( property->Def().PropertyType() == EPropertyUint32 )
-           {
-           CMdEUint32Property& sizeProperty = static_cast < CMdEUint32Property& > (*property );
-           TBuf<32> buf;
-           buf.Format(_L("%u"), sizeProperty.Value());
-           AddFiledtoDocumentL(*index_item,
-                           MdeConstants::Object::KSizeProperty,
-                           buf,
-                           CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-           AddToFieldExcerptL(buf);
-           }
+       //Add field to document       
+       CMdEUint32Property& sizeProperty = static_cast < CMdEUint32Property& > (*property );
+       TBuf<32> buf;
+       buf.Format(_L("%u"), sizeProperty.Value());
+       AddFiledtoDocumentL(*index_item,
+                       MdeConstants::Object::KSizeProperty,
+                       buf,
+                       CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+       AddToFieldExcerptL(buf);       
        }
     
     //Get legal property
@@ -251,94 +248,83 @@ CSearchDocument* CCPIXMediaAudioDoc::GetCpixDocumentL(const CMdEObject& aObject,
     if(aObject.Property( trackPropDef, property ) != KErrNotFound)
        {
        //Add field to document       
-       if( property->Def().PropertyType() == EPropertyUint16 )
-           {
-           CMdEUint16Property& trackProperty = static_cast < CMdEUint16Property& > (*property );               
-           TBuf<32> buf;
-           buf.Format(_L("%d"), trackProperty.Value());
-           AddFiledtoDocumentL(*index_item,
-                              MdeConstants::MediaObject::KTrackProperty,
-                              buf);
-           }       
+       CMdEUint16Property& trackProperty = static_cast < CMdEUint16Property& > (*property );               
+       TBuf<32> buf;
+       buf.Format(_L("%d"), trackProperty.Value());
+       AddFiledtoDocumentL(*index_item,
+                          MdeConstants::MediaObject::KTrackProperty,
+                          buf);
+       
        }
     // Capturedate property
     CMdEPropertyDef& captureDatePropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KCaptureDateProperty);
     if(aObject.Property( captureDatePropDef, property ) != KErrNotFound)
       {
-      //Add field to document
-      if(EPropertyTime == property->Def().PropertyType())
-          {
-          CMdETimeProperty& timeProperty = static_cast < CMdETimeProperty& > (*property);
-          TDateTime time = timeProperty.Value().DateTime();
-          TBuf<32> buf;
-          buf.Format( KFormatDateTime, time.Year(), 
-                                       time.Month() + 1, 
-                                       time.Day() + 1, 
-                                       time.Hour(), 
-                                       time.Minute());
-          
-          AddFiledtoDocumentL(*index_item,
-                             MdeConstants::MediaObject::KCaptureDateProperty,
-                             buf,
-                             CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-          
-          //Format for excerpt field
-          buf.Format( KExcerptFormat, time.Year(), 
-                                     time.Month() + 1, 
-                                     time.Day() + 1, 
-                                     time.Hour(), 
-                                     time.Minute());
-          AddToFieldExcerptL(buf);
-          }
+      //Add field to document      
+      CMdETimeProperty& timeProperty = static_cast < CMdETimeProperty& > (*property);
+      TDateTime time = timeProperty.Value().DateTime();
+      TBuf<32> buf;
+      buf.Format( KFormatDateTime, time.Year(), 
+                                   time.Month() + 1, 
+                                   time.Day() + 1, 
+                                   time.Hour(), 
+                                   time.Minute());
+      
+      AddFiledtoDocumentL(*index_item,
+                         MdeConstants::MediaObject::KCaptureDateProperty,
+                         buf,
+                         CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+      
+      //Format for excerpt field
+      buf.Format( KExcerptFormat, time.Year(), 
+                                 time.Month() + 1, 
+                                 time.Day() + 1, 
+                                 time.Hour(), 
+                                 time.Minute());
+      AddToFieldExcerptL(buf);         
       }
     //Get LastModifiedDate property
     CMdEPropertyDef& dateTimePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KLastModifiedDateProperty);
     if(aObject.Property( dateTimePropDef, property ) != KErrNotFound)
       {
-      //Add field to document
-      if(EPropertyTime == property->Def().PropertyType())
-          {
-          CMdETimeProperty& timeProperty = static_cast < CMdETimeProperty& > (*property);
-          TDateTime time = timeProperty.Value().DateTime();
-          TBuf<32> buf;
-          buf.Format( KFormatDateTime, time.Year(),
-                                       time.Month() + 1,
-                                       time.Day() + 1,
-                                       time.Hour(),
-                                       time.Minute());
-          
-          AddFiledtoDocumentL(*index_item,
-                             MdeConstants::Object::KLastModifiedDateProperty,
-                             buf,
-                             CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-          //Format for excerpt field
-          buf.Format( KExcerptFormat, time.Year(), 
-                                   time.Month() + 1, 
-                                   time.Day() + 1, 
-                                   time.Hour(), 
+      //Add field to document      
+      CMdETimeProperty& timeProperty = static_cast < CMdETimeProperty& > (*property);
+      TDateTime time = timeProperty.Value().DateTime();
+      TBuf<32> buf;
+      buf.Format( KFormatDateTime, time.Year(),
+                                   time.Month() + 1,
+                                   time.Day() + 1,
+                                   time.Hour(),
                                    time.Minute());
-          AddToFieldExcerptL(buf);
-          }
+      
+      AddFiledtoDocumentL(*index_item,
+                         MdeConstants::Object::KLastModifiedDateProperty,
+                         buf,
+                         CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+      //Format for excerpt field
+      buf.Format( KExcerptFormat, time.Year(), 
+                               time.Month() + 1, 
+                               time.Day() + 1, 
+                               time.Hour(), 
+                               time.Minute());
+      AddToFieldExcerptL(buf);
       }
     //Get duration property
     CMdEPropertyDef& durationPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KDurationProperty );
     if(aObject.Property( durationPropDef, property ) != KErrNotFound)
        {        
-       //Add field to document
-       if( property->Def().PropertyType() == EPropertyReal32 )
-           {
-           CMdEReal32Property& durationProperty = static_cast < CMdEReal32Property& > (*property );               
-           TBuf<32> buf;
-           buf.Format(_L("%f"), durationProperty.Value());
-           AddFiledtoDocumentL(*index_item,
-                          MdeConstants::MediaObject::KDurationProperty,
-                          buf );
-           }       
+       //Add field to document       
+       CMdEReal32Property& durationProperty = static_cast < CMdEReal32Property& > (*property );               
+       TBuf<32> buf;
+       buf.Format(_L("%f"), durationProperty.Value());
+       AddFiledtoDocumentL(*index_item,
+                      MdeConstants::MediaObject::KDurationProperty,
+                      buf );
+       
        }
-    if( iExcerpt )
-        {
-        index_item->AddExcerptL(*iExcerpt);
-        }
+    
+    index_item->AddExcerptL(*iExcerpt);
+
     CPIXLOGSTRING("END CCPIXMediaAudioDoc::GetCpixDocumentL");
     OstTraceFunctionExit0( CCPIXMEDIAAUDIODOC_GETCPIXDOCUMENTL_EXIT );
     return index_item;

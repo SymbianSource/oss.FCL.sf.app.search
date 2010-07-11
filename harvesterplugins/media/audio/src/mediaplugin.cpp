@@ -88,6 +88,7 @@ CAudioPlugin::~CAudioPlugin()
 	delete iObjectJobQueueManager;
 	delete iMdsUtils;
 	delete iAudioDocument;
+	iIndexerUtil->UnMountAllDrivesL(_L(MEDIAGENERICAPPCLASS));
 	delete iIndexerUtil;
 	delete iMMcMonitor;
 	delete iDBManager;
@@ -235,7 +236,7 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                 CPIXLOGSTRING2("CAudioPlugin::HandleMdeItemL(): Error %d in adding.", err);
                 }
             }
-        else if (aActionType == ECPixUpdateAction)
+        else
             {
             //If DocID for e.g \music\something.mp3 itself changes the we have to compare
             //existing URI with new one and Remove that first and Update to avoid 

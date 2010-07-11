@@ -22,5 +22,7 @@ SUBDIRS = isproviderdbmanager \
 CONFIG += ordered
 
 symbian: {	
-		BLD_INF_RULES.prj_exports += "rom/issearch.iby CORE_APP_LAYER_IBY_EXPORT_PATH(issearch.iby)"		
+		BLD_INF_RULES.prj_exports += "rom/issearch.iby CORE_APP_LAYER_IBY_EXPORT_PATH(issearch.iby)"
+		BLD_INF_RULES.prj_exports += "data/providerdatabase.sq /epoc32/data/z/private/20022F35/providerdatabase.sq"
+				
 	 }

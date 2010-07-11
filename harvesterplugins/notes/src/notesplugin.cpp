@@ -346,11 +346,11 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 		index_item->AddFieldL(KNpdMemo, entry->DescriptionL());
 		// Add Date fields
 		TBuf<30> dateString;
-		TDateTime datetime = entry->EndTimeL().TimeUtcL().DateTime();		
+		TDateTime datetime = entry->EndTimeL().TimeLocalL().DateTime();		
 		dateString.Format( KNotesTimeFormat, datetime.Year(),
                                      TInt(datetime.Month()+ 1),
                                      datetime.Day() + 1,
-                                     datetime.Hour()+ 1,
+                                     datetime.Hour(),
                                      datetime.Minute());
 		 
 		index_item->AddFieldL(KNpdUpdateTime, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);

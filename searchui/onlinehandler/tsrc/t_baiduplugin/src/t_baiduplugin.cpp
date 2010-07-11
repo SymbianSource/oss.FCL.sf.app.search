@@ -77,7 +77,7 @@ void baiduplugin::activatePlugin(const QString &searchQuery)
     popup->setHeadingWidget(label);
     HbAction * action = new HbAction(hbTrId("Back"), popup);
     connect(action, SIGNAL(triggered()), this, SLOT(BackEvent()));
-    popup->setPrimaryAction(action);
+    popup->addAction(action);
     popup->show();
 #else
     QString url("http://www.baidu.com/s?wd=");

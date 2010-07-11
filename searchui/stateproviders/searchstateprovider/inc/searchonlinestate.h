@@ -154,6 +154,11 @@ signals:
      */
     void onlineSearchQuery(QString);
 
+    /**
+     * Signalled when UI is ready on online state        
+     */
+    void applicationReady();
+
 private:
     HbMainWindow* mMainWindow;
     /**

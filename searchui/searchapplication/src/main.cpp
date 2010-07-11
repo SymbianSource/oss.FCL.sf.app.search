@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     QTranslator translator;
     QString lang = QLocale::system().name();
     QString path = "Z:/resource/qt/translations/";
-    translator.load("searchsw_" + lang, path);
+    translator.load("search_" + lang, path);
     app.installTranslator(&translator);
 
     QTranslator commonTranslator;

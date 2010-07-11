@@ -170,75 +170,66 @@ CSearchDocument* CCPIXMediaImageDoc::GetCpixDocumentL(const CMdEObject& aObject,
     CMdEPropertyDef& sizePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KSizeProperty);
     if(aObject.Property( sizePropDef, property )!= KErrNotFound)
        {
-       //Add field to document
-       if( property->Def().PropertyType() == EPropertyUint32 )
-           {
-           CMdEUint32Property& sizeProperty = static_cast < CMdEUint32Property& > (*property );
-           TBuf<32> buf;
-           buf.Format(_L("%u"), sizeProperty.Value());
-           AddFiledtoDocumentL(*index_item,
-                           MdeConstants::Object::KSizeProperty,
-                           buf,
-                           CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-           AddToFieldExcerptL(buf);
-           }
+       //Add field to document       
+       CMdEUint32Property& sizeProperty = static_cast < CMdEUint32Property& > (*property );
+       TBuf<32> buf;
+       buf.Format(_L("%u"), sizeProperty.Value());
+       AddFiledtoDocumentL(*index_item,
+                       MdeConstants::Object::KSizeProperty,
+                       buf,
+                       CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+       AddToFieldExcerptL(buf);
        }
     //Get DateTimeOrginal property
     CMdEPropertyDef& dateTimeOrgPropDef = aObjectDef.GetPropertyDefL(MdeConstants::Image::KDateTimeOriginalProperty);
     if(aObject.Property( dateTimeOrgPropDef, property ) != KErrNotFound)
       {
-      //Add field to document
-      if(EPropertyTime == property->Def().PropertyType())
-          {
-          CMdETimeProperty& timeProperty = static_cast < CMdETimeProperty& > (*property);
-          TDateTime time = timeProperty.Value().DateTime();
-          TBuf<32> buf;
-          buf.Format( KFormatDateTime, time.Year(),
-                                       time.Month() + 1,
-                                       time.Day() + 1,
-                                       time.Hour(),
-                                       time.Minute());
-          AddFiledtoDocumentL(*index_item,
-                             MdeConstants::Image::KDateTimeOriginalProperty,
-                             buf,
-                             CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-          //Format for excerpt field
-          buf.Format( KExcerptFormat, time.Year(), 
-                                   time.Month() + 1, 
-                                   time.Day() + 1, 
-                                   time.Hour(), 
+      //Add field to document      
+      CMdETimeProperty& timeProperty = static_cast < CMdETimeProperty& > (*property);
+      TDateTime time = timeProperty.Value().DateTime();
+      TBuf<32> buf;
+      buf.Format( KFormatDateTime, time.Year(),
+                                   time.Month() + 1,
+                                   time.Day() + 1,
+                                   time.Hour(),
                                    time.Minute());
-          AddToFieldExcerptL(buf);
-          }
+      AddFiledtoDocumentL(*index_item,
+                         MdeConstants::Image::KDateTimeOriginalProperty,
+                         buf,
+                         CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+      //Format for excerpt field
+      buf.Format( KExcerptFormat, time.Year(), 
+                               time.Month() + 1, 
+                               time.Day() + 1, 
+                               time.Hour(), 
+                               time.Minute());
+
       }
     //Get LastModifiedDate property
     CMdEPropertyDef& dateTimePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KLastModifiedDateProperty);
     if(aObject.Property( dateTimePropDef, property ) != KErrNotFound)
       {
       //Add field to document
-      if(EPropertyTime == property->Def().PropertyType())
-          {
-          CMdETimeProperty& timeProperty = static_cast < CMdETimeProperty& > (*property);
-          TDateTime time = timeProperty.Value().DateTime();
-          TBuf<32> buf;
-          buf.Format( KFormatDateTime, time.Year(),
-                                       time.Month() + 1,
-                                       time.Day() + 1,
-                                       time.Hour(),
-                                       time.Minute());
-          
-          AddFiledtoDocumentL(*index_item,
-                             MdeConstants::Object::KLastModifiedDateProperty,
-                             buf,
-                             CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-          //Format for excerpt field
-          buf.Format( KExcerptFormat, time.Year(), 
-                                   time.Month() + 1, 
-                                   time.Day() + 1, 
-                                   time.Hour(), 
+      CMdETimeProperty& timeProperty = static_cast < CMdETimeProperty& > (*property);
+      TDateTime time = timeProperty.Value().DateTime();
+      TBuf<32> buf;
+      buf.Format( KFormatDateTime, time.Year(),
+                                   time.Month() + 1,
+                                   time.Day() + 1,
+                                   time.Hour(),
                                    time.Minute());
-          AddToFieldExcerptL(buf);
-          }
+      
+      AddFiledtoDocumentL(*index_item,
+                         MdeConstants::Object::KLastModifiedDateProperty,
+                         buf,
+                         CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+      //Format for excerpt field
+      buf.Format( KExcerptFormat, time.Year(), 
+                               time.Month() + 1, 
+                               time.Day() + 1, 
+                               time.Hour(), 
+                               time.Minute());
+      AddToFieldExcerptL(buf);
       }
     if( iExcerpt )
         {

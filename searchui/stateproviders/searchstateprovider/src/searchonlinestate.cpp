@@ -271,4 +271,5 @@ void SearchOnlineState::slotviewReady()
                 }
             }
         }//PERF_APP_LAUNCH_END("SearchAppplication View is ready");
+    emit applicationReady();
     }

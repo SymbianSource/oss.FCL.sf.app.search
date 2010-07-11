@@ -36,6 +36,9 @@ win32 {
     LIBS += -L$$PWD/../../../bin/debug
 }
 
+
+DOCML += resources/searchstateprovider.docml
+
 LIBS += -lsearchindevicehandler
 LIBS += -lxqservice 
 LIBS += -lqcpixsearchclient

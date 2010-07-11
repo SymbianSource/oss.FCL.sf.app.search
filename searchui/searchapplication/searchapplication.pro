@@ -37,7 +37,7 @@ CONFIG += hb
 CONFIG += console
 CONFIG += hb console mobility 
 
-TRANSLATIONS += searchsw.ts 
+TRANSLATIONS += search.ts 
 nft:DEFINES += NFT
 
 DEPENDPATH += . \
