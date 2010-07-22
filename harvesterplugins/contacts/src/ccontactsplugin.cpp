@@ -39,7 +39,8 @@ const TInt KHarvestingDelay = 2000;
 const TInt KContactsPerRunL = 1;
 
 _LIT(KExcerptDelimiter, " ");
-
+_LIT(KTimeFormat, "%D%N%Y%1 %2 %3"); //Date, Month name and Year format
+ 
 // -----------------------------------------------------------------------------
 // CContactsPlugin::NewL()
 // -----------------------------------------------------------------------------
@@ -77,16 +78,15 @@ CContactsPlugin::CContactsPlugin()
 //
 CContactsPlugin::~CContactsPlugin()
 	{
-    if (iAsynchronizer)
-        iAsynchronizer->CancelCallback();
+    if( iAsynchronizer ) iAsynchronizer->CancelCallback(); 
 	delete iAsynchronizer;
 	iContacts = NULL;
 	delete iChangeNotifier;
 	delete iDatabase;
 	delete iIndexer;
-	
-	if (iExcerpt)
-		delete iExcerpt;
+	//delete NULL is safe - so no need to test nullity of iExceprt (which routinely
+	//keeps getting deleted in the plugin).
+	delete iExcerpt;
 	}
 	
 // -----------------------------------------------------------------------------
@@ -150,6 +150,7 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 		{
 		case EContactDbObserverEventContactChanged:
 		case EContactDbObserverEventGroupChanged:
+		case EContactDbObserverEventOwnCardChanged:
 			OstTrace1( TRACE_NORMAL, DUP3_CCONTACTSPLUGIN_HANDLEDATABASEEVENTL, "CContactsPlugin::HandleDatabaseEventL;Monitored update id=%d", aEvent.iContactId );			
 			CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Monitored update id=%d.", aEvent.iContactId);
 #ifdef __PERFORMANCE_DATA
@@ -163,6 +164,7 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 
 		case EContactDbObserverEventContactDeleted:
 		case EContactDbObserverEventGroupDeleted:
+		case EContactDbObserverEventOwnCardDeleted:
 			OstTrace1( TRACE_NORMAL, CCONTACTSPLUGIN_HANDLEDATABASEEVENTL, "CContactsPlugin::HandleDatabaseEventL();Monitored delete id=%d", aEvent.iContactId );
 			CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Monitored delete id=%d.", aEvent.iContactId);
 #ifdef __PERFORMANCE_DATA
@@ -249,7 +251,7 @@ void CContactsPlugin::DelayedError(TInt aError)
 // PhoneNumber values), then the FieldNames of non-first values are appended a 
 // number.
 // ---------------------------------------------------------------------------
-void CContactsPlugin::AddFieldL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName)
+void CContactsPlugin::AddFieldL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName, const TInt aConfig)
 	{
 	HBufC* fieldName = HBufC::NewLC(aFieldName.Length() + 3); // +3 so can append variable 'i'.
 	TPtr fieldNamePtr = fieldName->Des();
@@ -264,13 +266,34 @@ void CContactsPlugin::AddFieldL(CSearchDocument& aDocument, CContactItemFieldSet
 			fieldNamePtr.AppendNum(i);
 			}
 		CContactItemField& additionalField = aFieldSet[findpos];
-		CContactTextField* fieldText = additionalField.TextStorage();
-		if (fieldText && fieldText->Text() != KNullDesC)
-	        aDocument.AddFieldL(fieldNamePtr, fieldText->Text(), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized);
+		if( additionalField.StorageType() == KStorageTypeDateTime)
+		    {
+            CContactDateField* fieldDate = additionalField.DateTimeStorage();
+            if (fieldDate)
+                {
+                TBuf<30> dateString;
+                fieldDate->Time().FormatL(dateString, KTimeFormat);
+                aDocument.AddFieldL(fieldNamePtr, dateString, aConfig);
+                }
+            else
+                aDocument.AddFieldL(fieldNamePtr, KNullDesC, aConfig);
+		    }
 		else
-	        aDocument.AddFieldL(fieldNamePtr, KNullDesC, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized);
-		
-		findpos = aFieldSet.FindNext(aFieldId, findpos+1);
+		    {
+            CContactTextField* fieldText = additionalField.TextStorage();
+            if (fieldText && fieldText->Text() != KNullDesC && aFieldId != KUidContactFieldAnniversary)
+                aDocument.AddFieldL(fieldNamePtr, fieldText->Text(), aConfig);
+            else if (fieldText && aFieldId == KUidContactFieldAnniversary)
+                {
+                TBuf<30> dateString;
+                GetDateL(fieldText->Text(), dateString);
+                aDocument.AddFieldL(fieldNamePtr, dateString, aConfig);
+                }
+            else
+                aDocument.AddFieldL(fieldNamePtr, KNullDesC, aConfig);
+		    }
+            findpos = aFieldSet.FindNext(aFieldId, findpos+1);
+
 		}
 	CleanupStack::PopAndDestroy(fieldName);
 	}
@@ -280,7 +303,7 @@ void CContactsPlugin::AddFieldL(CSearchDocument& aDocument, CContactItemFieldSet
 // CContactsPlugin::AddToExcerptL
 // Adds more text to excerpt
 // ---------------------------------------------------------------------------
-void CContactsPlugin::AddToExcerptL(CSearchDocument& /*aDocument*/, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& /*aFieldName*/ )
+void CContactsPlugin::AddToExcerptL(CSearchDocument& /*aDocument*/, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& /*aFieldName*/)
 	{
 	// Find field
 	TInt findpos = aFieldSet.Find( aFieldId );
@@ -300,6 +323,17 @@ void CContactsPlugin::AddToExcerptL(CSearchDocument& /*aDocument*/, CContactItem
 		}
 	}
 
+// ---------------------------------------------------------------------------
+// Helper: Adds the field to the document AND to the exceprt field.
+// This function helps avoid calling two functions explicitly for most fields.
+// This function needs to be a member function as it has to call member functions.
+// Improvement: AddFieldL need to be a member function - can be refactored.
+// ---------------------------------------------------------------------------
+void CContactsPlugin::AddFieldToDocumentAndExcerptL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName, const TInt aConfig )
+    {
+    AddFieldL( aDocument, aFieldSet, aFieldId, aFieldName, aConfig );
+    AddToExcerptL( aDocument, aFieldSet, aFieldId, aFieldName );
+    }
 
 // ---------------------------------------------------------------------------
 // CContactsPlugin::CreateMessageIndexItemL
@@ -307,6 +341,8 @@ void CContactsPlugin::AddToExcerptL(CSearchDocument& /*aDocument*/, CContactItem
 //	    
 void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType aActionType )
     {
+    //indexer is created only when StartPlugin() is called. Don't create contact 
+    //if index is not ready. 
 	if (!iIndexer)
     	return;
     
@@ -333,52 +369,59 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 		    }
 		else//If the contact item is a regular contact.
 		    {
-            CContactItemFieldSet& fieldSet = contact->CardFields();
-            AddFieldL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldCompanyName, KContactsCompanyNameField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldAddress, KContactsAddressField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldNote, KContactsNoteField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldJobTitle, KContactsJobTitleField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldSecondName, KContactsSecondNameField ); 
-            
-            AddFieldL( *index_item, fieldSet, KUidContactFieldPrefixName, KContactsPrefixField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldSuffixName, KContactsSuffixField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldAdditionalName, KContactsAdditionalNameField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldUrl, KContactsUrlField );
-    
-            AddFieldL( *index_item, fieldSet, KUidContactFieldPostOffice, KContactsPostOfficeField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldExtendedAddress, KContactsExtendedAddressField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldLocality, KContactsLocalityField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldRegion, KContactsRegionField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldPostcode, KContactsPostcodeField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldCountry, KContactsCountryField );
-    
-            AddFieldL( *index_item, fieldSet, KUidContactFieldSIPID, KContactsSIPIDField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldSpouse, KContactsSpouseField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldChildren, KContactsChildrenField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldClass, KContactsClassField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldFax, KContactsFaxField );				
-            
-            AddFieldL( *index_item, fieldSet, KUidContactFieldGivenNamePronunciation, KContactsGivenNamePronunciationField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyNamePronunciation, KContactsFamilyNamePronunciationField );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldCompanyNamePronunciation, KContactsCompanyNamePronunciationField );
-            //left: Birthday; Anniversary (date kind of type), Picture, Logo..
-
             if (iExcerpt)
                 {
                 delete iExcerpt;
                 iExcerpt = NULL;
                 }
             iExcerpt = HBufC::NewL(2);
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldCompanyName, KContactsCompanyNameField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldLocality, KContactsLocalityField );
-            AddToExcerptL( *index_item, fieldSet, KUidContactFieldCountry, KContactsCountryField );
+            
+            CContactItemFieldSet& fieldSet = contact->CardFields();
+
+            //For contacts, all fields __except__ GivenName and FamilyName should be added to excerpt.
+            //See appclass-hierarchy.txt for details.
+            /* The order of fields in excerpt is as below. The order in this case
+             * is the order of fields shown when you 'Edit' the contact.
+             */
+            AddFieldL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
+            AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField:: EIndexFreeText );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSIPID, KContactsSIPIDField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldCompanyName, KContactsCompanyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldJobTitle, KContactsJobTitleField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldNote, KContactsNoteField );
+
+            /* The following fields are not displayed when 'Edit'-ing the contact.
+             * The order here is arbitrary.
+             */
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldAddress, KContactsAddressField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSecondName, KContactsSecondNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPrefixName, KContactsPrefixField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSuffixName, KContactsSuffixField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldAdditionalName, KContactsAdditionalNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldUrl, KContactsUrlField );
+    
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPostOffice, KContactsPostOfficeField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldExtendedAddress, KContactsExtendedAddressField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldLocality, KContactsLocalityField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldRegion, KContactsRegionField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPostcode, KContactsPostcodeField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldCountry, KContactsCountryField );
+    
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSpouse, KContactsSpouseField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldChildren, KContactsChildrenField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+            //AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldClass, KContactsClassField ); //sync field
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldFax, KContactsFaxField );
+            
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldAssistant, KContactAssistant, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldDepartmentName, KContactsDepartmentName, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+            
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldIMAddress, KContactIMAddress);
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldServiceProvider, KContactServiceProvider);
+            
+            AddFieldL( *index_item, fieldSet, KUidContactFieldBirthday, KContactBirthday);
+            AddFieldL( *index_item, fieldSet, KUidContactFieldAnniversary, KContactAnniversary);
             index_item->AddExcerptL(*iExcerpt);
             }
         
@@ -432,6 +475,31 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 			CPIXLOGSTRING2("CContactsPlugin::CreateContactIndexItemL(): Error %d in deleting.", err);
 			}			
 		}
+    }
+
+// ---------------------------------------------------------------------------
+// CContactsPlugin::GetDateL
+// ---------------------------------------------------------------------------
+//
+void CContactsPlugin::GetDateL(const TDesC& aTime, TDes& aDateString)
+    {
+    TTime time;
+    //aTime is of the form yyyy-mm-dd.
+    //aDateString is of the form dd Month(spelled out) Year.
+    //example: i/p: 2010-10-10; o/p: 10 October 2010.
+    if( aTime.Length() >= KDateFieldLength)
+        {
+        aDateString.Copy(aTime.Mid( KDayPosition, KDayLength ));
+        aDateString.Append(KDateSeparator);
+        aDateString.Append(aTime.Mid( KMonthPosition, KDayLength ));
+        aDateString.Append(KDateSeparator);
+        aDateString.Append(aTime.Mid( KYearPosition, KYearLength ));
+        TInt err = time.Parse(aDateString);
+        if ( err >= KErrNone)
+            {
+            time.FormatL(aDateString, KTimeFormat);
+            }
+        }
     }
 
 // ---------------------------------------------------------------------------

@@ -116,7 +116,7 @@ TBool CFilePlugin::IsFileTypeMedia(const TDesC& aExt)
                                 _S("awb"),_S("mid"), _S("midi"), _S("spmid"), _S("rng"), _S("mxmf"), _S("wav"),
                                 _S("au"), _S("nrt"), _S("mka"),_S("jp2"), _S("j2k"), _S("jpx"),
                                 _S("rm"), _S("rmvb"),_S("ota"), _S("wbmp"), _S("wmf"),_S("otb"),
-                                _S("rv"),  _S("mkv"), _S("ra"),_S("tif"), _S("tiff")};
+                                _S("rv"),  _S("mkv"), _S("asf"),_S("ra"),_S("tif"), _S("tiff")};
     
     const TInt count = sizeof( KMediaExt ) / sizeof( TText* );
     
@@ -630,7 +630,8 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
     if (pos > 0)
         {
         fileFoldername.Copy(aFilePath.Mid(pos+1));
-        index_item->AddFieldL(KNameField, fileFoldername);
+        index_item->AddFieldL(KNameField, fileFoldername, 
+                    CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
         }
     
     //check for the extension, for folders names store the extension field as NULL
@@ -640,7 +641,7 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
         if( file.ExtPresent())
             {
             TPtrC extension = file.Ext();
-            index_item->AddFieldL(KExtensionField, extension);
+            index_item->AddFieldL(KExtensionField, extension, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
             }
         index_item->AddFieldL(KMimeTypeField, KMimeTypeFile, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
        }
@@ -650,8 +651,9 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
         index_item->AddFieldL(KMimeTypeField, KMimeTypeFolder, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
         }   
     
+    //Only content to be added to exceprt field. See appclass-hierarchy.txt
     //Add excerpt field
-    index_item->AddExcerptL(aFilePath);
+    //index_item->AddExcerptL(aFilePath);
     
     CleanupStack::Pop(index_item);
     return index_item;

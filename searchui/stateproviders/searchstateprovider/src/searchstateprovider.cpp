@@ -19,6 +19,7 @@
 #include "searchprogressivestate.h"
 #include "searchinitstate.h"
 #include "searchsettingsstate.h"
+#include "searchonlinestate.h"
 
 #include <qstate.h>
 #include <qdebug.h>
@@ -31,6 +32,8 @@ const char wizardProgressiveStateUri[] =
         "search.nokia.com/state/wizardprogressivestate";
 const char wizardSettingStateUri[] =
         "search.nokia.com/state/wizardsettingstate";
+const char wizardOnlineStateUri[] =
+        "search.nokia.com/state/wizardonlinestate";
 
 // ---------------------------------------------------------------------------
 // searchStateProvider::searchStateProvider()
@@ -59,6 +62,10 @@ QState* SearchStateProvider::createState(const QString& uri)
         {
         return new SearchInitState();
         }
+    else if (uri == wizardOnlineStateUri)
+            {
+            return new SearchOnlineState();
+            }
 
     qDebug() << "SEARCH: No state found for mUri: " << uri;
     return NULL;

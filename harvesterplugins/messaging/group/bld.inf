@@ -17,3 +17,4 @@
 
 PRJ_MMPFILES
 #include "../smsmms/group/bld.inf"
+#include "../email/group/bld.inf"

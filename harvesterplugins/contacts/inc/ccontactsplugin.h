@@ -25,6 +25,7 @@
 #include <cindexingplugin.h>
 #include <common.h>
 #include "delayedcallback.h"
+#include "cdocumentfield.h"
 
 class CSearchDocument;
 class CContactItemFieldSet;
@@ -53,14 +54,23 @@ _LIT(KContactsCountryField, "Country");
 _LIT(KContactsSIPIDField, "SIPID");
 _LIT(KContactsSpouseField, "Spouse");
 _LIT(KContactsChildrenField, "Children");
-_LIT(KContactsClassField, "Class");
+//_LIT(KContactsClassField, "Class");
 _LIT(KContactsPrefixField, "Prefix");
 _LIT(KContactsAdditionalNameField, "AdditionalName");
 _LIT(KContactsFaxField, "Fax");
-_LIT(KContactsGivenNamePronunciationField, "GivenNamePronunciation");
-_LIT(KContactsFamilyNamePronunciationField, "FamilyNamePronunciation");
-_LIT(KContactsCompanyNamePronunciationField, "CompanyNamePronunciation");
-
+_LIT(KContactsDepartmentName, "Departmant");
+_LIT(KContactIMAddress, "IMAddress");
+_LIT(KContactServiceProvider, "ServiceProvider");
+_LIT(KContactAssistant, "Assistant");
+_LIT(KContactAnniversary, "Anniversary");
+_LIT(KContactBirthday, "Birthday");
+_LIT(KDateSeparator, "-");
+const TInt KDateFieldLength = 10;
+const TInt KDayPosition = 8;
+const TInt KMonthPosition = 5;
+const TInt KYearPosition = 0;
+const TInt KDayLength = 2;
+const TInt KYearLength = 4;
 
 class CContactsPlugin : public CIndexingPlugin, public MContactDbObserver, public MDelayedCallbackObserver
 {
@@ -93,13 +103,22 @@ protected:
 	/**
 	 *  Adds information field (if available)
 	 */
-	void AddFieldL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName );
-
+	void AddFieldL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName, const TInt aConfig = CDocumentField::EStoreYes | CDocumentField::EIndexTokenized);
+	
+	/**
+     *  Gets the date from anniversary text field
+     */	
+	void GetDateL(const TDesC& aTime, TDes& aDateString);
 	/**
 	 *  Adds to excerpt
 	 */
 	void AddToExcerptL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName );
 
+	/**
+	 *  Helper function: adds information field to the document and to the excerpt field(if available)
+	 */
+	void AddFieldToDocumentAndExcerptL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName, const TInt aConfig = CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+	
 	/**
 	 * Creates the actual contact book index item
 	 */
@@ -123,6 +142,11 @@ private:
 	// CPix database 
     CCPixIndexer* iIndexer;
 
+//for helping with testing.
+#ifdef HARVESTERPLUGINTESTER_FRIEND
+    friend class CHarvesterPluginTester;
+#endif
+    
 #ifdef __PERFORMANCE_DATA
     TTime iStartTime;
     TTime iCompleteTime;

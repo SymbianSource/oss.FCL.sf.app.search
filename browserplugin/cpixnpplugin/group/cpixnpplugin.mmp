@@ -38,8 +38,6 @@ END
 APP_LAYER_SYSTEMINCLUDE
 SYSTEMINCLUDE   /epoc32/include/libc
 SYSTEMINCLUDE   /epoc32/include/ecom
-SYSTEMINCLUDE   /epoc32/include/CPixSearch
-//SYSTEMINCLUDE   /epoc32/include/domain/middleware
 
 USERINCLUDE ../inc
 USERINCLUDE ../inc/idl

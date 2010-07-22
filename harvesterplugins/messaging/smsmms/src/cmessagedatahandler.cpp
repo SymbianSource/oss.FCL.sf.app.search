@@ -12,7 +12,7 @@
 * Contributors:
 *
 * Description:  Harvester message plugin
- *
+*
 */
 
 
@@ -42,7 +42,7 @@
 
 
 /** Number of symbols from MsgBody taken to excerpt */
-const TInt KMsgBodyExcerptSymbols = 90;
+const TInt KMsgBodyExcerptSymbols = 160;
 
 // For Ucs2 detection
 const TInt KUtf8BomLength = 3;
@@ -66,7 +66,8 @@ _LIT(KFromField, FROM_FIELD);
 _LIT(KFolderField, FOLDER_FIELD);
 _LIT(KBodyField, BODY_FIELD);
 _LIT(KSubjectField, SUBJECT_FIELD);
-
+_LIT(KAttachmentField, ATTACHMENT_FIELD);
+_LIT(KValueAttachment, "Attachment");
 // ============================ MEMBER FUNCTIONS ===============================
 
 // ---------------------------------------------------------------------------
@@ -197,16 +198,7 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 		if (iMessagePlugin.GetIndexer())
 			{
 			TRAPD(err, iMessagePlugin.GetIndexer()->DeleteL(docid_str));
-			if (err == KErrNone)
-				{
-				OstTrace0( TRACE_NORMAL, DUP1_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): Document deleted." );
-				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): Document deleted.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP2_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in deleting the doc=%d", err );
-				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in deleting the document.", err);				
-				}
+			OstTrace1( TRACE_NORMAL, DUP7_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL():DeleteL;err=%d", err );			
 			}
 		return;
 		}
@@ -223,52 +215,17 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 		case EMsgTypeSms:
 			{
 			TRAPD(err, index_item = CreateSmsDocumentL(aMsvId, aFolderId));
-			if (err == KErrNone)
-				{
-				OstTrace0( TRACE_NORMAL, DUP3_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): SMS document created." );
-				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): SMS document created.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP4_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in creating the sms doc=%d", err );
-				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in creating SMS document.", err);
-				}
+			OstTrace1( TRACE_NORMAL, DUP1_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): SMS document creation;err=%d", err );
 			break;
 			}
 		case EMsgTypeMms:
 			{
 			TRAPD(err, index_item = CreateMmsDocumentL(aMsvId, aFolderId));
-			if (err == KErrNone)
-				{
-				OstTrace0( TRACE_NORMAL, DUP5_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): MMS document created." );
-				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): MMS document created.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP6_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in creating the mms doc=%d", err );
-				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in creating MMS document.", err);
-				}
-			break;
-			}
-		case EMsgTypeEmailPop3:
-		case EMsgTypeEmailImap4:
-		case EMsgTypeEmailSmtp:
-			{
-			TRAPD(err, index_item = CreateEmailDocumentL(aMsvId, aFolderId));
-			if (err == KErrNone)
-				{
-				OstTrace0( TRACE_NORMAL, DUP7_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): E-mail document created." );
-				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): E-mail document created.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP8_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in ccreating the email doc=%d", err );
-				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in creating e-mail document.", err);
-				}
+			OstTrace1( TRACE_NORMAL, DUP2_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): MMS document created;err=%d", err );
 			break;
 			}
 		case EMsgTypeInvalid:
-		// For EMsgTypeDraft there is no way to tell if it was a SMS, MMS or email,
+		// For EMsgTypeDraft there is no way to tell if it was a SMS, MMS ,
 		// so don't create index_item.
 		case EMsgTypeDraft:
 		default:
@@ -301,30 +258,12 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 		if (aActionType == ECPixAddAction)
 			{
 			TRAPD(err, iMessagePlugin.GetIndexer()->AddL(*index_item));
-			if (err == KErrNone)
-				{
-				OstTrace0( TRACE_NORMAL, DUP10_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): Added." );
-				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): Added.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP11_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in Adding=%d", err );
-				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in adding.", err);
-				}
+			OstTrace1( TRACE_NORMAL, DUP3_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): Added;err=%d", err );
 			}
 		else if (aActionType == ECPixUpdateAction)
 			{
 			TRAPD(err, iMessagePlugin.GetIndexer()->UpdateL(*index_item));
-			if (err == KErrNone)
-				{
-				OstTrace0( TRACE_NORMAL, DUP12_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): Updated." );
-				CPIXLOGSTRING("CMessageDataHandler::CreateMessageIndexItemL(): Updated.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP13_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;Error in Updating=%d", err );
-				CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): Error %d in updating.", err);
-				}
+			OstTrace1( TRACE_NORMAL, DUP4_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL(): Updated;err=%d", err );
 			}
 		}
 	else
@@ -358,7 +297,8 @@ CSearchDocument* CMessageDataHandler::CreateSmsDocumentL(const TMsvId& aMsvId, c
 	TMsvId service = 0;
 	iMsvSession.GetEntry(aMsvId, service, entry);
 	HBufC *fromNameOrNumberBuf = entry.iDetails.AllocLC();
-	index_item->AddFieldL(KFromField, *fromNameOrNumberBuf);
+	index_item->AddFieldL(KFromField, *fromNameOrNumberBuf,
+	        CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
 
 	// Add the recipients as content items
 	TBuf<64> to_field;
@@ -370,7 +310,8 @@ CSearchDocument* CMessageDataHandler::CreateSmsDocumentL(const TMsvId& aMsvId, c
 		to_field = KToField;
 		if (i>0)
 			to_field.AppendNum(i);
-		index_item->AddFieldL(to_field, recipientArray.MdcaPoint(i));
+		index_item->AddFieldL(to_field, recipientArray.MdcaPoint(i),
+		        CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
 		}
 
 	// Add the body text as a content item
@@ -436,6 +377,11 @@ CSearchDocument* CMessageDataHandler::CreateMmsDocumentL(const TMsvId& aMsvId, c
     CMsvStore* msvStore = iMmsMtm->Entry().ReadStoreL();
 	CleanupStack::PushL( msvStore );
 	MMsvAttachmentManager& attManager = msvStore->AttachmentManagerL();
+	//Add attachment value field
+	TInt count = attManager.AttachmentCount();
+	if (count > 0)
+	   index_item->AddFieldL(KAttachmentField, KValueAttachment);	
+	
 	for ( TInt i = 0; i < attManager.AttachmentCount(); i++ )
 	    {
 		CMsvAttachment* attInfo = attManager.GetAttachmentInfoL(i);
@@ -532,159 +478,75 @@ CSearchDocument* CMessageDataHandler::CreateMmsDocumentL(const TMsvId& aMsvId, c
     CleanupStack::Pop(index_item);
     return index_item;
     }
-
-// ---------------------------------------------------------------------------
-// CMessageDataHandler::CreateEmailDocumentL
-// ---------------------------------------------------------------------------
-//
-CSearchDocument* CMessageDataHandler::CreateEmailDocumentL(const TMsvId& aMsvId, const TMsvId& aFolderId)
-	{
-	// creating CSearchDocument object with unique ID for this application
-	TBuf<KMaxDocId> docid_str;
-	docid_str.AppendNum(aMsvId);
-	CSearchDocument* index_item = CSearchDocument::NewLC(docid_str, _L(EMAILAPPCLASS));
-
-	// Open the message entry
-	CMsvEntry* message_entry = CMsvEntry::NewL(iMsvSession, aMsvId, TMsvSelectionOrdering());
-	CleanupStack::PushL(message_entry);
-	
-	// Get body
-	CParaFormatLayer* paraFormatLayer = CParaFormatLayer::NewL();
-	CleanupStack::PushL(paraFormatLayer);
-	CCharFormatLayer* charFormatLayer = CCharFormatLayer::NewL();
-	CleanupStack::PushL(charFormatLayer);
-	CRichText* richtext = CRichText::NewL(paraFormatLayer, charFormatLayer);
-	CleanupStack::PushL(richtext);
-	CImEmailMessage* message_body = CImEmailMessage::NewLC(*message_entry);
-	message_body->GetBodyTextL(aMsvId, CImEmailMessage::EThisMessageOnly, *richtext, *paraFormatLayer, *charFormatLayer);
-	
-	// Read the message header
-	CMsvStore* message_store = message_entry->ReadStoreL();
-	CleanupStack::PushL(message_store);
-	CImHeader* header = CImHeader::NewLC();
-	header->RestoreL(*message_store);
-	
-	// Add from field
-	index_item->AddFieldL(KFromField, header->From());
-
-	// Add the ToRecipients as content items
-	TBuf<64> to_field;
-	for (TInt i = 0; i < header->ToRecipients().MdcaCount(); i++)
-		{
-		to_field = KToField;
-		if (i>0)
-			to_field.AppendNum(i);
-		index_item->AddFieldL(to_field, header->ToRecipients().MdcaPoint(i));
-		}
-
-	// Add the CcRecipients as content items
-	TBuf<64> cc_field;
-	for (TInt i = 0; i < header->CcRecipients().MdcaCount(); i++)
-		{
-		cc_field = KCcField;
-		if (i>0)
-			cc_field.AppendNum(i);
-		index_item->AddFieldL(cc_field, header->CcRecipients().MdcaPoint(i));
-		}
-
-	// Add the BccRecipients as content items
-	TBuf<64> bcc_field;
-	for (TInt i = 0; i < header->BccRecipients().MdcaCount(); i++)
-		{
-		bcc_field = KBccField;
-		if (i>0)
-			bcc_field.AppendNum(i);
-		index_item->AddFieldL(bcc_field, header->BccRecipients().MdcaPoint(i));
-		}
-
-	const TInt richTxtLen = (richtext->DocumentLength() < KMaxDocumentSize) ? richtext->DocumentLength() : KMaxDocumentSize;
-	HBufC* body_text = richtext->Read(0).Left(richTxtLen).AllocLC();
-
-	// Add subject
-	TPtrC subject(header->Subject());
-	index_item->AddFieldL(KSubjectField, subject);
-	
-	// Add message body
-	index_item->AddFieldL(KBodyField, *body_text);
-	
-	// Add excerpt
-    HBufC* excerpt = CreateExcerptLC(header->From(), header->ToRecipients(), subject, *body_text, aFolderId);
-    index_item->AddExcerptL(*excerpt);
-	CleanupStack::PopAndDestroy(excerpt);
-
-	// Cleanup everything last item message entry
-	CleanupStack::PopAndDestroy(8, message_entry);
-
-	// Pop the item
-	CleanupStack::Pop(index_item);
-	return index_item;	
-	}
-
 // ---------------------------------------------------------------------------
 // CMessageDataHandler::CreateExcerptLC
 // ---------------------------------------------------------------------------
 //
 HBufC* CMessageDataHandler::CreateExcerptLC(const TDesC& aFromAddress,
 											const CDesCArray& aRecipientArray,
-											const TDesC& aSubject,
+											const TDesC& /*aSubject*/,
 											const TDesC& aBodyText,
 											const TMsvId& aFolderId)
 	{
+    //Note:Only From/To (as appropriate): and Body: fields to be added to excerpt for now. 
+    //See appclass-hierarchy.txt for details.  
+    
 	_LIT(KEllipsis, "...");
 	_LIT(KSpace, " ");
 	TInt excerptLength = KMsgBodyExcerptSymbols + KEllipsis().Length(); 
 
-	TMsvEntry entry;
-	TMsvId service = 0;
-	iMsvSession.GetEntry(aFolderId, service, entry);
-	HBufC *folder_str = entry.iDetails.AllocLC();
+	//Not removing commented out code as this may come back into use in near future.
+//	TMsvEntry entry;
+//	TMsvId service = 0;
+//	iMsvSession.GetEntry(aFolderId, service, entry);
+//	HBufC *folder_str = entry.iDetails.AllocLC();
+//
+//	excerptLength += folder_str->Length();
+//	excerptLength += KSpace().Length();
 
-	excerptLength += folder_str->Length();
-	excerptLength += KSpace().Length();
-
-	if ((aFromAddress.Length() > 0) && (aFolderId == KMsvGlobalInBoxIndexEntryIdValue))
-		{
-		excerptLength += aFromAddress.Length();
-		excerptLength += KSpace().Length();
-		}
-	if ((aRecipientArray.MdcaCount() > 0) && (aFolderId != KMsvGlobalInBoxIndexEntryIdValue))
-		{
-		excerptLength += aRecipientArray.MdcaPoint(0).Length();
-		excerptLength += KSpace().Length(); 
-		}
-	if (aSubject.Length() > 0)
-		{
-		excerptLength += aSubject.Length();
-		excerptLength += KSpace().Length();
-		}
+	if( aFolderId == KMsvGlobalInBoxIndexEntryIdValue && aFromAddress.Length() > 0 )
+	    {
+        excerptLength += aFromAddress.Length();
+        excerptLength += KSpace().Length();
+	    }
+	else if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue && aRecipientArray.MdcaCount() > 0 )
+	    {
+        excerptLength += aRecipientArray.MdcaPoint(0).Length();
+        excerptLength += KSpace().Length(); 
+	    }
 
 	HBufC* excerpt = HBufC::NewL(excerptLength);
 	TPtr excerptPtr = excerpt->Des();
 
-	excerptPtr.Copy(*folder_str);
-	excerptPtr.Append(KSpace);
+	//Not removing commented out code as this may come back into use in near future.
+//	excerptPtr.Copy(*folder_str);
+//	excerptPtr.Append(KSpace);
 	
-	if ((aFromAddress.Length() > 0) && (aFolderId == KMsvGlobalInBoxIndexEntryIdValue))
-		{
-		excerptPtr.Append(aFromAddress);
-		excerptPtr.Append(KSpace);
-		}
-	if ((aRecipientArray.MdcaCount() > 0) && (aFolderId != KMsvGlobalInBoxIndexEntryIdValue))
-		{
-		excerptPtr.Append(aRecipientArray.MdcaPoint(0));
-		excerptPtr.Append(KSpace);
-		}
-	if (aSubject.Length() > 0)
-		{
-		excerptPtr.Append(aSubject);
-		excerptPtr.Append(KSpace);
-		}
+	//For inbox items, From: is present while for sent items To: is present.
+    if ((aFromAddress.Length() > 0) && (aFolderId == KMsvGlobalInBoxIndexEntryIdValue))
+        {
+        excerptPtr.Append(aFromAddress);
+        excerptPtr.Append(KSpace);
+        }
+    else if ((aRecipientArray.MdcaCount() > 0) && (aFolderId != KMsvGlobalInBoxIndexEntryIdValue))
+        {
+        excerptPtr.Append(aRecipientArray.MdcaPoint(0));
+        excerptPtr.Append(KSpace);
+        }
+
+	//Not deleting this code as it might have to be brought back into use
+	//in (possibly near) future.
+//	if (aSubject.Length() > 0)
+//		{
+//		excerptPtr.Append(aSubject);
+//		excerptPtr.Append(KSpace);
+//		}
 
 	excerptPtr.Append(aBodyText.Left(KMsgBodyExcerptSymbols));
 	if (aBodyText.Length() > KMsgBodyExcerptSymbols)
 		excerptPtr.Append(KEllipsis);
 
-	CleanupStack::PopAndDestroy(folder_str);
+//	CleanupStack::PopAndDestroy(folder_str);
 	CleanupStack::PushL(excerpt);
 	return excerpt;
 	}

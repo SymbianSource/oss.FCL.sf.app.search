@@ -40,7 +40,7 @@ public:
     
 //from MIndexingService
     void AddHarvestingQueue(CIndexingPlugin* aPlugin, const TDesC& aQualifiedBaseAppClass, TBool aForceReharvest = EFalse);
-    void RemoveHarvestingQueue(CIndexingPlugin* /*aPlugin*/, const TDesC& /*aQualifiedBaseAppClass*/) {};
+    void RemoveHarvestingQueue(CIndexingPlugin* /*aPlugin*/, const TDesC& /*aQualifiedBaseAppClass*/, TBool /*aRemovePersist = EFalse*/){};
     void HarvestingCompleted(CIndexingPlugin* aPlugin, const TDesC& aQualifiedBaseAppClass, TInt aError);
 
 private:

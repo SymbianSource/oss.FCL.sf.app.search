@@ -33,10 +33,6 @@ win32 {
     DESTDIR = $$PWD/../../../../../bin/debug/
 }
 
-#LIBS += -lappservices
-LIBS += -lstatemodel
-#LIBS += -searchstateprovider.dll
-#LIBS += -searchruntimeprovider.dll
 LIBS += -lsearchindevicehandler
 LIBS += -lxqservice 
 LIBS += -lqcpixsearchclient
@@ -45,8 +41,14 @@ LIBS += -lfbscli
 LIBS += -laknicon
 LIBS += -lapgrfx
 LIBS += -lbitgdi
-LIBS += -lnoteseditor
-    
+LIBS += -lsearchonlinehandler
+LIBS += -lxqutils
+LIBS += -lapparc
+LIBS += -lefsrv
+LIBS += -lapgrfx
+LIBS += -lws32
+LIBS += -lavkon
+
 CONFIG += qtestlib \
           symbian_test \
           debug_and_release \
@@ -67,15 +69,17 @@ INCLUDEPATH += .\
                ./inc \
                ../../inc \
                ../../../../inc \               
-               ../../../../indevicehandler/inc 
+               ../../../../indevicehandler/inc \
+               ../../../../onlinehandler/inc
 symbian {         
 CONFIG += symbian_test               
 TARGET.UID2 = 0x100039CE
 TARGET.UID3 = 0x20026F9A
 TARGET.CAPABILITY = CAP_APPLICATION AllFiles
 TARGET.EPOCSTACKSIZE = 0x14000 // 80kB
-TARGET.EPOCHEAPSIZE = 0x20000 0x1000000 // 128kB - 16MB
+TARGET.EPOCHEAPSIZE = 0x20000 0x800000 // 128kB - 16MB
 INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE 
+INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE
 }
 
 include(t_searchstateprovider.pri)

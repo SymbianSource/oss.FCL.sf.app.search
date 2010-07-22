@@ -18,7 +18,6 @@
 #ifndef PROGRESSIVE_SEARCH_STATE_H
 #define PROGRESSIVE_SEARCH_STATE_H
 
-#include <qabstractitemmodel.h>
 #include <qstate.h>
 #include <qstringlist.h>
 #include <qdatetime.h>
@@ -30,11 +29,7 @@
 #include "search_global.h"
 #include <f32file.h>
 
-//Uncomment to enable performance measurements.
-//#define OST_TRACE_COMPILER_IN_USE
-
-#ifdef OST_TRACE_COMPILER_IN_USE
-
+#ifdef OST_TRACE_COMPILER_IN_USE //defined in Search_global.h 
 #define PERF_CAT_API_TIME_RESTART  m_categorySearchApiTime.restart();
 #define PERF_CAT_UI_TIME_RESTART  m_categorySearchUiTime.restart();
 #define PERF_CAT_TOTAL_TIME_RESTART  m_totalSearchUiTime.restart();
@@ -46,7 +41,9 @@
 #define PERF_CAT_GETDOC_TIME_ACCUMULATE m_getDocumentCatergoryTimeAccumulator += m_categoryGetDocumentApiTime.elapsed();
 #define PERF_CAT_GETDOC_ACCUMULATOR_RESET m_getDocumentCatergoryTimeAccumulator = 0;
 #define PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG qDebug() << "Get Doc on category (API): " << mTemplist.at( mDatabasecount-1 ) << "took " << m_getDocumentCatergoryTimeAccumulator << "msec";
-
+#define PERF_RESULT_ITEM_LAUNCH_TIME_RESTART m_resultItemLaunchTime.restart();
+#define PERF_RESULT_ITEM_FOR_LAUNCHING(string) qDebug() <<"Result_Item_Launching: Launching "<<string ;
+#define PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG(string) qDebug() <<"Result_Item_Launching:"<<string<<"took "<<m_resultItemLaunchTime.elapsed()<<" msec";
 #else
 
 #define PERF_CAT_API_TIME_RESTART  
@@ -60,19 +57,22 @@
 #define PERF_CAT_GETDOC_TIME_ACCUMULATE 
 #define PERF_CAT_GETDOC_ACCUMULATOR_RESET
 #define PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG
-
+#define PERF_RESULT_ITEM_LAUNCH_TIME_RESTART
+#define PERF_RESULT_ITEM_FOR_LAUNCHING(string)
+#define PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG(string)
 #endif //OST_TRACE_COMPILER_IN_USE
 class HbMainWindow;
 class HbView;
-class HbListView;
 class HbDocumentLoader;
-class QStandardItemModel;
 class HbSearchPanel;
 class CFbsBitmap;
 class InDeviceHandler;
 class QCPixDocument;
-class NotesEditor;
+class NotesEditorInterface;
 class EventViewerPluginInterface;
+class HbListWidget;
+class HbListWidgetItem;
+class QPluginLoader;
 SEARCH_CLASS( SearchStateProviderTest)
 /** @ingroup group_searchstateprovider
  * @brief The state where progressive search state is shown
@@ -130,7 +130,7 @@ private:
      * get the application icon  .
      * @since S60 ?S60_version.
      */
-    HbIcon getAppIconFromAppId(TUid auid);
+    HbIcon getAppIconFromAppIdL(TUid auid);
 
     /**
      * resizing the symbain icon  .
@@ -172,7 +172,7 @@ public slots:
      * @since S60 ?S60_version.
      * @param aIndex index of the activated item.
      */
-    void openResultitem(QModelIndex aIndex);
+    void openResultitem(HbListWidgetItem * item);
 
     /**
      * slot connects to settings state to get the selected category information
@@ -196,12 +196,6 @@ public slots:
     void startNewSearch(const QString &aKeyword);
 
     /**
-     * slot connects to search state  for internet search
-     * @since S60 ?S60_version.
-     */
-    void _customizeGoButton(bool avalue);
-
-    /**
      * slot implemented to avoid repeated search for the same category 
      * selection when user search for mutiple times
      * @since S60 ?S60_version.
@@ -211,23 +205,7 @@ public slots:
     /**
      * slot connects to search state  for internet search
      * @since S60 ?S60_version.
-     */
-    void cancelSearch();
-    /**
-     * slot connects to model  for rows insert completion
-     * @since S60 ?S60_version.
-     */
-    void getrowsInserted();
-
-    /**
-     * slot connects to model  for rows delete completion
-     * @since S60 ?S60_version.
-     */
-    void getrowsRemoved();
-    /**
-     * slot added for Application manager
-     * @since S60 ?S60_version.
-     */
+     */  
 
     void handleOk(const QVariant& var);
 
@@ -244,6 +222,13 @@ public slots:
      */
 
     void _viewingCompleted();
+
+    void viewReady();
+    
+    void slotOnlineQuery(QString);
+    
+    void slotISProvidersIcon(int, HbIcon);
+
 private:
 
     /**
@@ -271,7 +256,7 @@ private:
      * 
      * @param aKeyword search keyword.
      */
-    void createSuggestionLink(bool aFlag);
+    void createSuggestionLink();
 
     /**
      * Function to include corrrect Qimage format to be taken from bitmap
@@ -308,14 +293,29 @@ private:
     QStringList filterDoc(const QCPixDocument* aDoc, const QString& filter1,
             const QString& filter2, const QString& filter3 = QString());
 
+    /**
+     * Function to convert bitmap to pixmap       
+     */
+    void fromBitmapAndMaskToPixmapL(CFbsBitmap* fbsBitmap,
+            CFbsBitmap* fbsMask, QPixmap& pixmap);
+
+    /**
+     * Function to get pixmap       
+     */
+    void GetPixmapByFilenameL(TDesC& fileName, const QSize &size,
+            QPixmap& pixmap);
+
 signals:
 
     /**
      * Signalled when user selects an to switch the settings state
      * setting state will be  activated.
      */
-    void settingsState();
+    void switchProToSettingsState();
+    
+    void inDeviceSearchQuery(QString);
 
+    void launchLink(int,QString);
 private:
 
     HbMainWindow* mMainWindow;
@@ -330,7 +330,7 @@ private:
      * The List View widget.
      * Own.
      */
-    HbListView* mListView;
+    HbListWidget* mListView;
 
     /**
      * Document handler to load .docml.
@@ -344,11 +344,7 @@ private:
      */
     HbSearchPanel* mSearchPanel;
 
-    /**
-     * model for list view
-     * Own.
-     */
-    QStandardItemModel* mModel;
+ 
 
     /**
      * qt interface for CPix engine
@@ -412,26 +408,76 @@ private:
      * 
      */
     bool loadSettings;
+
+    /**
+     * 
+     * Icon List to be created in boot up for all categories
+     */
     QList<HbIcon> mIconArray;
+
+    /**
+     * Hbicon to be created 
+     * 
+     */
     HbIcon mIcon;
+
+    /**
+     * to get drive info
+     * 
+     */
     RFs iFs;
 
+    /**
+     * Calendar plugin info
+     * 
+     */
     EventViewerPluginInterface *calAgandaViewerPluginInstance;
-    NotesEditor *notesEditor;
+
+    /**
+     * to create Notes editor 
+     * 
+     */
+    NotesEditorInterface *mNotesEditor;
+
+    /**
+     * to create Notes plugin loader 
+     * 
+     */
+    QPluginLoader *mNotespluginLoader;
+    
+    QMap<int, HbIcon> mISprovidersIcon;
+    
+    bool mOnlineQueryAvailable;
+
 private:
+    /**
+     * Application manager handler to perform resultitem opening.
+     * 
+     */
     XQApplicationManager* mAiwMgr;
+
+    /**
+     * Request handler to to open resultItems
+     * 
+     */
     XQAiwRequest* mRequest;
+
+    /**
+     * ListView icon Size.
+     * 
+     */
     QSize mListViewIconSize;
 #ifdef OST_TRACE_COMPILER_IN_USE
     QTime m_totalSearchUiTime;
     QTime m_categorySearchUiTime;
     QTime m_categorySearchApiTime;
     QTime m_categoryGetDocumentApiTime;
+    QTime m_resultItemLaunchTime;
     //use long to safeguard overflow from long running operations.
-    long m_getDocumentCatergoryTimeAccumulator; 
+    long m_getDocumentCatergoryTimeAccumulator;
 #endif
 
-SEARCH_FRIEND_CLASS    (SearchStateProviderTest)
+    SEARCH_FRIEND_CLASS (SearchStateProviderTest)
 
     };
 

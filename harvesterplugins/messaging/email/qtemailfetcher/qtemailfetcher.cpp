@@ -17,18 +17,30 @@
 
 #include "qtemailfetcher.h"
 #include <csearchdocument.h>
-#include <cpixmaindefs.h>
-//#include <QThread> //If we happen to use QThread::yieldCurrentThread()
+#include <nmapiemailaddress.h>
+#include <nmapimessagebody.h>
+#include <nmapimailbox.h>
+#include <QTimer>
+#include <QDebug>
+#include <qdatetime.h>
 
 //Symbian specific details; picked up from cemailplugin.cpp. 
 //Refactor it to cpixmaindefs.h
 _LIT(KMsgBaseAppClassGeneric, "root msg email");
 
 _LIT(KMsgSubject, "Subject");
+_LIT(KMsgSender, "Sender");
 _LIT(KMsgRecipients, "Recipients");
 _LIT(KMsgBody, "Body");
+_LIT(KMailBoxId, "MailBoxId");
+_LIT(KFolderId, "FolderId");
+_LIT(KHasAttachment, "HasAttachment");
+_LIT(KMailBoxName, "MailBoxName");
+//_LIT(KFolderName, "FolderName");
 _LIT(KMimeTypeField, CPIX_MIMETYPE_FIELD);
 _LIT(KMimeTypeMsg, "Messages");
+_LIT(KAttachment, "Attachment");
+_LIT(KSentTime, "SentTime");
 
 //------------------------------------------------------------------------------
 QEmailFetcher::QEmailFetcher( MEmailItemObserver& aObserver )
@@ -41,28 +53,36 @@ QEmailFetcher::QEmailFetcher( MEmailItemObserver& aObserver )
      iCurrentMailboxIndex( 0 ), 
      iCurrentFolderIndex( 0 )
     {
+    qDebug() << "QEmailFetcher::QEmailFetcher";
     }
 
 //------------------------------------------------------------------------------
 QEmailFetcher::~QEmailFetcher()
     {
+    if ( iEmailEventNotifier )
+       iEmailEventNotifier->cancel();
+    iMailBoxes.clear();
+    iFolders.clear();
     delete iEmailEventNotifier;
     delete iEmailService;
-    delete iMailBoxListings;
+    delete iEnvelopeListing;
     delete iMailFolderList;
+    delete iMailBoxListings;    
     }
 
 //------------------------------------------------------------------------------
 QEmailFetcher* QEmailFetcher::newInstance( MEmailItemObserver& aObserver ){
     QEmailFetcher* emailFetcher = NULL;
-    
+    qDebug() << "QEmailFetcher::newInstance :START";
     //Leak free init.
     try{
-        QEmailFetcher* emailFetcher = new QEmailFetcher( aObserver );
-        emailFetcher->iEmailService = new NmEmailService( emailFetcher );
-        emailFetcher->iEmailEventNotifier =  new NmEventNotifier( emailFetcher );
-        emailFetcher->iMailBoxListings = new NmMailboxListing( emailFetcher );
+        emailFetcher = new QEmailFetcher( aObserver );
+        emailFetcher->iEmailService = new NmApiEmailService( emailFetcher );
+        emailFetcher->iEmailEventNotifier =  new NmApiEventNotifier( emailFetcher );
+        emailFetcher->iMailBoxListings = new NmApiMailboxListing( emailFetcher );
+        emailFetcher->initialize( ); //Do the rest of the init.
     }catch(...){ //cleanup.
+    qDebug() << "QEmailFetcher::newInstance ( Catch Block)";
         delete emailFetcher; 
         delete emailFetcher->iEmailService;
         delete emailFetcher->iEmailEventNotifier;
@@ -71,33 +91,42 @@ QEmailFetcher* QEmailFetcher::newInstance( MEmailItemObserver& aObserver ){
         emailFetcher->iEmailEventNotifier = NULL;
         emailFetcher->iMailBoxListings = NULL;
         throw; //rethrow the exception to caller.
-    }
-    initialize( emailFetcher ); //Do the rest of the init.
+    }    
+    qDebug() << "QEmailFetcher::newInstance :END";
     return emailFetcher; //returns only if not null.
 }
 
 //------------------------------------------------------------------------------
-void QEmailFetcher::initialize( QEmailFetcher* aThis ){
-    //The use of 'aThis' is because the current function is static.
-    connect( aThis->iEmailService, SIGNAL(initialized(bool)), 
-             aThis, SLOT(emailServiceIntialized(bool)) );
-    aThis->iEmailService->initialise();
-    aThis->connect( aThis->iEmailEventNotifier, 
-                    SIGNAL(messageEvent(MessageEvent, quint64, quint64, QList<quint64>)),
-                    aThis, 
-                    SLOT(handleMessageEvent(MessageEvent, quint64, quint64, QList<quint64>)) );
+void QEmailFetcher::initialize( ){    
+    qDebug() << "QEmailFetcher::initialize :START";
+    connect( iEmailService, SIGNAL(initialized(bool)), 
+             this, SLOT(emailServiceIntialized(bool)) );
+    iEmailService->initialise();
+    //Monitor for Message changes
+    connect( iEmailEventNotifier, 
+             SIGNAL(messageEvent(EmailClientApi::NmApiMessageEvent, quint64, quint64, QList<quint64>)),
+             this, 
+             SLOT(handleMessageEvent(EmailClientApi::NmApiMessageEvent, quint64, quint64, QList<quint64>)) );
+    //Start the monitoring
+    iEmailEventNotifier->start();
+    qDebug() << "QEmailFetcher::Started monitoring for Email message event";
+    qDebug() << "QEmailFetcher::initialize :END";
 }
 
 //------------------------------------------------------------------------------
 void QEmailFetcher::emailServiceIntialized(bool aAllOk){
+    qDebug() << "QEmailFetcher::emailServiceIntialized :START  aAllOk = " << aAllOk;
     if( aAllOk ){
-        connect( iMailBoxListings, SIGNAL(mailboxesListed(int)), this, SLOT(handleMailboxesListed(int)) );
+        connect( iMailBoxListings, SIGNAL(mailboxesListed(qint32)), this, SLOT(handleMailboxesListed(qint32)) );
     }
+    qDebug() << "QEmailFetcher::emailServiceIntialized :END";
 }
 
 //------------------------------------------------------------------------------
 void QEmailFetcher::StartHarvesting(){
-    iMailBoxListings->start();
+    qDebug() << "QEmailFetcher::StartHarvesting :START";
+    bool ret = iMailBoxListings->start();
+    qDebug() << "QEmailFetcher::StartHarvesting :END return = " << ret;
 }
 
 //------------------------------------------------------------------------------
@@ -114,75 +143,129 @@ static inline TPtrC qt_QString2TPtrC( const QString& string )
 }
 
 //------------------------------------------------------------------------------
-// TODO Remove this code if qt_QString2TPtrC works.
-// TODO If this function is used, remember to release memory.
-// Ownership with caller.
-//HBufC* qt_QString2HBufC(const QString& aString)
-//{
-//    HBufC *buffer;
-//#ifdef QT_NO_UNICODE
-//    TPtrC8 ptr(reinterpret_cast<const TUint8*>(aString.toLocal8Bit().constData()));
-//#else
-//    TPtrC16 ptr(qt_QString2TPtrC(aString));
-//#endif
-//    buffer = q_check_ptr(HBufC::New(ptr.Length()));
-//    buffer->Des().Copy(ptr);
-//    return buffer;
-//}
-
+CSearchDocument* getPartialSearchDocument( quint64 aEnvelopeId ) {
+    qDebug() << "getPartialSearchDocument :START";
+    CSearchDocument* doc = 0;
+    QT_TRAP_THROWING(
+        //Use qt_Qstring2TPtrC since we are working with <b>const</b> EmailMessageEnvelope.
+        doc = CSearchDocument::NewL( qt_QString2TPtrC( QString().setNum( aEnvelopeId ) ), 
+                                     KMsgBaseAppClassGeneric );        
+        );
+    qDebug() << "getPartialSearchDocument :END";
+    return doc;
+    }
+} //anonymous namespace
 //------------------------------------------------------------------------------
-//Private free function creates CSearchDocument from EMailMessageEnvelope.
-CSearchDocument* getSearchDocument( const NmMessageEnvelope& aEnvelope ){
-    QList<NmEmailAddress> toList;
-    //Need to cast away const-ness since the get method is unfortunately not const.
-    const_cast<NmMessageEnvelope&>(aEnvelope).getToRecipients( toList );
 
+CSearchDocument* QEmailFetcher::getSearchDocumentL( const NmApiMessageEnvelope& aEnvelope ,quint64 aMailboxId, quint64 aFolderId ){
+    QList<NmApiEmailAddress> toList;
+    qDebug() << "QEmailFetcher::getSearchDocumentL :START";
     //We need ALL the recipients in a SINGLE field.
+    
+    //Need to cast away const-ness since the get method is unfortunately not const.
+    const_cast<NmApiMessageEnvelope&>(aEnvelope).getToRecipients( toList );
     QString recipients = "";
     for( int i=0; i<toList.length(); i++ )
-        recipients += toList.at( i ).displayName() + " "; //or should we get address?
-
-    NmMessageBody body;
+        {
+        qDebug() << "QEmailFetcher::To receipient displayname :"<< toList.at( i ).displayName() << "Address : "<<toList.at( i ).address();
+        recipients += toList.at( i ).displayName() + " ";
+        recipients += toList.at( i ).address() + " ";
+        }
+    // Get CC receipents
+    const_cast<NmApiMessageEnvelope&>(aEnvelope).getCcRecipients( toList );
+    for( int i=0; i<toList.length(); i++ )
+        {
+        qDebug() << "QEmailFetcher::CC receipient displayname :"<< toList.at( i ).displayName() << "Address : "<<toList.at( i ).address();
+        recipients += toList.at( i ).displayName() + " ";
+        recipients += toList.at( i ).address() + " ";
+        }
+    
+    NmApiMessageBody body;
     //Cast away const-ness since the get method is unfortunately not const.
     //Returns void. Cannot check for success/failure.
-    const_cast<NmMessageEnvelope&>(aEnvelope).getPlainTextBody( body ); 
+    const_cast<NmApiMessageEnvelope&>(aEnvelope).getPlainTextBody( body ); 
     QString msgBody = body.content();
-
+    qDebug() << "QEmailFetcher::Body of mail using paintextAPI:"<< aEnvelope.plainText() ;
     CSearchDocument* doc = 0;
     QT_TRAP_THROWING(
     //Use qt_Qstring2TPtrC since we are working with <b>const</b> EmailMessageEnvelope.
     doc = CSearchDocument::NewL( qt_QString2TPtrC( QString().setNum( aEnvelope.id() ) ), 
                                  KMsgBaseAppClassGeneric );
-    doc->AddFieldL( KMimeTypeField, KMimeTypeMsg, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-    doc->AddFieldL( KMsgSubject, qt_QString2TPtrC( aEnvelope.subject() ), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-    doc->AddFieldL( KMsgRecipients, qt_QString2TPtrC( recipients ), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-    doc->AddFieldL( KMsgBody, qt_QString2TPtrC( msgBody ), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-    //TODO: What should go in here?
-    doc->AddExcerptL( KNullDesC );
+    //Add the sender details
+    doc->AddFieldL( KMsgSender, qt_QString2TPtrC( const_cast<NmApiMessageEnvelope&>(aEnvelope).sender() ), 
+                    CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+    //Add the Mimetype
+    doc->AddFieldL( KMimeTypeField, KMimeTypeMsg, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized );
+    //Add the Subject field
+    doc->AddFieldL( KMsgSubject, qt_QString2TPtrC( aEnvelope.subject() ), 
+                    CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+    //Add the recipients list (Includes To and CC fields)
+    doc->AddFieldL( KMsgRecipients, qt_QString2TPtrC( recipients ), 
+                    CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
+    //Add the email body
+    doc->AddFieldL( KMsgBody, qt_QString2TPtrC( msgBody ), 
+                    CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+    //Add the mailboxid
+    doc->AddFieldL( KMailBoxId, qt_QString2TPtrC( QString().setNum( aMailboxId ) ), 
+                    CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized | CDocumentField::EAggregateNo );
+    //Add the folder Id
+    doc->AddFieldL( KFolderId, qt_QString2TPtrC( QString().setNum( aFolderId ) ), 
+                    CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized | CDocumentField::EAggregateNo );
+    //Add the attachment field. This field will be added only if there is any attachment.Details of the attachment
+    //are not added due to lack of email application support.
+    if ( aEnvelope.hasAttachments() )
+       doc->AddFieldL( KHasAttachment, KAttachment, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized);
+    //Add mailbox name
+    NmApiMailbox aMailBox;
+    iEmailService->getMailbox( aMailboxId, aMailBox );
+    doc->AddFieldL( KMailBoxName, qt_QString2TPtrC(aMailBox.name()) , 
+                    CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
+    
+    // Sent date time  KSentTime
+    QDateTime time = aEnvelope.sentTime();    
+    doc->AddFieldL( KSentTime, qt_QString2TPtrC(time.toString ()) , 
+                        CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+    //TODO : Foldername is not harvested as there is no API exposed from email application to get the foldername based on folderID.
+    //This feature will be implemented as soon as we get supporting API's from Email team
+    
+    //Adding subject and body to the excerpt. 
+    QString excerpt ;
+    excerpt = aEnvelope.subject();
+    excerpt += msgBody ;
+    doc->AddExcerptL( qt_QString2TPtrC(excerpt) );
     );
+    qDebug() << "QEmailFetcher::getSearchDocumentL :END";
     return doc;
 }
-} //anonymous namespace
+
 
 //------------------------------------------------------------------------------
-//Just to avoid duplication of the following two lines.
 void QEmailFetcher::NotifyHarvestingComplete(){
+    qDebug() << "QEmailFetcher::NotifyHarvestingComplete :START";
     iCurrentMailboxIndex = iCurrentFolderIndex = 0;
+    //Free the iMailBoxes and iFolders
+    iMailBoxes.clear();
+    iFolders.clear();
     QT_TRAP_THROWING( iEmailObserver.HarvestingCompleted() );
+    qDebug() << "QEmailFetcher::NotifyHarvestingComplete :END";
     return;
 }
 
 //------------------------------------------------------------------------------
-void QEmailFetcher::handleMailboxesListed(int aCount){
+void QEmailFetcher::handleMailboxesListed(qint32 aCount){
+    qDebug() << "QEmailFetcher::handleMailboxesListed :START";
     iCurrentMailboxIndex = 0;
-    if( aCount == NmMailboxListing::MailboxListingFailed ) {
+    if( aCount == NmApiMailboxListing::MailboxListingFailed ) {
         NotifyHarvestingComplete();
+        qDebug() << "QEmailFetcher::handleMailboxesListed :MailboxListingFailed";
         return;
     }
     if( aCount>0 && iMailBoxListings->getMailboxes( iMailBoxes ) ){
         //Already set to NULL in constructor, so safe to call delete first time.
+        qDebug() << "QEmailFetcher::handleMailboxesListed :processNextMailbox";
         processNextMailbox();
     }else{
+        qDebug() << "QEmailFetcher::handleMailboxesListed :Harvesting Completed";
         NotifyHarvestingComplete();
         return;
     }
@@ -204,30 +287,38 @@ void QEmailFetcher::handleMailboxesListed(int aCount){
 //Recommendation: Use option 4.
 
 void QEmailFetcher::processNextMailbox(){
+    qDebug() << "QEmailFetcher::processNextMailbox :START";
     //No more mailboxes, notify completion.
     if( iCurrentMailboxIndex >= iMailBoxes.count() ) {
         NotifyHarvestingComplete();
+        qDebug() << "QEmailFetcher::processNextMailbox :END (harvesting completed)";
         return;
     }
-    
     //More mailboxes available.
     delete iMailFolderList; iMailFolderList = NULL;
-    iMailFolderList = new NmFolderListing( this, iMailBoxes.at( iCurrentMailboxIndex++ ).id() );
-    connect( iMailFolderList, SIGNAL(foldersListed()), this, SLOT(handleMailFoldersListed()) );
-    const int waitForSeconds = 30; //TODO Move this constant out of here if needed elsewhere
-    QTimer::singleShot( waitForSeconds, iMailFolderList, SLOT( start()) );
+    iMailFolderList = new NmApiFolderListing( this, iMailBoxes.at( iCurrentMailboxIndex++ ).id() );
+    connect( iMailFolderList, SIGNAL(foldersListed( qint32 )), this, SLOT(handleMailFoldersListed( qint32)) );
+    iMailFolderList->start();
+   
+//    const int waitForSeconds = 30; //TODO Move this constant out of here if needed elsewhere
+//    QTimer::singleShot( waitForSeconds, iMailFolderList, SLOT( start()) );
+    qDebug() << "QEmailFetcher::processNextMailbox :END (goto next mailbox)";
 }
 
 //------------------------------------------------------------------------------
 void QEmailFetcher::handleMailFoldersListed(int aCount){
-    iCurrentFolderIndex = 0;
-    if( aCount == NmFolderListing::FolderListingFailed ){
+    qDebug() << "QEmailFetcher::handleMailFoldersListed :START";
+    iCurrentFolderIndex = 0;    
+    if( aCount == NmApiFolderListing::FolderListingFailed ){
+        qDebug() << "QEmailFetcher::handleMailFoldersListed :FolderListingFailed";
         processNextMailbox();
         return;//Don't proceed futher.
     }
     if( aCount && iMailFolderList->getFolders( iFolders ) ){ 
+       qDebug() << "QEmailFetcher::handleMailFoldersListed :processNextFolder";
         processNextFolder();
     }else{
+        qDebug() << "QEmailFetcher::handleMailFoldersListed :processNextMailbox";
         processNextMailbox();
         return;
     }
@@ -235,64 +326,71 @@ void QEmailFetcher::handleMailFoldersListed(int aCount){
 
 //------------------------------------------------------------------------------
 void QEmailFetcher::processNextFolder(){
+    qDebug() << "QEmailFetcher::processNextFolder :START";
     //No more folders in current mailbox.
     if( iCurrentFolderIndex >= iFolders.count() ) {
+        qDebug() << "QEmailFetcher::processNextFolder :processNextMailbox";
         processNextMailbox();
         return;//Don't proceed futher.
     }
-    
     //More folders to process.
     //Already set to NULL in constructor, so safe to call delete first time.
     delete iEnvelopeListing; iEnvelopeListing = NULL; 
-    iEnvelopeListing= new NmEnvelopeListing( 
+    iEnvelopeListing= new NmApiEnvelopeListing( 
             this, 
             iFolders.at( iCurrentFolderIndex++ ).id(),
             iMailBoxes.at( iCurrentMailboxIndex-1 ).id() ); //we have already incremented iMailboxIndex.
 
-    connect(iEnvelopeListing, SIGNAL(envelopesListed(int)),this,SLOT(processMessages(int)));
+    connect(iEnvelopeListing, SIGNAL(envelopesListed(qint32)),this,SLOT(processMessages(qint32)));
     iEnvelopeListing->start();
+    qDebug() << "QEmailFetcher::processNextFolder :processNextFolder";
 }
 
 //------------------------------------------------------------------------------
-void QEmailFetcher::processMessages(int aCount){
-    if( aCount == NmEnvelopeListing::EnvelopeListingFailed ) {
+void QEmailFetcher::processMessages(qint32 aCount){
+    qDebug() << "QEmailFetcher::processMessages :START";
+    if( aCount == NmApiEnvelopeListing::EnvelopeListingFailed ) {
+        qDebug() << "QEmailFetcher::processMessages :EnvelopeListingFailed";
         processNextFolder();
         return;//Don't proceed futher.
     }
-    QList<NmMessageEnvelope> envelopes;
+    QList<NmApiMessageEnvelope> envelopes;
     if ( aCount > 0 && iEnvelopeListing->getEnvelopes(envelopes) ) {
         for( int i=0; i<envelopes.count(); i++ ) {
-            const NmMessageEnvelope &envelope = envelopes.at( i );
+            const NmApiMessageEnvelope &envelope = envelopes.at( i );
             //Create document and call back observer.
-            QT_TRAP_THROWING( iEmailObserver.HandleDocumentL( getSearchDocument( envelope ), ECPixAddAction ) );
+            QT_TRAP_THROWING( iEmailObserver.HandleDocumentL( getSearchDocumentL( envelope, iFolders.at( iCurrentFolderIndex -1 ).id(), 
+                                                                                 iMailBoxes.at( iCurrentMailboxIndex-1 ).id() ), ECPixAddAction ) );
         }
     }
+    qDebug() << "QEmailFetcher::processMessages :END";
 }
 
 //------------------------------------------------------------------------------
-void QEmailFetcher::handleMessageEvent( const MessageEvent aEvent, quint64 aMailboxId, quint64 aFolderId, QList<quint64> aMessageList){
-    NmMessageEnvelope envelope;
+void QEmailFetcher::handleMessageEvent( EmailClientApi::NmApiMessageEvent aEvent, quint64 aMailboxId, quint64 aFolderId, QList<quint64> aMessageList){
+    NmApiMessageEnvelope envelope;
+    qDebug() << "QEmailFetcher::handleMessageEvent :START";
     const int messageCount = aMessageList.count();
     if( messageCount>0 ){
     if( aEvent == MessageCreated || aEvent == MessageChanged ){
+        qDebug() << "QEmailFetcher::handleMessageEvent :MessageCreated || MessageChanged";
         for( int i=0; i<messageCount; i++ ){
             if( iEmailService->getEnvelope( aMailboxId, aFolderId, aMessageList.at( i ), envelope ) ){
+               qDebug() << "QEmailFetcher::handleMessageEvent :HandleDocumentL";
                 QT_TRAP_THROWING( 
-                   iEmailObserver.HandleDocumentL( getSearchDocument( envelope ), 
+                   iEmailObserver.HandleDocumentL( getSearchDocumentL( envelope, aMailboxId, aFolderId ), 
                            //Doing this simply avoids *duplicate* code for update action.
                            aEvent == MessageCreated ? ECPixAddAction : ECPixUpdateAction ) );
             }
         }
     }
     else if( aEvent == MessageDeleted ) {
-        //TODO We can do better. For delete, we dont have to create full document. Just the ID should be enough.
-        //We can have another function called getPartialSearchDocument so deletes will be faster.
+        qDebug() << "QEmailFetcher::handleMessageEvent :MessageDeleted";
         for( int i=0; i<messageCount; i++ ){
-            if( iEmailService->getEnvelope( aMailboxId, aFolderId, aMessageList.at( i ), envelope ) ){
+                qDebug() << "QEmailFetcher::handleMessageEvent :MessageDeleted : HandleDocumentL";
                 QT_TRAP_THROWING( 
-                iEmailObserver.HandleDocumentL( getSearchDocument( envelope ), ECPixRemoveAction ) );
+                iEmailObserver.HandleDocumentL( getPartialSearchDocument( aMessageList.at( i ) ), ECPixRemoveAction ) );
             }
         }
-    }
     }
 }

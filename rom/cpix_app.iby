@@ -52,6 +52,11 @@ ECOM_PLUGIN( cpixapplicationsplugin.dll, cpixapplicationsplugin.rsc)
 // Notes plugin
 ECOM_PLUGIN( cpixnotesplugin.dll, cpixnotesplugin.rsc)
 
+// Email plugin
+ECOM_PLUGIN( cpixemailplugin.dll, cpixemailplugin.rsc)
+file=ABI_DIR\BUILD_DIR\qtemailfetcher.dll 	SHARED_LIB_DIR\qtemailfetcher.dll 
+	
+
 data=DATAZ_\private\10202be9\20029ac7.cre       private\10202be9\20029ac7.cre
 
 data=ZSYSTEM\install\cpixsearchapp_stub.sis    System\Install\cpixsearchapp_stub.sis

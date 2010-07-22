@@ -24,7 +24,7 @@
 #include "calprogresscallback.h"
 _LIT8(KGuid, "AGlobalUid");
 
-class CCalendarObserver : public MCalProgressCallBack 
+class CCalendarObserver : public CBase, public MCalProgressCallBack 
 {
 public:
     static CCalendarObserver* NewL();   
@@ -41,6 +41,7 @@ public:
     TBool NotifyProgress();
     
     void AddEntryL();
+    void UpdateCalenderEntryL();
     void DeleteEntryL();
     void AddNoteL( TPtr8 aMemo);
     void DeleteNoteEntryL();

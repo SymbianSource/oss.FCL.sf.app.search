@@ -34,7 +34,7 @@ class QStateMachine;
  * @lib ?library
  * @since S60 ?S60_version
  */
-class Search : public QObject
+class SearchApplication : public QObject
     {
 Q_OBJECT
 
@@ -45,17 +45,17 @@ public:
      * @since S60 ?S60_version.     
      * @param aParent Parent object.
      */
-    Search(QObject* aParent = 0);
+    SearchApplication(QObject* aParent = 0);
 
     /**
      * Destructor.
      * @since S60 ?S60_version.     
      */
-    virtual ~Search();
+    virtual ~SearchApplication();
 
-private:   
-    
-    Q_DISABLE_COPY(Search)
+private:
+
+    Q_DISABLE_COPY(SearchApplication)
 
 signals:
 

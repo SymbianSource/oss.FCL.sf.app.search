@@ -1,19 +1,3 @@
-/*
-* Copyright (c) 2009 Nokia Corporation and/or its subsidiary(-ies).
-* All rights reserved.
-* This component and the accompanying materials are made available
-* under the terms of "Eclipse Public License v1.0"
-* which accompanies this distribution, and is available
-* at the URL "http://www.eclipse.org/legal/epl-v10.html".
-*
-* Initial Contributors:
-* Nokia Corporation - initial contribution.
-*
-* Contributors:
-*
-* Description: 
-*
-*/
 #include "t_indevicehandler.h"
 #include "indevicehandler.h"
 #include <qsignalspy.h>
@@ -46,11 +30,11 @@ void SearchInDeviceHandlerTest::testCreateAndDestructIndeviceHandler()
 void SearchInDeviceHandlerTest::testhandleAsyncSearchResult()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
-    indevicehandler->setCategory("file");
+    indevicehandler->setCategory("media");
     QSignalSpy
             spy(indevicehandler, SIGNAL(handleAsyncSearchResult(int, int)));
-    indevicehandler->searchAsync("txt");
-    QTest::qWait(200);
+    indevicehandler->searchAsync("jpg*");
+    QTest::qWait(2000);
     QCOMPARE(spy.count(), 1);
     delete indevicehandler;
 
@@ -58,15 +42,15 @@ void SearchInDeviceHandlerTest::testhandleAsyncSearchResult()
 void SearchInDeviceHandlerTest::testhandleDocument()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
-    indevicehandler->setCategory("file");
+    indevicehandler->setCategory("media");
 
-    indevicehandler->searchAsync("txt");
-    QTest::qWait(200);
+    indevicehandler->searchAsync("jpg*");
+    QTest::qWait(2000);
 
     QSignalSpy spy(indevicehandler,
             SIGNAL(handleDocument(int, QCPixDocument*)));
     indevicehandler->getDocumentAsyncAtIndex(0);
-    QTest::qWait(200);
+    QTest::qWait(2000);
     QCOMPARE(spy.count(), 1);
     delete indevicehandler;
 
@@ -83,14 +67,14 @@ void SearchInDeviceHandlerTest::testgetDocumentAsync()
 void SearchInDeviceHandlerTest::testgetDocumentAsyncAtIndex()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
-    indevicehandler->setCategory("file");
+    indevicehandler->setCategory("media");
 
-    indevicehandler->searchAsync("txt");
-    QTest::qWait(200);
+    indevicehandler->searchAsync("jpg*");
+    QTest::qWait(2000);
     QSignalSpy spy(indevicehandler,
             SIGNAL(handleDocument(int, QCPixDocument*)));
     indevicehandler->getDocumentAsyncAtIndex(0);
-    QTest::qWait(200);
+    QTest::qWait(2000);
     QCOMPARE(spy.count(), 1);
     delete indevicehandler;
     }
@@ -98,21 +82,21 @@ void SearchInDeviceHandlerTest::testgetDocumentAsyncAtIndex()
 void SearchInDeviceHandlerTest::testsearchAsync()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
-    indevicehandler->setCategory("file");
+    indevicehandler->setCategory("media");
     QSignalSpy spy(indevicehandler, SIGNAL(handleAsyncSearchResult(int,int)));
     indevicehandler->searchAsync(NULL);
-    QTest::qWait(200);
+    QTest::qWait(2000);
     QCOMPARE(spy.count(), 0);
-    indevicehandler->searchAsync("txt");
-    QTest::qWait(200);
+    indevicehandler->searchAsync("jpg*");
+    QTest::qWait(2000);
     QCOMPARE(spy.count(), 1);
     delete indevicehandler;
     }
 void SearchInDeviceHandlerTest::testcancelLastSearch()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
-    indevicehandler->setCategory("file");
-    indevicehandler->searchAsync("txt");
+    indevicehandler->setCategory("media");
+    indevicehandler->searchAsync("jpg*");
     indevicehandler->cancelLastSearch();
     delete indevicehandler;
     }
@@ -120,9 +104,9 @@ void SearchInDeviceHandlerTest::testgetSearchResultCount()
     {
     InDeviceHandler* indevicehandler = new InDeviceHandler();
     QCOMPARE(indevicehandler->getSearchResultCount(),0);
-    indevicehandler->setCategory("file");
-    indevicehandler->searchAsync("txt");
-    QTest::qWait(200);
+    indevicehandler->setCategory("media");
+    indevicehandler->searchAsync("jpg*");
+    QTest::qWait(2000);
     QVERIFY(indevicehandler->getSearchResultCount());
     delete indevicehandler;
 

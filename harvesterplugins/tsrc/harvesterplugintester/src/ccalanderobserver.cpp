@@ -65,7 +65,7 @@ void DestroyRPointerArray(TAny* aPtr)
 
 void CCalendarObserver::AddEntryL()
     {
-    _LIT(KDescription,"Meeting is scheduled in 1st week of January");
+    _LIT(KDescription,"Meeting");
     const TDesC8& guidDes = KGuid;
     iUid = guidDes.AllocL();        
     CCalEntry* entry = CCalEntry::NewL(CCalEntry::EAppt, iUid, CCalEntry::EMethodNone, 0);    
@@ -92,6 +92,32 @@ void CCalendarObserver::AddEntryL()
 
     CleanupStack::PopAndDestroy(&array);    
     CleanupStack::PopAndDestroy(entry);    
+    }
+
+void CCalendarObserver::UpdateCalenderEntryL()
+    {
+    _LIT(KOldEntry,"Meeting");
+    _LIT(KNewEntry,"Updated Meeting");
+    
+    RPointerArray<CCalEntry> entryarray; 
+    CleanupStack::PushL(TCleanupItem(DestroyRPointerArray, &entryarray));
+    
+    iCalEntryView->FetchL(KGuid,entryarray);    
+        for( int i = 0; i < entryarray.Count(); i++)
+            {
+            CCalEntry* entry = entryarray[i];
+            if ( entry->EntryTypeL() == CCalEntry::EAppt )
+                {
+                if ( entry->DescriptionL().Compare ( KOldEntry ) == 0)            
+                    {                    
+                    entry->SetDescriptionL(KNewEntry);
+                    break;
+                    }
+                }
+            }
+    TInt numEntriesAdded = 0;
+    iCalEntryView->StoreL(entryarray, numEntriesAdded);    
+    CleanupStack::PopAndDestroy(&entryarray);   
     }
 
 void CCalendarObserver::AddNoteL( TPtr8 aMemo)

@@ -53,7 +53,7 @@ _LIT(KNpdMemo , "Memo");
 _LIT(KNpdUpdateTime , "Date");
 
 //Reference from CPix calender harvester plugin.
-_LIT(KNotesTimeFormat , "%F%/0%Y%M%D%H%T"); // Locale independent YYYYMMDDHHMM
+_LIT(KNotesTimeFormat,"%04d %02d %02d %02d %02d");
 
 // ---------------------------------------------------------------------------
 // CNotesPlugin::NewL
@@ -346,19 +346,25 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 		index_item->AddFieldL(KNpdMemo, entry->DescriptionL());
 		// Add Date fields
 		TBuf<30> dateString;
-		TTime endTime = entry->EndTimeL().TimeUtcL();
-		endTime.FormatL(dateString, KNotesTimeFormat);
+		TDateTime datetime = entry->EndTimeL().TimeUtcL().DateTime();		
+		dateString.Format( KNotesTimeFormat, datetime.Year(),
+                                     TInt(datetime.Month()+ 1),
+                                     datetime.Day() + 1,
+                                     datetime.Hour()+ 1,
+                                     datetime.Minute());
+		 
 		index_item->AddFieldL(KNpdUpdateTime, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 
 		index_item->AddFieldL(KMimeTypeField, KMimeTypeNotes, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 
-    	TInt excerptLength = entry->DescriptionL().Length();
-		HBufC* excerpt = HBufC::NewLC(excerptLength);
-		TPtr excerptDes = excerpt->Des();		
-		excerptDes.Append(entry->DescriptionL());
-		
-        index_item->AddExcerptL(*excerpt);
-        CleanupStack::PopAndDestroy(excerpt);      
+		//For notes, no content is expected in excerpt for now.
+		//See appclass-hierarchy.txt for details.
+//    	TInt excerptLength = entry->DescriptionL().Length();
+//		HBufC* excerpt = HBufC::NewLC(excerptLength);
+//		TPtr excerptDes = excerpt->Des();		
+//		excerptDes.Append(entry->DescriptionL());
+//      index_item->AddExcerptL(*excerpt);
+//      CleanupStack::PopAndDestroy(excerpt);      
 		
 		// Send for indexing
 		if (aActionType == ECPixAddAction)

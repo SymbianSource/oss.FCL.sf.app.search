@@ -135,10 +135,14 @@ void CApplicationsPlugin::AddWidgetInfoL( CSearchDocument* aDocument, TUid aUid 
     OstTraceExt1( TRACE_NORMAL, CAPPLICATIONSPLUGIN_ADDWIDGETINFOL, "CApplicationsPlugin::AddWidgetInfoL;PATH=%S", &temp );
 
     //GetWidgetPropertyValueL returns CWidgetPropertyValue* which in turn has an operator to convert to TDesC
-    aDocument->AddFieldL(KApplicationFieldCaption, *(iWidgetRegistry.GetWidgetPropertyValueL( aUid, EBundleDisplayName )),  CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+    aDocument->AddFieldL(KApplicationFieldCaption, *(iWidgetRegistry.GetWidgetPropertyValueL( aUid, EBundleDisplayName )), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
 
-    iWidgetRegistry.GetWidgetBundleName( aUid, temp );
-    aDocument->AddExcerptL( temp );
+    //For applications, no content to go into exceprt field.
+    //For more info, check the appclass-hierarchy.txt
+    //iWidgetRegistry.GetWidgetBundleName( aUid, temp );
+    //aDocument->AddExcerptL( temp );
+    aDocument->AddExcerptL( KNullDesC );
+    
     OstTraceExt1( TRACE_NORMAL, DUP1_CAPPLICATIONSPLUGIN_ADDWIDGETINFOL, "CApplicationsPlugin::AddWidgetInfoL;DisplayName=%S", &temp );
     CPIXLOGSTRING2("AddApplicationInfo(): DisplayName = %S ", &temp );
     }
@@ -150,9 +154,26 @@ void AddApplicationInfoL( CSearchDocument* aDocument, TApaAppInfo& aAppInfo )
     TBuf<KMaxFileName> docidString = aAppInfo.iUid.Name(); //This returns stuff in the form "[UID]". So remove the brackets.
     docidString = docidString.Mid( KUidStartIndex, KUidEndIndex );
     
-    aDocument->AddFieldL(KApplicationFieldCaption, aAppInfo.iShortCaption, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-    aDocument->AddFieldL(KApplicationFieldAbsolutePath, aAppInfo.iFullName, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-    aDocument->AddExcerptL( aAppInfo.iCaption );
+    //We index the exe name (without extension), only if the title is not present.
+    if( aAppInfo.iShortCaption.Compare(KNullDesC) )
+        {
+        aDocument->AddFieldL(KApplicationFieldCaption, aAppInfo.iShortCaption, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+        }
+    else
+        {
+        //Find the *last* location of '\' and remove the .exe to get just the filename.
+        TInt location = aAppInfo.iFullName.LocateReverse('\\');
+        if( location > 0 )
+            {
+            TInt lengthOfNameWithoutExtention = aAppInfo.iFullName.Length() -location -1; //-1 to increment one past '\'.
+            TPtrC appName = aAppInfo.iFullName.Right( lengthOfNameWithoutExtention );
+            aDocument->AddFieldL(KApplicationFieldAbsolutePath, appName.Left( appName.Length() -4 /*remove ".exe"*/), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+            }
+        }
+    //For applications, no content to go into exceprt field, for more info, check the appclass-hierarchy.txt
+    //aDocument->AddExcerptL( aAppInfo.iCaption );
+    aDocument->AddExcerptL( KNullDesC );
+    
     OstTraceExt2( TRACE_NORMAL, _ADDAPPLICATIONINFOL, "::AddApplicationInfoL;UID=%S;PATH=%S", &docidString, &aAppInfo.iFullName );
     OstTraceExt2( TRACE_NORMAL, DUP1__ADDAPPLICATIONINFOL, "::AddApplicationInfoL;Excerpt=%S;Caption=%S", &aAppInfo.iCaption, &aAppInfo.iShortCaption );
     
@@ -176,6 +197,9 @@ TBool CApplicationsPlugin::IsAppHiddenL(TUid aUid)
         ret = cap().iAppIsHidden;
         }
 
+    //This commented code is left here as the following functionality may need to be 
+    //returned if and when this or similar APIs are available for 10.1
+    
     //Application should not be listed hidden in application shell.
 //    TBuf<NCentralRepositoryConstants::KMaxUnicodeStringLength> uidResult;
 //    if( iHiddenApplicationsRepository->Get( KMenuHideApplication, uidResult ) == KErrNone )

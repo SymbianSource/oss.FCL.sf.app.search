@@ -17,7 +17,6 @@
 
 #include <QtTest/QtTest>
 #include "searchstateprovider.h"
-#include "hsistateprovider.h"
 
 class HbMainWindow;
 class HbAbstractViewItem;
@@ -58,22 +57,16 @@ private slots:
     void testopenResultitem();
     void testgetSettingCategory();
     void testsetSettings();
-    void teststartNewSearch();
-    void test_customizeGoButton();
+    void teststartNewSearch();    
     void testsettingsaction();
     void testcancelSearch();
-    void testgetrowsInserted();
-    void testgetrowsRemoved();
     void testhandleOkError();
-    void test_viewingCompleted();
-    void testsearchOnCategory();
     void testclear();
     void testnoResultsFound();
     void testcreateSuggestionLink();
     void testTDisplayMode2Format();
-    void testfromSymbianCFbsBitmap();
     void testgetDrivefromMediaId();
-    void testLaunchApplicationL();
+    void testLaunchApplication();
     void testfilterDoc();
 
     /**
@@ -128,27 +121,12 @@ private:
      * @return True if state was created successfully, false otherwise.
      * @since S60 ?S60_version.
      */
-    bool verifyStateCreation(const QString& uri);
-
-    /**
-     * Helper method testing existence of state
-     *
-     * @param states List of states.
-     * @param library Name of the library/plugin that contains the state.
-     * @param uri Unique state identificator.
-     *
-     * @return True if state was found, false otherwise.
-     * @since S60 ?S60_version.
-     */
-    bool findStateInStateList(const QList<HsStateToken>& states,
-            const QString& library, const QString& uri);
-
-    //void setContentServiceProperty(QState* state);
+    bool verifyStateCreation(const QString& uri);    
 
     HbMainWindow* mainWindow();
 
 private:
-    //    FtuContentService* mFtuContentService;
+
     HbMainWindow *mMainWindow;
 
     };

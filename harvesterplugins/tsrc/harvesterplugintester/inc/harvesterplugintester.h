@@ -51,7 +51,7 @@ _LIT( KHarvesterPluginTesterLogFileWithTitle, "HarvesterPluginTester_[%S].txt" )
 // FORWARD DECLARATIONS
 //class ?FORWARD_CLASSNAME;
 class CHarvesterPluginTester;
-
+class CSearchDocument;
 // DATA TYPES
 //enum ?declaration
 //typedef ?declaration
@@ -152,7 +152,7 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
         */
         virtual TInt TestStartHarvesterL( CStifItemParser& aItem );
 		
-        virtual TInt TestFormBaseAppClass( CStifItemParser& aItem );
+        virtual TInt TestFormBaseAppClassL( CStifItemParser& aItem );
 		
 		virtual TInt TestDatabasePathL( CStifItemParser& aItem );
 		
@@ -186,6 +186,12 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
          */
         virtual TInt TestMessageHarvesterChangeDriveL( CStifItemParser& aItem );
         
+        virtual TInt TestMessageRunErrorL( CStifItemParser& aItem );
+        
+        virtual TInt TestMessageIsMediaRemovableL( CStifItemParser& aItem );
+        
+        virtual TInt TestMessageMountNoIndexerL( CStifItemParser& aItem );
+        
         virtual TInt TestStartBookmarksHarvesterL( CStifItemParser& aItem );
         
         virtual TInt TestAddBookmarkL( CStifItemParser& aItem );
@@ -215,6 +221,20 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
                         
         virtual TInt TestCreateContactIndexItemL( CStifItemParser& aItem );
         
+        virtual TInt TestCreateContactIndexItemNoIndexerL( CStifItemParser& aItem );
+        
+        virtual TInt TestContactGetDateL( CStifItemParser& aItem );
+        
+        virtual TInt TestContactDelayedErrorL( CStifItemParser& aItem );
+        
+        virtual TInt TestContactDelayedCallbackNoIContactsL( CStifItemParser& aItem );
+        
+        virtual TInt TestContactDelayedCallbackNoIObserverL( CStifItemParser& aItem );
+        
+        virtual TInt TestContactDelayedCallbackWrongCountL( CStifItemParser& aItem );
+        
+		virtual TInt TestCreateAllContactFieldsL( CStifItemParser& aItem );
+		
         virtual TInt TestCreateContactGroupL( CStifItemParser& aItem );
         
         virtual TInt TestStartCalenderHarvesterL( CStifItemParser& aItem );
@@ -226,6 +246,10 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
         virtual TInt TestCreateEmailL( CStifItemParser& aItem );
 		
 		virtual TInt TestAudioHarvestingL( CStifItemParser& aItem );
+		
+		virtual TInt TestAudioHarvestingUpdateIndexL( CStifItemParser& aItem );
+		        
+        virtual TInt TestAudioHarvestingDeleteIndexL( CStifItemParser& aItem );
 		
 		virtual TInt TestMdsSyncControllerL( CStifItemParser& aItem );
 		
@@ -250,6 +274,32 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
 		virtual TInt TestVideoMMCEventL( CStifItemParser& aItem );
 		
 		virtual TInt TestImageMMCEventL( CStifItemParser& aItem );
+		
+		virtual TInt TestStartEmailPluginL( CStifItemParser& aItem );
+		
+		CSearchDocument* prepareemaildocument();
+		
+		virtual TInt TestHandleEmailDocL( CStifItemParser& aItem );
+		
+		virtual TInt TestQualifiedBaseAppClassL( CStifItemParser& );
+		
+		virtual TAny TestHandleMsgMovedL( CStifItemParser& );
+		
+		virtual TAny TestMessageDataHandlerL( CStifItemParser& );
+		
+		virtual TInt TestMsgUnMountL( CStifItemParser& );
+		
+		virtual TInt TestFormFormBaseAppClassL( CStifItemParser& );
+		
+		virtual TInt TestMsgDeleteL( CStifItemParser& );
+		
+		virtual TInt TestMsgHandlesessionL( CStifItemParser& );
+		
+		virtual TInt TestMsgHandlesessionPanicL( CStifItemParser& aItem );
+		
+		virtual TInt TestMsgOverwriteOrAddToQuereL( CStifItemParser& aItem );
+		
+		virtual TInt TestMsgMessageHarvesterL( CStifItemParser& aItem );
         /**
          * Method used to log version of test class
          */

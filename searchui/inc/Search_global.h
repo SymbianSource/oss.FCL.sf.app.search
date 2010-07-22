@@ -26,6 +26,13 @@
 #include <e32hal.h>
 #endif
 #endif
+//#define OST_TRACE_COMPILER_IN_USE //Uncomment to enable performance measurements.
+
+#ifdef OST_TRACE_COMPILER_IN_USE
+#define PERF_APP_LAUNCH_END(str) qDebug() << "Search_App_Launch :"<<str<<"at:"<<QTime::currentTime().second()<<":"<<QTime::currentTime().msec();
+#else
+#define PERF_APP_LAUNCH_END(str)
+#endif 
 
 #ifndef SEARCH_UNITTESTING
     #define SEARCH_CLASS(aClassName)

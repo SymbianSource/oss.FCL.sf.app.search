@@ -1,4 +1,4 @@
-// Created by TraceCompiler 2.1.2
+// Created by TraceCompiler 2.2.3
 // DO NOT EDIT, CHANGES WILL BE LOST
 
 #ifndef __CMESSAGEMONITORTRACES_H__

@@ -40,7 +40,12 @@ _LIT(KCalendarDescriptionField, "Description");
 _LIT(KCalendarLocationField, "Location");
 _LIT(KCalendarStartTimeField, "StartTime");
 _LIT(KCalendarEndTimeField, "EndTime");
+_LIT(KCalenderCompletedField, "CompletedDate");
 _LIT(KCalendarAttendeesField, "Attendees");
+_LIT(KCalendarPriorityField, "Priority");
+_LIT(KCalendarPriorityHigh, "High");
+_LIT(KCalendarPriorityMedium, "Normal");
+_LIT(KCalendarPriorityLow, "Low");
 
 class CCalendarPlugin : public CIndexingPlugin, public MDelayedCallbackObserver, public MCalProgressCallBack, public MCalChangeCallBack2
 {
