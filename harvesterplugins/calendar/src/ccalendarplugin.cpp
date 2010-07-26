@@ -436,15 +436,21 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
                 }
 		    }
 		index_item->AddFieldL(KMimeTypeField, KMimeTypeCalendar, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-
+#ifdef USE_HIGHLIGHTER		
+    	TInt excerptLength = 1 /*single 1-character delimiters*/ + entry->DescriptionL().Length() + entry->LocationL().Length() + 1 + entry->SummaryL().Length();
+#else    	
     	TInt excerptLength = 1 /*single 1-character delimiters*/ + entry->DescriptionL().Length() + entry->LocationL().Length();
+#endif    	
 		HBufC* excerpt = HBufC::NewLC(excerptLength);
 		TPtr excerptDes = excerpt->Des();
 		excerptDes.Append(entry->DescriptionL());
 		excerptDes.Append(KExcerptDelimiter);
 		excerptDes.Append(entry->LocationL());
-
-        index_item->AddExcerptL(*excerpt);
+#ifdef USE_HIGHLIGHTER		
+	    excerptDes.Append(KExcerptDelimiter);
+	    excerptDes.Append(entry->SummaryL());
+#endif	    
+	    index_item->AddExcerptL(*excerpt);
         CleanupStack::PopAndDestroy(excerpt);
         CleanupStack::PopAndDestroy(entry);
 
@@ -463,46 +469,19 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 		if (aActionType == ECPixAddAction)
 			{
 			TRAPD(err, iIndexer->AddL(*index_item));
-			if (err == KErrNone)
-				{
-				OstTrace0( TRACE_NORMAL, DUP2_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL(): Added." );
-				CPIXLOGSTRING("CCalendarPlugin::CreateEntryL(): Added.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP3_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Error %d in adding", err );
-				CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL(): Error %d in adding.", err);
-				}			
+			OstTrace1( TRACE_NORMAL, DUP8_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL: Indexer->AddL;err=%d", err );			
 			}
-		else if (aActionType == ECPixUpdateAction)
+		else
 			{
 			TRAPD(err, iIndexer->UpdateL(*index_item));
-			if (err == KErrNone)
-				{
-				OstTrace0( TRACE_NORMAL, DUP4_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL(): Updated." );
-				CPIXLOGSTRING("CCalendarPlugin::CreateEntryL(): Updated.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP5_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Error %d in updating", err );
-				CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL(): Error %d in updating.", err);
-				}			
+			OstTrace1( TRACE_NORMAL, DUP9_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL: iIndexer->UpdateL;err=%d", err );	
 			}
 		CleanupStack::PopAndDestroy(index_item);
 		}
 	else if (aActionType == ECPixRemoveAction)
 		{
 		TRAPD(err, iIndexer->DeleteL(docid_str));
-		if (err == KErrNone)
-			{
-			OstTrace0( TRACE_NORMAL, DUP6_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL(): Deleted." );
-			CPIXLOGSTRING("CCalendarPlugin::CreateEntryL(): Deleted.");
-			}
-		else
-			{
-			OstTrace1( TRACE_NORMAL, DUP7_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Error %d in deleting", err );
-			CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL(): Error %d in deleting.", err);				
-			}
+		OstTrace1( TRACE_NORMAL, DUP2_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL: iIndexer->RemoveL;err=%d", err );
 		}
 
 	}

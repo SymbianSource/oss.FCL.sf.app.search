@@ -42,7 +42,7 @@ void SearchStateProviderTest::testhandleBackEvent()
     {
     SearchSettingsState* settingsState = new SearchSettingsState();
 
-    QSignalSpy spy(settingsState, SIGNAL(backEventTriggered()));
+    QSignalSpy spy(settingsState, SIGNAL(clickstatus(bool)));
     settingsState->handleBackEvent(true);
     QCOMPARE(spy.count(), 1);
 
@@ -74,7 +74,7 @@ void SearchStateProviderTest::testisInternetOn()
     {
     SearchSettingsState* settingsState = new SearchSettingsState();
     QSignalSpy spy(settingsState,
-                SIGNAL(customizeGoButton(bool)));
+                SIGNAL(switchToProState()));
     
     settingsState->isInternetOn();    
     

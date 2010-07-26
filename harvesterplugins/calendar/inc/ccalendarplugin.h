@@ -123,7 +123,12 @@ private:
 	TBool iFirstEntry;
 	
 	// Start harvesting
-	TBool iStartHarvesting;    
+	TBool iStartHarvesting;
+	
+	//for unit testing.
+    #ifdef HARVESTERPLUGINTESTER_FRIEND
+        friend class CHarvesterPluginTester;
+    #endif
 
 #ifdef __PERFORMANCE_DATA
     TTime iStartTime;

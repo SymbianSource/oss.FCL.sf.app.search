@@ -11,12 +11,10 @@
 #
 # Contributors:
 #
-# Description:
+# Description: 
 #
+#Header files
+HEADERS += ./inc/*.h 
 
-TEMPLATE = subdirs
-
-SUBDIRS  = t_searchstateprovider \
-           t_searchactivity
-           
-CONFIG  += ordered
+#Source files
+SOURCES += ./src/*.cpp 

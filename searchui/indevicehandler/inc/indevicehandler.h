@@ -32,8 +32,8 @@
 #define DEFAULT_SEARCH_FIELD "_aggregate"
 #endif
 
-class QCPixSearcher;
-class QCPixDocument;
+class CpixSearcher;
+class CpixDocument;
 
 SEARCH_CLASS(SearchInDeviceHandlerTest)
 
@@ -76,12 +76,12 @@ signals:
      * Signalled when user requests for the result item
      * error and result item will be returned
      */
-    void handleDocument(int aError, QCPixDocument* aDoc);
+    void handleDocument(int aError, CpixDocument* aDoc);
 
 private slots:
 
     /**
-     * slot connects to QCPixSearcher to get the status of search results 
+     * slot connects to CpixSearcher to get the status of search results 
      * @since S60 ?S60_version.
      * @param aError error code.
      * @param aEstimatedResultCount number of results
@@ -90,12 +90,12 @@ private slots:
     void getSearchResult(int aError, int aEstimatedResultCount);
 
     /**
-     * slot connects to QCPixSearcher to get the result item 
+     * slot connects to CpixSearcher to get the result item 
      * @since S60 ?S60_version.
      * @param aError error code.
      * @param aDocument result item
      */
-    void getDocumentAsync(int aError, QCPixDocument* aDocument);
+    void getDocumentAsync(int aError, CpixDocument* aDocument);
 
 public:
 
@@ -104,7 +104,7 @@ public:
      * @since S60 ?S60_version.
      * @param aIndex index 
      */
-    QCPixDocument* getDocumentAtIndex(int aIndex);
+    CpixDocument* getDocumentAtIndex(int aIndex);
 
     /**
      * returns the result item asynchronously.
@@ -156,7 +156,7 @@ private:
      * interface for CPix.
      * Own.
      */
-    QCPixSearcher *mSearchInterface;
+    CpixSearcher *mSearchInterface;
 
     /**
      * number of results on current search.        

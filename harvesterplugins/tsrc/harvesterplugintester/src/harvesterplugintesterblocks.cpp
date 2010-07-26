@@ -128,7 +128,12 @@ TInt CHarvesterPluginTester::RunMethodL(
         ENTRY( "TestAddLongNoteL", CHarvesterPluginTester::TestAddLongNoteL ),
         ENTRY( "TestAddAlphaNumericNoteL", CHarvesterPluginTester::TestAddAlphaNumericNoteL ),
         ENTRY( "TestDeleteNoteL", CHarvesterPluginTester::TestDeleteNoteL ),
-        ENTRY( "TestUpdateNoteL", CHarvesterPluginTester::TestUpdateNoteL ),                
+        ENTRY( "TestUpdateNoteL", CHarvesterPluginTester::TestUpdateNoteL ),
+        ENTRY( "TestNotesEntryNegative", CHarvesterPluginTester::TestNotesEntryNegativeL ),
+        ENTRY( "TestNotesDestructor", CHarvesterPluginTester::TestNotesDestructorL ),
+        ENTRY( "TestNotesDelayedError", CHarvesterPluginTester::TestNotesDelayedErrorL ),
+        ENTRY( "TestNotesChangeEntry", CHarvesterPluginTester::TestNotesChangeEntryL),
+        ENTRY( "TestNotesEntryNoIndexer", CHarvesterPluginTester::TestNotesEntryNoIndexerL),
         ENTRY( "TestContactsHarvesting", CHarvesterPluginTester::TestStartContactsHarvesterL ),
         ENTRY( "TestCreateContactIndexItemL_Add", CHarvesterPluginTester::TestCreateContactIndexItemL ),
         ENTRY( "TestCreateAllContactFields", CHarvesterPluginTester::TestCreateAllContactFieldsL ),
@@ -143,7 +148,10 @@ TInt CHarvesterPluginTester::RunMethodL(
         ENTRY( "TestCreateContactGroup", CHarvesterPluginTester::TestCreateContactGroupL ),
         ENTRY( "TestCalenderHarvesting", CHarvesterPluginTester::TestStartCalenderHarvesterL ),
         ENTRY( "TestCalenderEntry",CHarvesterPluginTester::TestCalenderEntryL ),
-        ENTRY( "TestCreateMMS",CHarvesterPluginTester::TestCreateMmsL ),
+        ENTRY( "TestCreateMMS",CHarvesterPluginTester::TestCreateMmsL ),        
+        ENTRY( "Testcalenderdestructor",CHarvesterPluginTester::TestcalenderdestructorL ),
+        ENTRY( "TestCalChangeEntry",CHarvesterPluginTester::TestCalChangeEntryL ),
+        ENTRY( "TestCalCreateEntry",CHarvesterPluginTester::TestCalCreateEntryL ),
         ENTRY( "TestCreateEmail",CHarvesterPluginTester::TestCreateEmailL ),
 		ENTRY( "TestAudioHarvesting",CHarvesterPluginTester::TestAudioHarvestingL ),        
 		ENTRY( "TestMdsSyncController",CHarvesterPluginTester::TestMdsSyncControllerL ),
@@ -1050,7 +1058,7 @@ TInt CHarvesterPluginTester::PerformNotesTestL( TPtrC aString1 , TPtrC aString2)
     return error;
     }
 
-TInt CHarvesterPluginTester::TestDeleteNoteL( CStifItemParser& aItem )
+TInt CHarvesterPluginTester::TestDeleteNoteL( CStifItemParser& /*aItem */)
     {	
     TInt error = KErrNone;
     _LIT( KSearchError, "Search Failed" );   
@@ -1060,9 +1068,10 @@ TInt CHarvesterPluginTester::TestDeleteNoteL( CStifItemParser& aItem )
     
     CCalendarObserver* session = CCalendarObserver::NewL();
     plugin->StartHarvestingL( _L(NOTES_QBASEAPPCLASS) );
+    session->DeleteNoteEntryL();
     iPluginTester->iWaitForHarvester->Start();
     // Add a Note entry
-    TPtrC searchstring;
+    /*TPtrC searchstring;
     error = aItem.GetNextString( searchstring );
     HBufC8* buf8 = HBufC8::NewL(2*searchstring.Length());
     buf8->Des().Copy(searchstring);
@@ -1080,7 +1089,7 @@ TInt CHarvesterPluginTester::TestDeleteNoteL( CStifItemParser& aItem )
         //If the entery is succesfully deleted, make error to KErrNone.To show testcase success
         if(error == KErrNotFound)
             error = KErrNone;    
-        }
+        }*/
     delete session;
     delete plugin;
     delete iPluginTester;
@@ -1132,6 +1141,76 @@ TInt CHarvesterPluginTester::TestUpdateNoteL( CStifItemParser& aItem )
     return error;    
     }
 
+TInt CHarvesterPluginTester::TestNotesEntryNegativeL( CStifItemParser& /*aItem*/ )
+    {   
+    CNotesPlugin* plugin = CNotesPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    plugin->StartHarvestingL( _L(NOTES_QBASEAPPCLASS) );
+    iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    plugin->CreateNoteEntryL(0, ECPixUpdateAction);
+    delete plugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    doLog( iLog, KErrNone, KNoErrorString );    
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestNotesDestructorL( CStifItemParser& /*aItem*/ )
+    {
+    CNotesPlugin* plugin = CNotesPlugin::NewL();    
+    plugin->iAsynchronizer->CancelCallback();
+    plugin->iAsynchronizer = NULL;
+    plugin->iSession->StopChangeNotification();
+    plugin->iSession = NULL;
+    delete plugin;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestNotesDelayedErrorL( CStifItemParser& /*aItem*/ )
+    {
+    CNotesPlugin* plugin = CNotesPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    iPluginTester->SetWaitTime(2000000);
+    plugin->StartPluginL();
+    TRAPD(err, plugin->DelayedError( KErrGeneral ));
+    delete plugin;
+    delete iPluginTester;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestNotesChangeEntryL( CStifItemParser& /*aItem*/ )
+    {
+    CNotesPlugin* plugin = CNotesPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    iPluginTester->SetWaitTime(2000000);
+    plugin->StartPluginL();
+    TCalChangeEntry calEntry;
+    calEntry.iChangeType = MCalChangeCallBack2::EChangeUndefined; //undefined type
+    plugin->HandleNoteChangedEntryL( calEntry );
+    calEntry.iChangeType = MCalChangeCallBack2::EChangeTzRules; //default check
+    plugin->HandleNoteChangedEntryL( calEntry );
+    delete plugin;
+    delete iPluginTester;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestNotesEntryNoIndexerL( CStifItemParser& /*aItem*/ )
+    {    
+    CNotesPlugin* plugin = CNotesPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL();
+    TRAPD(err, plugin->CreateNoteEntryL(0, ECPixUpdateAction) );
+    TRAP(err, plugin->CreateNoteEntryL(0, (TCPixActionType)3) );
+    iPluginTester->SetWaitTime(2000000);    
+    CCalendarObserver* calobserver = CCalendarObserver::NewL();
+    calobserver->AddEntryL();
+    delete calobserver;
+    delete plugin;
+    delete iPluginTester;
+    return err;
+    }
+	
 TInt CHarvesterPluginTester::TestStartContactsHarvesterL( CStifItemParser& /*aItem*/ )
     {
     CContactsPlugin* plugin = CContactsPlugin::NewL();
@@ -1449,6 +1528,10 @@ TInt CHarvesterPluginTester::TestCreateContactGroupL( CStifItemParser& aItem )
 
 TInt CHarvesterPluginTester::TestStartCalenderHarvesterL( CStifItemParser& /*aItem*/ )
     {
+    CCalendarObserver* session = CCalendarObserver::NewL();
+    // Add a calender entry
+    session->AddEntryL();
+    delete session;
     CCalendarPlugin* plugin = CCalendarPlugin::NewL();
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
     plugin->StartPluginL(); //start to moniter contacts db
@@ -1538,6 +1621,67 @@ TInt CHarvesterPluginTester::TestCreateMmsL( CStifItemParser& aItem )
     delete sessionobserver;
     delete msgSession;    
     doLog(iLog,error,KSearchError);
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestcalenderdestructorL( CStifItemParser& /*aItem */ )
+    {
+    CCalendarPlugin* plugin = CCalendarPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    plugin->StartPluginL(); //start to moniter contacts db   
+    plugin->Progress(100);
+    iPluginTester->SetWaitTime(2000000);
+    plugin->StartHarvestingL( _L(CALENDAR_QBASEAPPCLASS) );
+    plugin->DelayedError(KErrNone);
+    iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    plugin->Completed(KErrGeneral);  
+    plugin->iAsynchronizer->CancelCallback();
+    plugin->iAsynchronizer = NULL;
+    plugin->iSession->StopChangeNotification();
+    plugin->iSession = NULL;
+    delete plugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    doLog( iLog, KErrNone, KNoErrorString );
+    return KErrNone; 
+    }
+
+TInt CHarvesterPluginTester::TestCalChangeEntryL( CStifItemParser& /*aItem */ )
+    {
+    CCalendarPlugin* plugin = CCalendarPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    iPluginTester->SetWaitTime(2000000);
+    plugin->StartPluginL();
+    TCalChangeEntry calEntry;
+    calEntry.iChangeType = MCalChangeCallBack2::EChangeAdd; //undefined type
+    plugin->HandleChangedEntryL( calEntry );
+    calEntry.iChangeType = MCalChangeCallBack2::EChangeUndefined; //undefined type
+    plugin->HandleChangedEntryL( calEntry );
+    calEntry.iChangeType = MCalChangeCallBack2::EChangeTzRules; //default check
+    plugin->HandleChangedEntryL( calEntry );
+    delete plugin;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestCalCreateEntryL( CStifItemParser& /*aItem */ )
+    {
+    _LIT8(KTestmemo , "Notesplugin");
+    CCalendarPlugin* plugin = CCalendarPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( plugin );
+    iPluginTester->SetWaitTime(2000000);
+    plugin->CreateEntryL(0,ECPixAddAction );
+    plugin->StartPluginL();
+    plugin->CreateEntryL(0,ECPixAddAction );
+    CCalendarObserver* calobserver = CCalendarObserver::NewL();
+    HBufC8* memo = HBufC8::New(10);
+    TPtr8 ptr = memo->Des();
+    ptr.Copy(KTestmemo);
+    calobserver->AddNoteL(ptr);
+    delete calobserver;
+    delete memo;
+    plugin->CreateEntryL(0,(TCPixActionType )3);
+    delete plugin;
+    delete iPluginTester;
     return KErrNone;
     }
 

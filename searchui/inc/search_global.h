@@ -26,6 +26,8 @@
 #include <e32hal.h>
 #endif
 #endif
+//settings file 
+const QString SETTINGS_INI_PATH("C:\\private\\2002c377\\searchsettings.ini");
 //#define OST_TRACE_COMPILER_IN_USE //Uncomment to enable performance measurements.
 
 #ifdef OST_TRACE_COMPILER_IN_USE

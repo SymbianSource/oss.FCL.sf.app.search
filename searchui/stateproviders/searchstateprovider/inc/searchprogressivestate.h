@@ -63,16 +63,16 @@
 #endif //OST_TRACE_COMPILER_IN_USE
 class HbMainWindow;
 class HbView;
-class HbDocumentLoader;
 class HbSearchPanel;
 class CFbsBitmap;
 class InDeviceHandler;
-class QCPixDocument;
+class CpixDocument;
 class NotesEditorInterface;
 class EventViewerPluginInterface;
 class HbListWidget;
 class HbListWidgetItem;
 class QPluginLoader;
+class SearchUiLoader;
 SEARCH_CLASS( SearchStateProviderTest)
 /** @ingroup group_searchstateprovider
  * @brief The state where progressive search state is shown
@@ -149,6 +149,7 @@ private:
      * @since S60 ?S60_version.
      */
     void setSelectedCategories();
+    
 public slots:
 
     /**
@@ -165,7 +166,7 @@ public slots:
      * @param aError error code.
      * @param aDoc result item
      */
-    void onGetDocumentComplete(int aError, QCPixDocument* aDoc);
+    void onGetDocumentComplete(int aError, CpixDocument* aDoc);
 
     /**
      * slot connects to list view to launch the respective application
@@ -205,7 +206,7 @@ public slots:
     /**
      * slot connects to search state  for internet search
      * @since S60 ?S60_version.
-     */  
+     */
 
     void handleOk(const QVariant& var);
 
@@ -220,14 +221,37 @@ public slots:
      * Slot implemented to delete the calenderviewer plugin  
      * @since S60 ?S60_version.
      */
-
     void _viewingCompleted();
 
+    /**
+     * Slot to notify when view is ready   
+     * @since S60 ?S60_version.
+     */
     void viewReady();
-    
+
+    /**
+     * Slot to notify form query update form online state   
+     * @since S60 ?S60_version.
+     */
     void slotOnlineQuery(QString);
-    
+
+    /**
+     * Slot to update the online service providers for suggestion links 
+     * @since S60 ?S60_version.
+     */
     void slotISProvidersIcon(int, HbIcon);
+
+    /**
+     * Slot to launch the search result screen with the activity URI  
+     * @since S60 ?S60_version.
+     */
+    void activityRequested(const QString &name);
+
+    /**
+     * Slot to notify when theme is changed
+     * @since S60 ?S60_version.
+     */
+    void slotPrepareResultIcons();
 
 private:
 
@@ -283,14 +307,14 @@ private:
     void LaunchApplicationL(const TUid aUid);
 
     /**
-     * Function to parse the  QCPixDocument with the given filter       
+     * Function to parse the  CpixDocument with the given filter       
      */
-    QString filterDoc(const QCPixDocument* aDoc, const QString& filter);
+    QString filterDoc(const CpixDocument* aDoc, const QString& filter);
 
     /**
-     * Function to parse the  QCPixDocument with the given filters       
+     * Function to parse the  CpixDocument with the given filters       
      */
-    QStringList filterDoc(const QCPixDocument* aDoc, const QString& filter1,
+    QStringList filterDoc(const CpixDocument* aDoc, const QString& filter1,
             const QString& filter2, const QString& filter3 = QString());
 
     /**
@@ -312,7 +336,7 @@ signals:
      * setting state will be  activated.
      */
     void switchProToSettingsState();
-    
+
     void inDeviceSearchQuery(QString);
 
     void launchLink(int, QString);
@@ -338,18 +362,10 @@ private:
     HbListWidget* mListView;
 
     /**
-     * Document handler to load .docml.
-     * Own.
-     */
-    HbDocumentLoader* mDocumentLoader;
-
-    /**
      * The searchpanel widget.
      * Own.
      */
     HbSearchPanel* mSearchPanel;
-
- 
 
     /**
      * qt interface for CPix engine
@@ -449,9 +465,9 @@ private:
      * 
      */
     QPluginLoader *mNotespluginLoader;
-    
+
     QMap<int, HbIcon> mISprovidersIcon;
-    
+
     bool mOnlineQueryAvailable;
 
 private:
@@ -472,6 +488,10 @@ private:
      * 
      */
     QSize mListViewIconSize;
+
+    SearchUiLoader* mUiLoader;
+
+    bool mStateStatus;
 #ifdef OST_TRACE_COMPILER_IN_USE
     QTime m_totalSearchUiTime;
     QTime m_categorySearchUiTime;
@@ -482,7 +502,7 @@ private:
     long m_getDocumentCatergoryTimeAccumulator;
 #endif
 
-    SEARCH_FRIEND_CLASS (SearchStateProviderTest)
+SEARCH_FRIEND_CLASS    (SearchStateProviderTest)
 
     };
 

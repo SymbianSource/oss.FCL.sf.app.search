@@ -52,7 +52,6 @@ SettingsWidget::SettingsWidget() :
             mModel(NULL), mSelectedScope(0), mSelectedProvider(0), comboBox(
                     NULL), mInternetHandler(NULL)
     {
-    setSettingsFilePath();
     for (int i = 0; i < 8; i++)
         {
         mDeviceMapping.append(false);
@@ -397,12 +396,12 @@ void SettingsWidget::setActionVisibility()
         }
     if (!isInternetSelected)
         {
-           mActions.at(0)->setVisible(true);
-     
-           if (noItemSelected)
-             {     
-               mActions.at(0)->setVisible(false);
-              }
+        mActions.at(0)->setVisible(true);
+
+        if (noItemSelected)
+            {
+            mActions.at(0)->setVisible(false);
+            }
         }
     }
 //----------------------------------------------------------------------------------------------------------------------------
@@ -488,7 +487,7 @@ void SettingsWidget::checkBoxOkEvent()
 
 void SettingsWidget::storeSettingsToiniFile()
     {
-    QSettings appSettings(mSettingFileName, QSettings::IniFormat);
+    QSettings appSettings(SETTINGS_INI_PATH, QSettings::IniFormat);
     isInternetSelected ? (mSelectedScope = 1) : (mSelectedScope = 0);
     appSettings.setValue("selectedcategory", mSelectedScope);
     appSettings.setValue("devicecount", mDeviceCategoryRefList.count());
@@ -527,7 +526,7 @@ void SettingsWidget::storeSettingsToiniFile()
 //----------------------------------------------------------------------------------------------------------------------------
 void SettingsWidget::loadBaseSettings()
     {
-    QSettings appSettings(mSettingFileName, QSettings::IniFormat);
+    QSettings appSettings(SETTINGS_INI_PATH, QSettings::IniFormat);
     mSelectedScope = appSettings.value("selectedcategory", 0).toInt();
     mSelectedScope ? (isInternetSelected = true) : (isInternetSelected
             = false);
@@ -539,7 +538,7 @@ void SettingsWidget::loadBaseSettings()
 //----------------------------------------------------------------------------------------------------------------------------
 void SettingsWidget::loadDeviceSettings()
     {
-    QSettings appSettings(mSettingFileName, QSettings::IniFormat);
+    QSettings appSettings(SETTINGS_INI_PATH, QSettings::IniFormat);
     int value;
     if (!isInternetSelected)
         {
@@ -585,7 +584,7 @@ bool SettingsWidget::isInternetSearchOptionSelected()
 //----------------------------------------------------------------------------------------------------------------------------
 void SettingsWidget::storeDefaultSettings()
     {
-    QSettings appSettings(mSettingFileName, QSettings::IniFormat);
+    QSettings appSettings(SETTINGS_INI_PATH, QSettings::IniFormat);
     if (!appSettings.contains("selectedcategory")) // change the settings for the first time only
         {
         mSelectedScope = 0;
@@ -618,11 +617,6 @@ void SettingsWidget::slotitemSelected(int value)
             }
         selectedindex++;
         }
-    }
-void SettingsWidget::setSettingsFilePath()
-    {
-    mSettingFileName.append(QDir::currentPath());
-    mSettingFileName.append(QString("/searchsettings.ini"));
     }
 void SettingsWidget::loadIS()
     {

@@ -142,7 +142,7 @@ void SearchStateProviderTest::testcheckSubCategories()
 void SearchStateProviderTest::teststoreDefaultSettings()
     {
     QDir dir;
-    bool ret = dir.remove("search.ini");
+    bool ret = dir.remove(SETTINGS_INI_PATH);
 
     SettingsWidget* settingswizard = new SettingsWidget();
     settingswizard->initialize();

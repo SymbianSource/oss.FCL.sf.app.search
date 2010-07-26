@@ -240,7 +240,14 @@ void CApplicationsPlugin::CreateApplicationsIndexItemL( TApaAppInfo& aAppInfo, T
     //That way, if a client is interested in the UID field, he can choose to query it explicitly.
     document->AddFieldL(KMimeTypeField, KMimeTypeApplication, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized );
     document->AddFieldL(KApplicationFieldUid, docidString, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EAggregateNo );
-
+#ifdef USE_HIGHLIGHTER    
+    TInt excerptLength = docidString.Length();
+    HBufC* excerpt = HBufC::NewL(excerptLength);
+    TPtr excerptPtr = excerpt->Des();
+    CleanupStack::PushL(excerpt);
+    document->AddExcerptL(excerptPtr);
+    CleanupStack::PopAndDestroy(excerpt);
+#endif
     if( iWidgetRegistry.IsWidget( aAppInfo.iUid  ) )
         AddWidgetInfoL( document, aAppInfo.iUid );
     else

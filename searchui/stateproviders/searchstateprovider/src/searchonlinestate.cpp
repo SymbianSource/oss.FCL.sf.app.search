@@ -17,7 +17,7 @@
 
 #include "searchonlinestate.h"
 #include "onlinehandler.h"
-#include <hbdocumentloader.h>
+#include "searchuiloader.h"
 #include <hbview.h>
 #include <hblabel.h>
 #include <hbstackedwidget.h>
@@ -30,24 +30,37 @@
 #include <qdir.h>
 #include <hbsearchpanel.h>
 #include <hbapplication.h>
+#include <hblistwidget.h>
 #define hbApp qobject_cast<HbApplication*>(qApp)
-const char *SEARCHONLINESTATE_DOCML = ":/xml/searchstateprovider.docml";
-const char *ONLINE_TOC_VIEW = "tocView";
-const char *ONLINE_TUT_SEARCHPANEL_WIDGET = "searchPanel";
 
 // ---------------------------------------------------------------------------
 // SearchOnlineState::SearchOnlineState
 // ---------------------------------------------------------------------------
 //
 SearchOnlineState::SearchOnlineState(QState *parent) :
-    QState(parent), mMainWindow(NULL), mView(NULL), mSearchPanel(NULL),
-            mDocumentLoader(NULL)
+    QState(parent), mMainWindow(NULL), mView(NULL), mSearchPanel(NULL)
     {
 
     mInternetHandler = new OnlineHandler();
     mSearchReady = true;
     mIndeviceQueryAvailable = false;
-    mIsUICreated = false;
+
+    mMainWindow = hbInstance->allMainWindows().at(0);
+
+    mUiLoader = SearchUiLoader::instance();
+
+    mView = mUiLoader->View();
+    mListView = mUiLoader->ListWidget();
+    mSearchPanel = mUiLoader->SearchPanel();
+    if (mSearchPanel)
+        {
+        mSearchPanel->setFocus();
+        }
+    if (mView && mMainWindow)
+        {
+        mMainWindow->addView(mView);
+        mMainWindow->setCurrentView(mView);
+        }
     //activateSignals();
     }
 // ---------------------------------------------------------------------------
@@ -56,43 +69,8 @@ SearchOnlineState::SearchOnlineState(QState *parent) :
 //
 SearchOnlineState::~SearchOnlineState()
     {
-    delete mDocumentLoader;
+    SearchUiLoader::deleteinstance();
     delete mInternetHandler;
-    }
-void SearchOnlineState::createui()
-    {
-    mMainWindow = hbInstance->allMainWindows().at(0);
-    mDocumentLoader = new HbDocumentLoader();
-    bool ok = false;
-    mDocumentLoader->load(SEARCHONLINESTATE_DOCML, &ok);
-
-    QGraphicsWidget *widget = mDocumentLoader->findWidget(ONLINE_TOC_VIEW);
-    Q_ASSERT_X(ok && (widget != 0), "ONLINE_TOC_VIEW", "invalid view");
-
-    mView = qobject_cast<HbView*> (widget);
-    if (mView)
-        {
-        mView->setTitle(hbTrId("txt_search_title_search"));
-        }
-
-    mSearchPanel = qobject_cast<HbSearchPanel *> (
-            mDocumentLoader->findWidget(ONLINE_TUT_SEARCHPANEL_WIDGET));
-    if (mSearchPanel)
-        {
-        mSearchPanel->setSearchOptionsEnabled(true);
-
-        mSearchPanel->setProgressive(false);
-
-        mSearchPanel->setPlaceholderText(hbTrId(
-                "txt_search_dialog_search_internet"));
-
-        mSearchPanel->setCancelEnabled(false);          
-        }
-    if (mView && mMainWindow)
-        {
-        mMainWindow->addView(mView);
-        mMainWindow->setCurrentView(mView);
-        }
     }
 // ---------------------------------------------------------------------------
 // SearchOnlineState::onEntry
@@ -102,12 +80,16 @@ void SearchOnlineState::onEntry(QEvent *event)
     {
     qDebug() << "search:SearchOnlineState::onEntry";
     QState::onEntry(event);
-    if (!mIsUICreated)
+    if (mSearchPanel)
         {
-        createui();
-        mIsUICreated = true;
+        mSearchPanel->setProgressive(false);
+        mSearchPanel->setPlaceholderText(hbTrId(
+                "txt_search_dialog_search_internet"));
         }
-
+    if (mListView)
+        {
+        mListView->setVisible(false);
+        }
     activateSignals();
     // If this is not the current view, we're getting back from plugin view  
     if (mMainWindow)
@@ -243,8 +225,11 @@ void SearchOnlineState::slotbackEventTriggered()
 // ---------------------------------------------------------------------------
 void SearchOnlineState::slotIndeviceQuery(QString str)
     {
-    mSearchQuery = str;
-    mIndeviceQueryAvailable = true;
+    if (mSearchQuery != str)
+        {
+        mSearchQuery = str;
+        mIndeviceQueryAvailable = true;
+        }
     }
 // ---------------------------------------------------------------------------
 // SearchOnlineState::slotlaunchLink

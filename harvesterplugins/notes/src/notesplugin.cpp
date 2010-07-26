@@ -359,12 +359,14 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 
 		//For notes, no content is expected in excerpt for now.
 		//See appclass-hierarchy.txt for details.
-//    	TInt excerptLength = entry->DescriptionL().Length();
-//		HBufC* excerpt = HBufC::NewLC(excerptLength);
-//		TPtr excerptDes = excerpt->Des();		
-//		excerptDes.Append(entry->DescriptionL());
-//      index_item->AddExcerptL(*excerpt);
-//      CleanupStack::PopAndDestroy(excerpt);      
+#ifdef USE_HIGHLIGHTER		
+    	TInt excerptLength = entry->DescriptionL().Length();
+		HBufC* excerpt = HBufC::NewLC(excerptLength);
+		TPtr excerptDes = excerpt->Des();		
+		excerptDes.Append(entry->DescriptionL());
+      index_item->AddExcerptL(*excerpt);
+      CleanupStack::PopAndDestroy(excerpt);
+#endif      
 		
 		// Send for indexing
 		if (aActionType == ECPixAddAction)
@@ -373,34 +375,16 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
             TRAP_IGNORE( iIndexer->AddL(*index_item) );
 #else
 			TRAPD( err, iIndexer->AddL(*index_item) );
-			if ( err == KErrNone )
-				{
-				OstTrace0( TRACE_NORMAL, DUP3_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL(): Added." );
-				CPIXLOGSTRING("CNotesPlugin::CreateNoteEntryL(): Added.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP4_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL;Error while adding=%d", err );
-				CPIXLOGSTRING2("CNotesPlugin::CreateNoteEntryL(): Error %d in adding.", err);
-				}
+			OstTrace1( TRACE_NORMAL, DUP9_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL : iIndexer->AddL;err=%d", err );
 #endif
 			}
-		else if ( aActionType == ECPixUpdateAction )
+		else
 			{
 #ifndef _DEBUG
 		TRAP_IGNORE( iIndexer->UpdateL(*index_item) );
 #else
 			TRAPD( err, iIndexer->UpdateL(*index_item) );
-			if ( err == KErrNone )
-				{
-				OstTrace0( TRACE_NORMAL, DUP5_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL(): Updated." );
-				CPIXLOGSTRING("CNotesPlugin::CreateNoteEntryL(): Updated.");
-				}
-			else
-				{
-				OstTrace1( TRACE_NORMAL, DUP6_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL;Error while updating=%d", err );
-				CPIXLOGSTRING2("CNotesPlugin::CreateNoteEntryL(): Error %d in updating.", err);
-				}
+			OstTrace1( TRACE_NORMAL, DUP10_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL: iIndexer->UpdateL;err=%d", err );
 #endif
 			}
 		CleanupStack::PopAndDestroy(index_item);
@@ -412,16 +396,7 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
         TRAP_IGNORE( iIndexer->DeleteL(docid_str) );
 #else
 		TRAPD( err, iIndexer->DeleteL(docid_str) );
-		if (err == KErrNone)
-			{
-			OstTrace0( TRACE_NORMAL, DUP7_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL(): Deleted." );
-			CPIXLOGSTRING("CNotesPlugin::CreateNoteEntryL(): Deleted.");
-			}
-		else
-			{
-			OstTrace1( TRACE_NORMAL, DUP8_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL;Error while deleting=%d", err );
-			CPIXLOGSTRING2("CNotesPlugin::CreateNoteEntryL(): Error %d in deleting.", err);				
-			}
+		OstTrace1( TRACE_NORMAL, DUP3_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL: iIndexer->RemoveL;err=%d", err );
 #endif
 		}	
 	}

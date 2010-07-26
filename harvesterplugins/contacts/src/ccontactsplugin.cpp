@@ -383,8 +383,13 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
             /* The order of fields in excerpt is as below. The order in this case
              * is the order of fields shown when you 'Edit' the contact.
              */
+#ifdef USE_HIGHLIGHTER            
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField:: EIndexFreeText );
+#else
             AddFieldL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
-            AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField:: EIndexFreeText );
+            AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField:: EIndexFreeText );        
+#endif            
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSIPID, KContactsSIPIDField );
@@ -419,9 +424,13 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
             
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldIMAddress, KContactIMAddress);
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldServiceProvider, KContactServiceProvider);
-            
+#ifdef USE_HIGHLIGHTER
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldBirthday, KContactBirthday);
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldAnniversary, KContactAnniversary);
+#else
             AddFieldL( *index_item, fieldSet, KUidContactFieldBirthday, KContactBirthday);
-            AddFieldL( *index_item, fieldSet, KUidContactFieldAnniversary, KContactAnniversary);
+            AddFieldL( *index_item, fieldSet, KUidContactFieldAnniversary, KContactAnniversary);      
+#endif            
             index_item->AddExcerptL(*iExcerpt);
             }
         

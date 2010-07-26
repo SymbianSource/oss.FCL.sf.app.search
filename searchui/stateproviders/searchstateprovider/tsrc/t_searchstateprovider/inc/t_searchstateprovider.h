@@ -57,7 +57,7 @@ private slots:
     void testopenResultitem();
     void testgetSettingCategory();
     void testsetSettings();
-    void teststartNewSearch();    
+    void teststartNewSearch();
     void testsettingsaction();
     void testcancelSearch();
     void testhandleOkError();
@@ -103,15 +103,26 @@ private slots:
     void testcreateGui();
     void testpreparecategories();
     void testq_currentIndexChanged();
-
     void selectedItemCategory();
 
-    /* void testOnWizardAddedSignalledNoWizardInCS();
-     void testProgressUpdated();
-     void testWizardSelected();    
+    /**
+     * t_searchonlinestate.cpp
      */
-private:
+    void teststartOnlineSearch();
+    void testonlinesetSettings();
+    void testonlinecancelSearch();    
+    void testslotbackEventTriggered();
+    void testslotIndeviceQuery();
+    void testslotlaunchLink();
+    void testslotviewReady();    
 
+    /**
+     * t_searchstateprovider.cpp
+     * unit test code for uiloader
+     */
+    void testcreatenanddelete();
+    void testslotsendtobackground();
+private:
     /**
      * Helper method testing construction of state
      *
@@ -121,10 +132,9 @@ private:
      * @return True if state was created successfully, false otherwise.
      * @since S60 ?S60_version.
      */
-    bool verifyStateCreation(const QString& uri);    
-
-    HbMainWindow* mainWindow();
-
+    bool verifyStateCreation(const QString& uri);
+    
+    HbMainWindow *mainWindow();
 private:
 
     HbMainWindow *mMainWindow;

@@ -21,11 +21,13 @@
 #include <hbicon.h>
 SEARCH_CLASS( SearchStateProviderTest)
 
-class HbDocumentLoader;
+class HbListWidget;
 class HbView;
 class HbSearchPanel;
 class HbMainWindow;
 class OnlineHandler;
+class SearchUiLoader;
+
 /** @ingroup group_searchonlinestate
  * @brief The state handles wizard activation and interaction.
  *
@@ -78,8 +80,7 @@ private:
      * @since S60 ?S60_version.
      */
     void activateSignals();
-    
-    void createui();
+
 public slots:
 
     /**
@@ -174,14 +175,16 @@ private:
     HbSearchPanel* mSearchPanel;
 
     /**
-     * HbDocumentLoader instance.
+     * The List View widget.    
      */
-    HbDocumentLoader* mDocumentLoader;
+    HbListWidget* mListView;
 
     /**
      * OnlineHandler instance.
      */
     OnlineHandler* mInternetHandler;
+
+    SearchUiLoader* mUiLoader;
 
     /**
      * search keyword.
@@ -189,7 +192,7 @@ private:
     QString mSearchQuery;
     bool mSearchReady;
     bool mIndeviceQueryAvailable;
-    bool mIsUICreated;
+   
     /**
      * friend class for unit testing
      */

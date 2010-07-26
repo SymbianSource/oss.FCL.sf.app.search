@@ -18,7 +18,7 @@ TEMPLATE = lib
 TARGET = searchindevicehandler
 
    
-   LIBS += -lqcpixsearchclient
+   LIBS += -lcpixsearch
    LIBS += -lhbcore
    
 DEFINES += BUILD_INDEVICEHANDLER 
@@ -28,9 +28,6 @@ DEPENDPATH += ./inc \
 
 INCLUDEPATH += ./inc \
                ../inc 
-
-               
-#TRANSLATIONS=searchstateprovider.ts
 
 symbian {
     TARGET.UID2 = 0x20004C45

@@ -23,7 +23,7 @@
 #include <data_caging_paths_for_iby.hrh>
 
 //Language resource files
-data=DATAZ_\QT_TRANSLATIONS_DIR\searchsw.qm QT_TRANSLATIONS_DIR\searchsw.qm
+data=DATAZ_\QT_TRANSLATIONS_DIR\search.qm QT_TRANSLATIONS_DIR\search.qm
 
 // Application resource file.
 data=DATAZ_/resource/apps/Searchapplication.RSC     /resource/apps/Searchapplication.RSC

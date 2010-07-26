@@ -213,6 +213,16 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
         TInt PerformNotesTestL( TPtrC aString1 , TPtrC aString2 );
         virtual TInt TestDeleteNoteL( CStifItemParser& aItem);
         virtual TInt TestUpdateNoteL( CStifItemParser& aItem );
+        
+        virtual TInt TestNotesEntryNegativeL( CStifItemParser& aItem );
+        
+        virtual TInt TestNotesDestructorL ( CStifItemParser& aItem );
+        
+        virtual TInt TestNotesDelayedErrorL( CStifItemParser& aItem );
+        
+        virtual TInt TestNotesChangeEntryL( CStifItemParser& aItem );
+        
+        virtual TInt TestNotesEntryNoIndexerL( CStifItemParser& aItem );
         /*** End of Notes plugin tests   ***/
         
         virtual TInt TestStartContactsHarvesterL( CStifItemParser& aItem );
@@ -242,6 +252,12 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
         virtual TInt TestCalenderEntryL( CStifItemParser& aItem );        
         
         virtual TInt TestCreateMmsL( CStifItemParser& aItem );
+        
+        virtual TInt TestcalenderdestructorL( CStifItemParser& aItem );
+        
+        virtual TInt TestCalChangeEntryL( CStifItemParser& aItem );
+        
+        virtual TInt TestCalCreateEntryL( CStifItemParser& aItem );
         
         virtual TInt TestCreateEmailL( CStifItemParser& aItem );
 		

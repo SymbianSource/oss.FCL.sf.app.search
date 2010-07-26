@@ -15,8 +15,8 @@
  *
  */
 #include "indevicehandler.h"
-#include <qcpixsearcher.h>
-#include <qcpixdocument.h>
+#include <cpixsearcher.h>
+#include <cpixdocument.h>
 
 // ---------------------------------------------------------------------------
 // InDeviceHandler::InDeviceHandler()
@@ -52,12 +52,12 @@ void InDeviceHandler::getSearchResult(int aError, int estimatedResultCount)
     emit handleAsyncSearchResult(aError, estimatedResultCount);
     }
 // ---------------------------------------------------------------------------
-// InDeviceHandler::getDocumentAsync(int aError, QCPixDocument* aDocument)
+// InDeviceHandler::getDocumentAsync(int aError, CpixDocument* aDocument)
 // aError: error code
 // aDocument: holding the result item
 // ---------------------------------------------------------------------------
 //
-void InDeviceHandler::getDocumentAsync(int aError, QCPixDocument* aDocument)
+void InDeviceHandler::getDocumentAsync(int aError, CpixDocument* aDocument)
     {
     emit handleDocument(aError, aDocument);
     }
@@ -66,14 +66,14 @@ void InDeviceHandler::getDocumentAsync(int aError, QCPixDocument* aDocument)
 // aIndex: item index to be found
 // ---------------------------------------------------------------------------
 //
-QCPixDocument* InDeviceHandler::getDocumentAtIndex(int aIndex)
+CpixDocument* InDeviceHandler::getDocumentAtIndex(int aIndex)
     {
-    QCPixDocument* doc = NULL;
+    CpixDocument* doc = NULL;
     if (mSearchInterface)
         {
         try
             {
-            doc = mSearchInterface->getDocument(aIndex);
+            doc = mSearchInterface->document(aIndex);
 
             }
         catch (...)
@@ -106,7 +106,7 @@ void InDeviceHandler::getDocumentAsyncAtIndex(int aIndex)
         {
         try
             {
-            mSearchInterface->getDocumentAsync(aIndex);
+            mSearchInterface->documentAsync(aIndex);
             }
         catch (...)
             {
@@ -177,12 +177,12 @@ void InDeviceHandler::setCategory(QString astring)
         {
         QString database("root ");
         database.append(astring);
-        mSearchInterface = QCPixSearcher::newInstance(database,
+        mSearchInterface = CpixSearcher::newInstance(database,
                 DEFAULT_SEARCH_FIELD);
         }
     else
         {
-        mSearchInterface = QCPixSearcher::newInstance("root",
+        mSearchInterface = CpixSearcher::newInstance("root",
         DEFAULT_SEARCH_FIELD);
         }
     if (mSearchInterface)
@@ -201,8 +201,8 @@ void InDeviceHandler::setCategory(QString astring)
         try
             {
             mSearchInterface->connect(mSearchInterface,
-                    SIGNAL(handleDocument(int,QCPixDocument*)), this,
-                    SLOT(getDocumentAsync(int,QCPixDocument*)));
+                    SIGNAL(handleDocument(int,CpixDocument*)), this,
+                    SLOT(getDocumentAsync(int,CpixDocument*)));
             }
         catch (...)
             {

@@ -53,6 +53,9 @@ LIBRARY		  charconv.lib
 LIBRARY		  imcm.lib // CImHeader, CImEmailMessage
 LIBRARY		  etext.lib // CParaFormatLayer etc
 
+// For Enabling Highlighter
+//MACRO USE_HIGHLIGHTER
+
 // For logging
 LIBRARY 	  flogger.lib 
 

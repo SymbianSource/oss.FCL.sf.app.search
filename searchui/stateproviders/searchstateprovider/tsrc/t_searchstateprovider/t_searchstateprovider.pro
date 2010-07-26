@@ -35,7 +35,7 @@ win32 {
 
 LIBS += -lsearchindevicehandler
 LIBS += -lxqservice 
-LIBS += -lqcpixsearchclient
+LIBS += -lcpixsearch
 LIBS += -laknskins 
 LIBS += -lfbscli
 LIBS += -laknicon
@@ -48,6 +48,7 @@ LIBS += -lefsrv
 LIBS += -lapgrfx
 LIBS += -lws32
 LIBS += -lavkon
+LIBS += -ltstaskmonitorclient.dll
 
 CONFIG += qtestlib \
           symbian_test \

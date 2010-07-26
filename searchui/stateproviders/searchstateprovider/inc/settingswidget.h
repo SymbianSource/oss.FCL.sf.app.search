@@ -112,9 +112,7 @@ public:
      */
 
     void initialize();
-    
-    void setSettingsFilePath();
-    
+
     void loadIS();
 
 public slots:
@@ -139,7 +137,7 @@ public slots:
     void slotproviderDetails(QString, HbIcon, int);
 
     void slotdefaultProvider(const int);
-    
+
     void slotitemSelected(int);
 signals:
     /**
@@ -157,8 +155,8 @@ signals:
      * 
      */
     void selectedItemCategory(int, bool);
-    
-    void ISProvidersIcon(HbIcon,int);
+
+    void ISProvidersIcon(HbIcon, int);
 
 private:
     /**
@@ -250,10 +248,9 @@ private:
     bool mchangestate;
 
     OnlineHandler *mInternetHandler;
-   // QStringList mServiceProviders;
+    // QStringList mServiceProviders;
     QMap<int, QString> mServiceProviders;
-    
-    QString mSettingFileName;
+
 SEARCH_FRIEND_CLASS    (SearchStateProviderTest)
     };
 #endif

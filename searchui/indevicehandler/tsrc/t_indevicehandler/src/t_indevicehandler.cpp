@@ -1,7 +1,7 @@
 #include "t_indevicehandler.h"
 #include "indevicehandler.h"
 #include <qsignalspy.h>
-#include <qcpixdocument.h>
+#include <cpixdocument.h>
 SearchInDeviceHandlerTest::SearchInDeviceHandlerTest()
     {
     }
@@ -48,7 +48,7 @@ void SearchInDeviceHandlerTest::testhandleDocument()
     QTest::qWait(2000);
 
     QSignalSpy spy(indevicehandler,
-            SIGNAL(handleDocument(int, QCPixDocument*)));
+            SIGNAL(handleDocument(int, CpixDocument*)));
     indevicehandler->getDocumentAsyncAtIndex(0);
     QTest::qWait(2000);
     QCOMPARE(spy.count(), 1);
@@ -72,7 +72,7 @@ void SearchInDeviceHandlerTest::testgetDocumentAsyncAtIndex()
     indevicehandler->searchAsync("jpg*");
     QTest::qWait(2000);
     QSignalSpy spy(indevicehandler,
-            SIGNAL(handleDocument(int, QCPixDocument*)));
+            SIGNAL(handleDocument(int, CpixDocument*)));
     indevicehandler->getDocumentAsyncAtIndex(0);
     QTest::qWait(2000);
     QCOMPARE(spy.count(), 1);

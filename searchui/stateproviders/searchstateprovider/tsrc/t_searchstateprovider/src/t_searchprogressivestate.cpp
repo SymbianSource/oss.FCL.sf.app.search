@@ -14,6 +14,7 @@
 #include <AknIconUtils.h> 
 #include <apgcli.h>
 #include <hbsearchpanel.h>
+#include  <qmap.h>
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -27,8 +28,7 @@ void SearchStateProviderTest::testProgressiveStateConstruction()
 
     QVERIFY(progressiveState != NULL);
     QVERIFY(progressiveState->mView);
-    QVERIFY(progressiveState->mListView);
-    QVERIFY(progressiveState->mDocumentLoader);
+    QVERIFY(progressiveState->mListView);    
     QVERIFY(progressiveState->mSearchPanel);
     //QVERIFY(progressiveState->mSearchHandler);
 
@@ -109,9 +109,11 @@ void SearchStateProviderTest::testonAsyncSearchComplete()
     progressiveState->mSearchHandler
             = progressiveState->mSearchHandlerList.at(2);
    
-    
-    progressiveState->mSearchHandler->searchAsync("jpg*", "_aggregate");
-    QTest::qWait(2000);
+    //progressiveState->mSearchHandler->searchAsync("$prefix(\\jpg\\", "_aggregate");
+    //progressiveState->mSearchHandler->searchAsync("$prefix(\"jpg\")", "_aggregate");
+    progressiveState->onAsyncSearchComplete(-1,0);
+    progressiveState->onAsyncSearchComplete(0,0);
+    progressiveState->onAsyncSearchComplete(0,10);
     QVERIFY(progressiveState->mResultcount);
 
     delete progressiveState;
@@ -216,7 +218,7 @@ void SearchStateProviderTest::testsetSettings()
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
     progressiveState->onEntry(event);
-    QSignalSpy spy(progressiveState, SIGNAL(settingsState()));
+    QSignalSpy spy(progressiveState, SIGNAL(switchProToSettingsState()));
     progressiveState->setSettings();
     QCOMPARE(spy.count(), 1);
     delete progressiveState;
@@ -326,7 +328,11 @@ void SearchStateProviderTest::testcreateSuggestionLink()
     {
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
-    progressiveState->onEntry(event);    
+    progressiveState->onEntry(event);
+   
+   
+    //progressiveState->mISprovidersIcon.insert(1,icon1);
+    progressiveState->mISprovidersIcon.insert(1, progressiveState->mIconArray.at(1));
     progressiveState->createSuggestionLink();
     QCOMPARE(progressiveState->mListView->count(), 1);
     delete progressiveState;

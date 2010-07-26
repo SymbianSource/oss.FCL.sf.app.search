@@ -72,8 +72,8 @@ void CCalendarObserver::AddEntryL()
     CleanupStack::PushL(entry);
             
     // For an appointment, the time as well as the date is relevant
-    TDateTime startTime(2010, EJanuary, 04, 10, 0, 0, 0);
-    TDateTime endTime(2010, EJanuary, 05, 16, 0, 0, 0);
+    TDateTime startTime(2010, EJuly, 07, 10, 0, 0, 0);
+    TDateTime endTime(2010, EJuly, 07, 16, 0, 0, 0);
     
     TCalTime calstart;
     TCalTime calstop;

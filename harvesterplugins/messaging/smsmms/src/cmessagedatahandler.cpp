@@ -493,8 +493,12 @@ HBufC* CMessageDataHandler::CreateExcerptLC(const TDesC& aFromAddress,
     
 	_LIT(KEllipsis, "...");
 	_LIT(KSpace, " ");
-	TInt excerptLength = KMsgBodyExcerptSymbols + KEllipsis().Length(); 
-
+	//
+#ifdef USE_HIGHLIGHTER	
+	TInt excerptLength = aBodyText.Length() + KEllipsis().Length();
+#else	
+	TInt excerptLength = KMsgBodyExcerptSymbols + KEllipsis().Length();
+#endif	
 	//Not removing commented out code as this may come back into use in near future.
 //	TMsvEntry entry;
 //	TMsvId service = 0;
@@ -541,11 +545,13 @@ HBufC* CMessageDataHandler::CreateExcerptLC(const TDesC& aFromAddress,
 //		excerptPtr.Append(aSubject);
 //		excerptPtr.Append(KSpace);
 //		}
-
-	excerptPtr.Append(aBodyText.Left(KMsgBodyExcerptSymbols));
+#ifdef USE_HIGHLIGHTER
+    excerptPtr.Append(aBodyText);
+#else    
+	excerptPtr.Append(aBodyText.Left(KMsgBodyExcerptSymbols));	
 	if (aBodyText.Length() > KMsgBodyExcerptSymbols)
 		excerptPtr.Append(KEllipsis);
-
+#endif
 //	CleanupStack::PopAndDestroy(folder_str);
 	CleanupStack::PushL(excerpt);
 	return excerpt;

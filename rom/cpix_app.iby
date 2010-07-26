@@ -38,7 +38,7 @@ ECOM_PLUGIN( cpixcontactsplugin.dll, cpixcontactsplugin.rsc)
 ECOM_PLUGIN( cpixfileplugin.dll, cpixfileplugin.rsc)
 
 // Bookmark plugin
-ECOM_PLUGIN( cpixbookmarksplugin.dll, cpixbookmarksplugin.rsc)
+//ECOM_PLUGIN( cpixbookmarksplugin.dll, cpixbookmarksplugin.rsc)
 
 //Calender plugin
 ECOM_PLUGIN( cpixcalendarplugin.dll, cpixcalendarplugin.rsc)

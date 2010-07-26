@@ -16,18 +16,17 @@
  */
 #include "searchprogressivestate.h"
 #include "indevicehandler.h"
-#include <qcpixdocument.h>
-#include <qcpixdocumentfield.h>
+#include "searchuiloader.h"
+#include <cpixdocument.h>
+#include <cpixdocumentfield.h>
 #include <hbmainwindow.h>
 #include <hbview.h>
 #include <hblabel.h>
 #include <hbicon.h>
 #include <hbmenu.h>
 #include <hbinstance.h>
-#include <hbdocumentloader.h>
 #include <hbsearchpanel.h>
 #include <hbaction.h>
-#include <hbframebackground.h>
 #include <hbapplication.h>
 #include <qsortfilterproxymodel.h>
 #include <AknsUtils.h>
@@ -53,80 +52,38 @@
 #include <hblistwidgetitem.h>
 #include <hbabstractviewitem.h>
 #include <hblistviewitem.h>
+#include <hbactivitymanager.h>
 #define hbApp qobject_cast<HbApplication*>(qApp)
-const char *SEARCHSTATEPROVIDER_DOCML = ":/xml/searchstateprovider.docml";
-const char *TOC_VIEW = "tocView";
-const char *TUT_SEARCHPANEL_WIDGET = "searchPanel";
-const char *TUT_LIST_VIEW = "listView";
-const int totalcategories = 10;
+const int totalcategories_normalreason = 10;
+const int totalcategories_activityreasonreason = 13;
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::SearchProgressiveState
 // ---------------------------------------------------------------------------
 SearchProgressiveState::SearchProgressiveState(QState *parent) :
     QState(parent), mMainWindow(NULL), mView(NULL), mListView(NULL),
-            mDocumentLoader(NULL), mSearchHandler(NULL), mNotesEditor(0),
-            mAiwMgr(0), mRequest(0)
+            mSearchHandler(NULL), mNotesEditor(0), mAiwMgr(0), mRequest(0)
     {
 
     mMainWindow = hbInstance->allMainWindows().at(0);
 
     mAiwMgr = new XQApplicationManager;
 
-    mDocumentLoader = new HbDocumentLoader();
-    bool ok = false;
-    mDocumentLoader->load(SEARCHSTATEPROVIDER_DOCML, &ok);
+    mUiLoader = SearchUiLoader::instance();
 
-    QGraphicsWidget *widget = mDocumentLoader->findWidget(TOC_VIEW);
-    Q_ASSERT_X(ok && (widget != 0), "TOC_VIEW", "invalid view");
+    mView = mUiLoader->View();
+    mListView = mUiLoader->ListWidget();
+    mSearchPanel = mUiLoader->SearchPanel();
 
-    mView = qobject_cast<HbView*> (widget);
-    if (mView)
-        {
-        mView->setTitle(hbTrId("txt_search_title_search"));
-        }
+    HbStyle style;
+    qreal x;
+    style.parameter("hb-param-graphic-size-primary-large", x);
+    QSizeF size(x, x);
+    mListViewIconSize = size.toSize();
 
-    mListView = qobject_cast<HbListWidget *> (mDocumentLoader->findWidget(
-            TUT_LIST_VIEW));
-    Q_ASSERT_X(ok && (mListView != 0), "TUT_LIST_VIEW", "invalid viewocML file");
-
-    if (mListView)
-        {
-        HbAbstractViewItem *prototype = mListView->itemPrototypes().first();
-        HbFrameBackground frame;
-        frame.setFrameGraphicsName("qtg_fr_list_normal");
-        frame.setFrameType(HbFrameDrawer::NinePieces);
-        prototype->setDefaultFrame(frame);
-
-        HbListViewItem *prototypeListView = qobject_cast<HbListViewItem *> (
-                prototype);
-        prototypeListView->setGraphicsSize(HbListViewItem::LargeIcon);
-        if (prototypeListView)
-            {
-            HbStyle style;
-            qreal x;
-            style.parameter("hb-param-graphic-size-primary-large", x);
-            QSizeF size(x, x);
-            mListViewIconSize = size.toSize();
-            prototypeListView->setTextFormat(Qt::RichText);
-            }
-
-        HbAbstractItemView::ItemAnimations noCreationAndRemovalAnimations =
-                HbAbstractItemView::All;
-        noCreationAndRemovalAnimations ^= HbAbstractItemView::Appear;
-        noCreationAndRemovalAnimations ^= HbAbstractItemView::Disappear;
-        mListView->setEnabledAnimations(noCreationAndRemovalAnimations);
-        }
-
-    mSearchPanel = qobject_cast<HbSearchPanel *> (
-            mDocumentLoader->findWidget(TUT_SEARCHPANEL_WIDGET));
     if (mSearchPanel)
         {
-        mSearchPanel->setSearchOptionsEnabled(true);
-
         mSearchPanel->setPlaceholderText(hbTrId(
                 "txt_search_dialog_search_device"));
-
-        mSearchPanel->setCancelEnabled(false);
         mSearchPanel->setFocus();
         }
 
@@ -143,24 +100,12 @@ SearchProgressiveState::SearchProgressiveState(QState *parent) :
     mResultparser = 0;
     loadSettings = true;
 
-    //Icon creation in array
-    QList<TUid> appUid;
-    appUid.append(TUid::Uid(0x20022EF9));//contact
-    appUid.append(TUid::Uid(0x10207C62));//audio
-    appUid.append(TUid::Uid(0x200211FE));//video 
-    appUid.append(TUid::Uid(0x20000A14));//image 
-    appUid.append(TUid::Uid(0x2001FE79));//msg
-    appUid.append(TUid::Uid(0x200255BA));//email 
-    appUid.append(TUid::Uid(0x10005901));//calender
-    appUid.append(TUid::Uid(0x20029F80));//notes
-    //appUid.Append(TUid::Uid(0x20022F35));//application
-    appUid.append(TUid::Uid(0x10008D39));//bookmark
-    appUid.append(TUid::Uid(0x2002BCC0));//files
-
-    for (int i = 0; i < appUid.count(); i++)
+    if (hbApp)
         {
-        TRAP_IGNORE(mIconArray.append(getAppIconFromAppIdL(appUid.at(i))));
+        connect(hbApp->activityManager(), SIGNAL(activityRequested(QString)),
+                this, SLOT(activityRequested(QString)));
         }
+
 #ifdef OST_TRACE_COMPILER_IN_USE 
     //start() the timers to avoid worrying abt having to start()/restart() later
     m_categorySearchApiTime.start();
@@ -188,6 +133,10 @@ SearchProgressiveState::SearchProgressiveState(QState *parent) :
         }
 
     mOnlineQueryAvailable = false;
+    //Prepare the icons,listen of theme change    
+    connect(hbInstance->theme(), SIGNAL(changeFinished()), this,
+            SLOT(slotPrepareResultIcons()));
+    slotPrepareResultIcons();    
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::~SearchProgressiveState
@@ -198,10 +147,6 @@ SearchProgressiveState::~SearchProgressiveState()
         {
         delete mAiwMgr;
         }
-    if (mDocumentLoader)
-        {
-        delete mDocumentLoader;
-        }
     for (int i = 0; i < mSearchHandlerList.count(); i++)
         {
         delete mSearchHandlerList.at(i);
@@ -211,14 +156,21 @@ SearchProgressiveState::~SearchProgressiveState()
         mNotespluginLoader->unload();
         delete mNotespluginLoader;
         }
+    SearchUiLoader::deleteinstance();
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::constructHandlers
 // ---------------------------------------------------------------------------
 void SearchProgressiveState::constructHandlers()
     {
+    int categories = totalcategories_normalreason;
+
+    if (hbApp && hbApp->activateReason() == Hb::ActivationReasonActivity)
+        {
+        categories = totalcategories_activityreasonreason;
+        }
     InDeviceHandler* handler = NULL;
-    for (int i = 0; i < totalcategories; i++)
+    for (int i = 0; i < categories; i++)
         {
         handler = new InDeviceHandler();
         switch (i)
@@ -273,6 +225,21 @@ void SearchProgressiveState::constructHandlers()
                 handler->setCategory("bookmark");
                 break;
                 }
+            case 10:
+                {
+                handler->setCategory("media image");
+                break;
+                }
+            case 11:
+                {
+                handler->setCategory("media audio");
+                break;
+                }
+            case 12:
+                {
+                handler->setCategory("media video");
+                break;
+                }
             }
         mSearchHandlerList.append(handler);
         }
@@ -284,8 +251,19 @@ void SearchProgressiveState::onEntry(QEvent *event)
     {
     //  WMS_LOG << "::onEntry";
     QState::onEntry(event);
-    activateSignals();
 
+    mStateStatus = true;// used for conditional execution for the slots that are connected as transitions
+    if (mSearchPanel)
+        {
+        mSearchPanel->setPlaceholderText(hbTrId(
+                "txt_search_dialog_search_device"));
+        mSearchPanel->setProgressive(true);
+        }
+    if (mListView)
+        {
+        mListView->setVisible(true);
+        }
+    activateSignals();
     // If this is not the current view, we're getting back from plugin view  
     if (mMainWindow)
         {
@@ -313,7 +291,8 @@ void SearchProgressiveState::onEntry(QEvent *event)
 void SearchProgressiveState::onExit(QEvent *event)
     {
     QState::onExit(event);
-    deActivateSignals();
+    mStateStatus = false;
+    deActivateSignals();    
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::activateSignals
@@ -326,8 +305,8 @@ void SearchProgressiveState::activateSignals()
                 SIGNAL(handleAsyncSearchResult(int,int)), this,
                 SLOT(onAsyncSearchComplete(int,int)));
         connect(mSearchHandlerList.at(i),
-                SIGNAL(handleDocument(int,QCPixDocument*)), this,
-                SLOT(onGetDocumentComplete(int,QCPixDocument*)));
+                SIGNAL(handleDocument(int,CpixDocument*)), this,
+                SLOT(onGetDocumentComplete(int,CpixDocument*)));
         }
     if (mListView)
         {
@@ -341,9 +320,7 @@ void SearchProgressiveState::activateSignals()
         connect(mSearchPanel, SIGNAL(searchOptionsClicked()), this,
                 SLOT(setSettings()));
         }
-
     connect(mMainWindow, SIGNAL(viewReady()), this, SLOT(viewReady()));
-
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::deActivateSignals
@@ -356,8 +333,8 @@ void SearchProgressiveState::deActivateSignals()
                 SIGNAL(handleAsyncSearchResult(int,int)), this,
                 SLOT(onAsyncSearchComplete(int,int)));
         disconnect(mSearchHandlerList.at(i),
-                SIGNAL(handleDocument(int,QCPixDocument*)), this,
-                SLOT(onGetDocumentComplete(int,QCPixDocument*)));
+                SIGNAL(handleDocument(int,CpixDocument*)), this,
+                SLOT(onGetDocumentComplete(int,CpixDocument*)));
         }
     if (mListView)
         {
@@ -404,12 +381,11 @@ void SearchProgressiveState::onAsyncSearchComplete(int aError,
 // SearchProgressiveState::onGetDocumentComplete
 // ---------------------------------------------------------------------------
 void SearchProgressiveState::onGetDocumentComplete(int aError,
-        QCPixDocument* aDoc)
+        CpixDocument* aDoc)
     {
     PERF_CAT_GETDOC_TIME_ACCUMULATE
     if (aDoc == NULL || aError != 0)
         return;
-    QStringList liststr;
     QString secondrow = aDoc->excerpt();
     QString firstrow;
     HbListWidgetItem* listitem = new HbListWidgetItem();
@@ -431,7 +407,6 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
             {
             firstrow = hbTrId("txt_phob_dblist_unnamed");
             }
-        liststr << firstrow << secondrow;
         listitem->setData(mIconArray.at(0), Qt::DecorationRole);
         }
     else if (aDoc->baseAppClass().contains("audio"))
@@ -445,7 +420,6 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
             {
             firstrow = hbTrId("txt_mus_dblist_val_unknown4");
             }
-        liststr << firstrow << secondrow;
         listitem->setData(mIconArray.at(1), Qt::DecorationRole);
         if (audioList.value(1, "").length())
             {
@@ -463,7 +437,6 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
             {
             firstrow.append(videoList.at(2));
             }
-        liststr << firstrow << secondrow;
         listitem->setData(mIconArray.at(2), Qt::DecorationRole);
         if (videoList.value(1, "").length())
             {
@@ -477,7 +450,6 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
             {
             firstrow.append(imageList.at(0));
             }
-        liststr << firstrow << secondrow;
         listitem->setData(mIconArray.at(3), Qt::DecorationRole);
         if (imageList.value(1, "").length())
             {
@@ -486,16 +458,11 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
         }
     else if (aDoc->baseAppClass().contains("msg email"))
         {
-        qDebug() << "searchui:on Get doc email";
         QStringList emailList = filterDoc(aDoc, "Sender", "MailBoxId",
                 "FolderId");
-
-        qDebug() << "searchui:recipients" << emailList.at(0) << emailList.at(
-                1) << emailList.at(2);
         firstrow.append(emailList.at(0));
         listitem->setData(emailList.at(1), Qt::UserRole + 2);
         listitem->setData(emailList.at(2), Qt::UserRole + 3);
-        liststr << firstrow << secondrow;
         listitem->setData(mIconArray.at(5), Qt::DecorationRole);
         }
     else if (aDoc->baseAppClass().contains("msg"))
@@ -510,9 +477,8 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
             if (msgList.value(1, "").length())
                 firstrow.append(msgList.at(1));
             }
-        liststr << firstrow << secondrow;
         listitem->setData(mIconArray.at(4), Qt::DecorationRole);
-        } 
+        }
     else if (aDoc->baseAppClass().contains("calendar"))
         {
         firstrow.append(filterDoc(aDoc, "Summary"));
@@ -520,8 +486,6 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
             {
             firstrow = hbTrId("txt_calendar_preview_unnamed");
             }
-
-        liststr << firstrow << secondrow;
         listitem->setData(mIconArray.at(6), Qt::DecorationRole);
         }
     else if (aDoc->baseAppClass().contains("notes"))
@@ -531,13 +495,11 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
             {
             firstrow = hbTrId("txt_notes_dblist_unnamed");
             }
-        liststr << firstrow << secondrow;
         listitem->setData(mIconArray.at(7), Qt::DecorationRole);
         }
     else if (aDoc->baseAppClass().contains("applications"))
         {
         firstrow.append(filterDoc(aDoc, "Name"));
-        liststr << firstrow;
         bool ok;
         TRAP_IGNORE(listitem->setData(getAppIconFromAppIdL(TUid::Uid(aDoc->docId().toInt(
                                                 &ok, 16))), Qt::DecorationRole));
@@ -549,17 +511,56 @@ void SearchProgressiveState::onGetDocumentComplete(int aError,
             {
             firstrow = "UnKnown";
             }
-        liststr << firstrow << secondrow;
         listitem->setData(secondrow, Qt::UserRole + 2);
         listitem->setData(mIconArray.at(8), Qt::DecorationRole);
         }
+    else if (aDoc->baseAppClass().contains("file folder"))
+        {
+        bool ok;
+        QStringList fileList = filterDoc(aDoc, "Name", "IsFolder",
+                "Extension");
+        firstrow = fileList.at(0);
+        if (fileList.at(1).toInt(&ok) == 1) // folder result icon map 
+            {
+            listitem->setData(mIconArray.at(13), Qt::DecorationRole);
+            }
+        else
+            {
+            if (fileList.at(2).contains("sis", Qt::CaseInsensitive)
+                    || fileList.at(1).contains("sisx", Qt::CaseInsensitive))
+                {
+                listitem->setData(mIconArray.at(10), Qt::DecorationRole);
+                }
+            else if (fileList.at(2).contains("java", Qt::CaseInsensitive)
+                    || fileList.at(2).contains("jar", Qt::CaseInsensitive)
+                    || fileList.at(2).contains("jad", Qt::CaseInsensitive))
+                {
+                listitem->setData(mIconArray.at(11), Qt::DecorationRole);
+                }
+            else if (fileList.at(2).contains("swf", Qt::CaseInsensitive))
+                {
+                listitem->setData(mIconArray.at(12), Qt::DecorationRole);
+                }
+            else
+                {
+                listitem->setData(mIconArray.at(14), Qt::DecorationRole);
+                }
+            }
+        }
     else if (aDoc->baseAppClass().contains("file"))
         {
-        firstrow.append(filterDoc(aDoc, "Name"));
+        QStringList fileList = filterDoc(aDoc, "Name", "Extension");
+        firstrow = fileList.at(0);
         if (firstrow.length() == 0)
             firstrow = aDoc->baseAppClass();
-        liststr << firstrow << secondrow;
-        listitem->setData(mIconArray.at(9), Qt::DecorationRole);
+        if (fileList.at(1).contains("txt", Qt::CaseInsensitive))
+            {
+            listitem->setData(mIconArray.at(9), Qt::DecorationRole);
+            }
+        else
+            {
+            listitem->setData(mIconArray.at(14), Qt::DecorationRole);
+            }
         }
     listitem->setText(firstrow);
     listitem->setSecondaryText(secondrow);
@@ -681,8 +682,8 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
     else if (item->data(Qt::UserRole + 1).toString().contains("msg"))
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("msg")
-        mRequest = mAiwMgr->create("com.nokia.services.hbserviceprovider",
-                "conversationview", "view(int)", true);
+        mRequest = mAiwMgr->create("messaging",
+                "com.nokia.symbian.IMessageView", "view(int)", true);
 
         int uid = (item->data(Qt::UserRole)).toInt(&t);
         args << uid;
@@ -796,6 +797,18 @@ void SearchProgressiveState::searchOnCategory(const QString aKeyword)
             {
             mSearchHandler = mSearchHandlerList.at(1);
             }
+        else if (mTemplist.at(mDatabasecount).contains("image"))
+            {
+            mSearchHandler = mSearchHandlerList.at(10);
+            }
+        else if (mTemplist.at(mDatabasecount).contains("audio"))
+            {
+            mSearchHandler = mSearchHandlerList.at(11);
+            }
+        else if (mTemplist.at(mDatabasecount).contains("video"))
+            {
+            mSearchHandler = mSearchHandlerList.at(12);
+            }
         else if (mTemplist.at(mDatabasecount).contains("media"))
             {
             mSearchHandler = mSearchHandlerList.at(2);
@@ -830,7 +843,7 @@ void SearchProgressiveState::searchOnCategory(const QString aKeyword)
             }
         // mSearchHandler->setCategory(mTemplist.at(mDatabasecount));
         mDatabasecount++;
-        if (mSearchHandler->isPrepared())
+        if (mSearchHandler != NULL && mSearchHandler->isPrepared())
             {
             PERF_CAT_API_TIME_RESTART
             mSearchHandler->searchAsync(aKeyword, "_aggregate");
@@ -895,7 +908,7 @@ void SearchProgressiveState::setSettings()
 // ---------------------------------------------------------------------------
 void SearchProgressiveState::settingsaction(bool avalue)
     {
-    if (avalue)
+    if (avalue && mStateStatus)
         {
         QMapIterator<int, bool> i(mTempSelectedCategory);
         QMapIterator<int, bool> j(mSelectedCategory);
@@ -1042,7 +1055,6 @@ HbIcon SearchProgressiveState::getAppIconFromAppIdL(TUid auid)
         CleanupStack::PopAndDestroy(apaMaskedBitmap);
         }
     CleanupStack::PopAndDestroy(&apaLsSession);
-
     if (icon.isNull() || !(icon.size().isValid()))
         icon = HbIcon("qtg_large_application");
     return icon;
@@ -1055,7 +1067,6 @@ void SearchProgressiveState::GetPixmapByFilenameL(TDesC& fileName,
     {
     CFbsBitmap *bitamp(0);
     CFbsBitmap *mask(0);
-
     if (AknIconUtils::IsMifFile(fileName))
         {
         // SVG icon
@@ -1068,17 +1079,13 @@ void SearchProgressiveState::GetPixmapByFilenameL(TDesC& fileName,
         AknIconUtils::CreateIconLC(bitamp, mask, fileName, bitmapIndex,
                 maskIndex);
         }
-
     AknIconUtils::DisableCompression(bitamp);
     AknIconUtils::SetSize(bitamp, TSize(size.width(), size.height()),
             EAspectRatioPreservedAndUnusedSpaceRemoved);
-
     AknIconUtils::DisableCompression(mask);
     AknIconUtils::SetSize(mask, TSize(size.width(), size.height()),
             EAspectRatioPreservedAndUnusedSpaceRemoved);
-
     fromBitmapAndMaskToPixmapL(bitamp, mask, pixmap);
-
     // bitmap and icon, AknsUtils::CreateIconLC doesn't specify the order
     CleanupStack::Pop(2);
     }
@@ -1182,7 +1189,7 @@ void SearchProgressiveState::fromBitmapAndMaskToPixmapL(
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::filterDoc
 // ---------------------------------------------------------------------------
-QString SearchProgressiveState::filterDoc(const QCPixDocument* aDoc,
+QString SearchProgressiveState::filterDoc(const CpixDocument* aDoc,
         const QString& filter)
     {
     for (int i = 0; i < aDoc->fieldCount(); i++)
@@ -1197,7 +1204,7 @@ QString SearchProgressiveState::filterDoc(const QCPixDocument* aDoc,
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::filterDoc
 // ---------------------------------------------------------------------------
-QStringList SearchProgressiveState::filterDoc(const QCPixDocument* aDoc,
+QStringList SearchProgressiveState::filterDoc(const CpixDocument* aDoc,
         const QString& filter1, const QString& filter2,
         const QString& filter3)
     {
@@ -1330,24 +1337,121 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG    ("")
 // ---------------------------------------------------------------------------
 void SearchProgressiveState::viewReady()
     {
+
     if (hbApp)
         {
         if (hbApp->activateReason() == Hb::ActivationReasonActivity)
             {
             QVariantHash params = hbApp->activateParams();
             QString searchKey = params.value("query").toString();
+            params.remove("query");
+            params.remove("activityname");
+            QList<QVariant> list = params.values();
+            mTemplist.clear();
+            for (int i = 0; i < list.count(); i++)
+                {
+                QString str = list.at(i).toString();
+                if (!str.isNull())
+                    mTemplist.append(str);
+                }
             if (searchKey.length() > 0)
                 mSearchPanel->setCriteria(searchKey);
             }
         }PERF_APP_LAUNCH_END("SearchAppplication View is ready");
-     emit applicationReady();
+    emit applicationReady();
     }
+// ---------------------------------------------------------------------------
+// SearchProgressiveState::slotOnlineQuery
+// ---------------------------------------------------------------------------
 void SearchProgressiveState::slotOnlineQuery(QString str)
     {
-    mOriginalString = str;
-    mOnlineQueryAvailable = true;
+    if (mOriginalString != str)
+        {
+        mOriginalString = str;
+        mOnlineQueryAvailable = true;
+        }
     }
+// ---------------------------------------------------------------------------
+// SearchProgressiveState::slotISProvidersIcon
+// ---------------------------------------------------------------------------
 void SearchProgressiveState::slotISProvidersIcon(int id, HbIcon icon)
     {
     mISprovidersIcon.insert(id, icon);
+    }
+// ---------------------------------------------------------------------------
+// SearchProgressiveState::slotPrepareResultIcons
+// ---------------------------------------------------------------------------
+void SearchProgressiveState::slotPrepareResultIcons()
+    {
+    //Icon creation in array
+    QStringList icons;
+    icons << "qtg_large_phonebook" << "qtg_large_tone" << "qtg_large_video"
+            << "qtg_large_photos" << "qtg_large_message" << "qtg_large_email"
+            << "qtg_large_calendar" << "qtg_large_notes"
+            << "qtg_large_web_link" << "qtg_large_text" << "qtg_large_sisx"
+            << "qtg_large_java" << "qtg_large_flash" << "qtg_large_folder"
+            << "qtg_large_query";
+    mIconArray.clear();
+    for (int i = 0; i < icons.count(); i++)
+        {
+        HbIcon icon(icons.at(i));
+        if (icon.isNull() || !(icon.size().isValid()))
+            icon = HbIcon("qtg_large_application");
+        mIconArray.append(icon);
+        }
+    /*QList<TUid> appUid;
+     appUid.append(TUid::Uid(0x20022EF9));//contact
+     appUid.append(TUid::Uid(0x10207C62));//audio
+     appUid.append(TUid::Uid(0x200211FE));//video 
+     appUid.append(TUid::Uid(0x20000A14));//image 
+     appUid.append(TUid::Uid(0x2001FE79));//msg
+     appUid.append(TUid::Uid(0x200255BA));//email 
+     appUid.append(TUid::Uid(0x10005901));//calender
+     appUid.append(TUid::Uid(0x20029F80));//notes
+     //appUid.Append(TUid::Uid(0x20022F35));//application
+     appUid.append(TUid::Uid(0x10008D39));//bookmark
+     appUid.append(TUid::Uid(0x2002BCC0));//files
+
+     for (int i = 0; i < appUid.count(); i++)
+     {
+     TRAP_IGNORE(mIconArray.append(getAppIconFromAppIdL(appUid.at(i))));
+     }*/
+    }
+// ---------------------------------------------------------------------------
+// SearchProgressiveState::activityRequested
+// ---------------------------------------------------------------------------
+void SearchProgressiveState::activityRequested(const QString &name)
+    {
+    /* when search application is launched in normal and then supporting for activity uri
+     * for normal search launching "media" is used instead of "media image","media audio","media video" 
+     */
+    if (mSearchHandlerList.count() != totalcategories_activityreasonreason)
+        {
+        InDeviceHandler* handler = NULL;
+        handler->setCategory("media image");
+        mSearchHandlerList.append(handler);
+        handler->setCategory("media audio");
+        mSearchHandlerList.append(handler);
+        handler->setCategory("media video");
+        mSearchHandlerList.append(handler);
+        }
+    if (name == "SearchDeviceQueryView")
+        {
+        QVariantHash params = hbApp->activateParams();
+        QString searchKey = params.value("query").toString();
+        int i = params.count();
+        params.remove("query");
+        params.remove("activityname");
+        QList<QVariant> list = params.values();
+        int j = list.count();
+        mTemplist.clear();
+        for (int i = 0; i < list.count(); i++)
+            {
+            QString str = list.at(i).toString();
+            if (!str.isNull())
+                mTemplist.append(str);
+            }
+        if (searchKey.length() > 0)
+            mSearchPanel->setCriteria(searchKey);
+        }
     }

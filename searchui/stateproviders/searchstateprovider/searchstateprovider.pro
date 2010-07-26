@@ -37,11 +37,11 @@ win32 {
 }
 
 
-DOCML += resources/searchstateprovider.docml
+DOCML += resources/searchstateprovider.docml resources/delimeterscreen.docml
 
 LIBS += -lsearchindevicehandler
 LIBS += -lxqservice 
-LIBS += -lqcpixsearchclient
+LIBS += -lcpixsearch
 LIBS += -laknskins 
 LIBS += -lfbscli
 LIBS += -laknicon
@@ -55,6 +55,7 @@ LIBS += -lefsrv
 LIBS += -lapgrfx
 LIBS += -lws32
 LIBS += -lavkon
+LIBS += -ltstaskmonitorclient.dll
 
 coverage:DEFINES += COVERAGE_MEASUREMENT
 

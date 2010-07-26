@@ -18,10 +18,11 @@
 #include "t_searchstateprovider.h"
 //#include "searchruntimeprovider.h"
 #include "searchstateprovider.h"
-
+#include "searchuiloader.h"
 #include <qmetatype.h>
 #include <qstate.h>
-
+#include <hblistwidget.h>
+#include <hbsearchpanel.h>
 #include <hbinstance.h>
 #include <hbmainwindow.h>
 #include <hbview.h>
@@ -114,6 +115,22 @@ void SearchStateProviderTest::testCreateSettingsState()
     //HbMainWindow* wind = mainWindow();   
     QVERIFY(verifyStateCreation("search.nokia.com/state/wizardsettingstate"));
     // delete wind;
+    }
+void SearchStateProviderTest::testcreatenanddelete()
+    {    
+    SearchUiLoader* uiloader = SearchUiLoader::instance();    
+    QVERIFY(uiloader->View());
+    QVERIFY(uiloader->ListWidget());
+    QVERIFY(uiloader->SearchPanel());
+    uiloader->deleteLater();
+    }
+void SearchStateProviderTest::testslotsendtobackground()
+    {
+    SearchUiLoader* uiloader = SearchUiLoader::instance();
+    uiloader->slotsendtobackground();
+    QCOMPARE(uiloader->mListWidget->count(),0);
+    QCOMPARE(uiloader->mSearchPanel->criteria(),QString());
+    uiloader->deleteLater();
     }
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------

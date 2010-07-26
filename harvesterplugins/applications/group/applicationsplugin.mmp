@@ -52,4 +52,7 @@ LIBRARY       centralrepository.lib    //for CRepository
 // For logging
 LIBRARY 	  flogger.lib 
 
+// For enabling Highlighter
+//MACRO USE_HIGHLIGHTER
+
 EXPORTUNFROZEN

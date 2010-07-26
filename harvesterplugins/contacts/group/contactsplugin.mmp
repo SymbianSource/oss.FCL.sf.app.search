@@ -46,6 +46,8 @@ LIBRARY       cntmodel.lib
 LIBRARY       cpixharvesterplugininterface.lib
 LIBRARY       cpixsearchclient.lib
 
+// For Enabling Highlighter
+//MACRO USE_HIGHLIGHTER
 
 // For logging
 LIBRARY 	  flogger.lib 
