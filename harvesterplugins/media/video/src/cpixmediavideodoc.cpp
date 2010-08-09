@@ -106,6 +106,12 @@ CSearchDocument* CCPIXMediaVideoDoc::GetCpixDocumentL(const CMdEObject& aObject,
         CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
         if( textProperty->Value().Compare(KNullDesC) > 0 )AddToFieldExcerptL(name); //Add name to excerpt field
         }
+#ifdef USE_HIGHLIGHTER
+    //Get the media file extension and store
+    TBuf<KMaxExtLength> extension;        
+    GetExtension(aObject.Uri(),extension);
+    AddToFieldExcerptL(extension);
+#endif 
 
     //URI and Excerpt is done add additional properties here 
     

@@ -56,6 +56,10 @@ LIBRARY       estor.lib
 LIBRARY       bafl.lib
 // For logging
 LIBRARY 	  flogger.lib 
+
+// For enabling Highlighter
+//MACRO USE_HIGHLIGHTER
+
 //Enable this macro to get harvester performance data
 //MACRO __PERFORMANCE_DATA
 EXPORTUNFROZEN

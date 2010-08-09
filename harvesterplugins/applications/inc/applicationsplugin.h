@@ -23,7 +23,7 @@
 #include <common.h>
 #include <apgcli.h> //RApaLsSession
 #include <apgnotif.h> //Notification
-#include <WidgetRegistryClient.h>
+//#include <WidgetRegistryClient.h>
 #include "delayedcallback.h"
 
 class CCPixIndexer;
@@ -72,7 +72,7 @@ private: // Constructors
      * @return void
      * Leaves in case of error.
      */
-	void AddWidgetInfoL( CSearchDocument* aDocument, TUid aUid );
+	//void AddWidgetInfoL( CSearchDocument* aDocument, TUid aUid );
 
 	/*
 	 * @description Returns true if applicaiton with uid aUid hidden, false otherwise
@@ -86,7 +86,7 @@ private:
     CCPixIndexer* iIndexer; // CPix database. Owned.
     RApaLsSession iApplicationServerSession; //to get application info.
     CApaAppListNotifier* iNotifier; //Owned.
-    RWidgetRegistryClientSession iWidgetRegistry; //to get widget info.
+    //RWidgetRegistryClientSession iWidgetRegistry; //to get widget info.
     CRepository* iHiddenApplicationsRepository;
 
 #ifdef __PERFORMANCE_DATA

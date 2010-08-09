@@ -24,7 +24,6 @@
 #include <qfinalstate.h>
 #include <qdebug.h>
 #include <hbapplication.h>
-#include <hbmainwindow.h>
 
 #define hbApp qobject_cast<HbApplication*>(qApp)
 
@@ -40,9 +39,8 @@ const char wizardOnlineStateUri[] =
 // ---------------------------------------------------------------------------
 //
 SearchRuntime::SearchRuntime(QObject* aParent) :
-    QStateMachine(aParent), mWindow(0)
+    QStateMachine(aParent)
     {
-    createGuiServiceParts();
     createStates();
     }
 
@@ -52,8 +50,6 @@ SearchRuntime::SearchRuntime(QObject* aParent) :
 //
 SearchRuntime::~SearchRuntime()
     {
-    delete mWindow;
-    //  delete mStateMachine;
     }
 
 // ---------------------------------------------------------------------------
@@ -73,24 +69,12 @@ void SearchRuntime::handleStateMachineStopped()
     {
     emit stopped();
     }
-
-// ---------------------------------------------------------------------------
-// SearchRuntime::createGuiServiceParts()
-// ---------------------------------------------------------------------------
-//
-void SearchRuntime::createGuiServiceParts()
-    {
-    mWindow = new HbMainWindow();
-    mWindow->show();
-    }
-
 // ---------------------------------------------------------------------------
 // SearchRuntime::createStates()
 // ---------------------------------------------------------------------------
 //
 void SearchRuntime::createStates()
     {
-
     SearchStateProvider stateProvider;
 
     QFinalState* finalState = new QFinalState();
@@ -143,13 +127,13 @@ void SearchRuntime::createStates()
 
     connect(wizardSettingState, SIGNAL(publishSelectedCategory(int,bool)),
             wizardProgressiveState, SLOT(getSettingCategory(int,bool)));
-    
+
     connect(wizardSettingState, SIGNAL(publishISProviderIcon(int,HbIcon)),
             wizardProgressiveState, SLOT(slotISProvidersIcon(int,HbIcon)));
 
     connect(wizardProgressiveState, SIGNAL(inDeviceSearchQuery(QString)),
             wizardOnlineState, SLOT(slotIndeviceQuery(QString)));
-    
+
     connect(wizardProgressiveState, SIGNAL(launchLink(int,QString)),
             wizardOnlineState, SLOT(slotlaunchLink(int,QString)));
 
@@ -189,5 +173,4 @@ void SearchRuntime::createStates()
     connect(this, SIGNAL(started()), SLOT(handleStateMachineStarted()));
     connect(this, SIGNAL(stopped()), SLOT(handleStateMachineStopped()));
     connect(this, SIGNAL(finished()), SLOT(handleStateMachineStopped()));
-
     }

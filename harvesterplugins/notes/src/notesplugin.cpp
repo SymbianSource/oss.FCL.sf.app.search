@@ -55,6 +55,7 @@ _LIT(KNpdUpdateTime , "Date");
 //Reference from CPix calender harvester plugin.
 _LIT(KNotesTimeFormat,"%04d %02d %02d %02d %02d");
 
+_LIT(KExcerptDelimiter, " ");
 // ---------------------------------------------------------------------------
 // CNotesPlugin::NewL
 // ---------------------------------------------------------------------------
@@ -360,10 +361,12 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 		//For notes, no content is expected in excerpt for now.
 		//See appclass-hierarchy.txt for details.
 #ifdef USE_HIGHLIGHTER		
-    	TInt excerptLength = entry->DescriptionL().Length();
+    	TInt excerptLength = entry->DescriptionL().Length() + 1 + dateString.Length();
 		HBufC* excerpt = HBufC::NewLC(excerptLength);
 		TPtr excerptDes = excerpt->Des();		
 		excerptDes.Append(entry->DescriptionL());
+		excerptDes.Append(KExcerptDelimiter);
+		excerptDes.Append(dateString);
       index_item->AddExcerptL(*excerpt);
       CleanupStack::PopAndDestroy(excerpt);
 #endif      

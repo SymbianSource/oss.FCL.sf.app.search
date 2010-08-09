@@ -303,6 +303,10 @@ NONSHARABLE_CLASS(CHarvesterPluginTester) : public CScriptBase
 		
 		virtual TInt TestHandleEmailDocL( CStifItemParser& aItem );
 		
+		virtual TInt TestEmailBaseappclassL( CStifItemParser& aItem );
+		
+		virtual TInt TestEmailHandleDocL( CStifItemParser& aItem );
+		
 		virtual TInt TestQualifiedBaseAppClassL( CStifItemParser& );
 		
 		virtual TAny TestHandleMsgMovedL( CStifItemParser& );

@@ -56,6 +56,8 @@
 #define hbApp qobject_cast<HbApplication*>(qApp)
 const int totalcategories_normalreason = 10;
 const int totalcategories_activityreasonreason = 13;
+const int intial_iteration = 3;
+const int batch_iteration = 20;
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::SearchProgressiveState
 // ---------------------------------------------------------------------------
@@ -63,12 +65,11 @@ SearchProgressiveState::SearchProgressiveState(QState *parent) :
     QState(parent), mMainWindow(NULL), mView(NULL), mListView(NULL),
             mSearchHandler(NULL), mNotesEditor(0), mAiwMgr(0), mRequest(0)
     {
+    mUiLoader = SearchUiLoader::instance();
 
     mMainWindow = hbInstance->allMainWindows().at(0);
 
     mAiwMgr = new XQApplicationManager;
-
-    mUiLoader = SearchUiLoader::instance();
 
     mView = mUiLoader->View();
     mListView = mUiLoader->ListWidget();
@@ -136,7 +137,10 @@ SearchProgressiveState::SearchProgressiveState(QState *parent) :
     //Prepare the icons,listen of theme change    
     connect(hbInstance->theme(), SIGNAL(changeFinished()), this,
             SLOT(slotPrepareResultIcons()));
-    slotPrepareResultIcons();    
+    slotPrepareResultIcons();
+
+    // creating the handler if it is not prepared, useful when user try to create before 
+    mValidateHandlerCreation = false;
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::~SearchProgressiveState
@@ -169,79 +173,9 @@ void SearchProgressiveState::constructHandlers()
         {
         categories = totalcategories_activityreasonreason;
         }
-    InDeviceHandler* handler = NULL;
     for (int i = 0; i < categories; i++)
         {
-        handler = new InDeviceHandler();
-        switch (i)
-            {
-            case 0:
-                {
-                handler->setCategory("");
-                break;
-                }
-            case 1:
-                {
-                handler->setCategory("contact");
-                break;
-                }
-            case 2:
-                {
-                handler->setCategory("media");
-                break;
-                }
-            case 3:
-                {
-                handler->setCategory("msg");
-                break;
-                }
-            case 4:
-                {
-                handler->setCategory("msg email");
-                break;
-                }
-            case 5:
-                {
-                handler->setCategory("calendar");
-                break;
-                }
-            case 6:
-                {
-                handler->setCategory("notes");
-                break;
-                }
-            case 7:
-                {
-                handler->setCategory("applications");
-                break;
-                }
-            case 8:
-                {
-                handler->setCategory("file");
-                break;
-                }
-            case 9:
-                {
-                handler->setCategory("bookmark");
-                break;
-                }
-            case 10:
-                {
-                handler->setCategory("media image");
-                break;
-                }
-            case 11:
-                {
-                handler->setCategory("media audio");
-                break;
-                }
-            case 12:
-                {
-                handler->setCategory("media video");
-                break;
-                }
-            }
-        mSearchHandlerList.append(handler);
+        mSearchHandlerList.append(constructHandlers(i));
         }
     }
 // ---------------------------------------------------------------------------
@@ -275,6 +209,7 @@ void SearchProgressiveState::onEntry(QEvent *event)
         }
     if (loadSettings)
         {
+        // to get the intial settings form delimeter  
         emit switchProToSettingsState();
         loadSettings = false;
         }
@@ -292,7 +227,7 @@ void SearchProgressiveState::onExit(QEvent *event)
     {
     QState::onExit(event);
     mStateStatus = false;
-    deActivateSignals();    
+    deActivateSignals();
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::activateSignals
@@ -307,6 +242,10 @@ void SearchProgressiveState::activateSignals()
         connect(mSearchHandlerList.at(i),
                 SIGNAL(handleDocument(int,CpixDocument*)), this,
                 SLOT(onGetDocumentComplete(int,CpixDocument*)));
+        connect(mSearchHandlerList.at(i),
+                SIGNAL(handleBatchDocument(int,int,CpixDocument**)), this,
+                SLOT(onGetBatchDocumentComplete(int,int,CpixDocument**)));
+
         }
     if (mListView)
         {
@@ -335,6 +274,9 @@ void SearchProgressiveState::deActivateSignals()
         disconnect(mSearchHandlerList.at(i),
                 SIGNAL(handleDocument(int,CpixDocument*)), this,
                 SLOT(onGetDocumentComplete(int,CpixDocument*)));
+        disconnect(mSearchHandlerList.at(i),
+                SIGNAL(handleBatchDocument(int,int,CpixDocument**)), this,
+                SLOT(onGetBatchDocumentComplete(int,int,CpixDocument**)));
         }
     if (mListView)
         {
@@ -383,203 +325,54 @@ void SearchProgressiveState::onAsyncSearchComplete(int aError,
 void SearchProgressiveState::onGetDocumentComplete(int aError,
         CpixDocument* aDoc)
     {
-    PERF_CAT_GETDOC_TIME_ACCUMULATE
-    if (aDoc == NULL || aError != 0)
+    if (aError)
         return;
-    QString secondrow = aDoc->excerpt();
-    QString firstrow;
-    HbListWidgetItem* listitem = new HbListWidgetItem();
-
-    if (aDoc->baseAppClass().contains("contact"))
-        {
-        QStringList docsList = filterDoc(aDoc, "GivenName", "FamilyName");
-        if (docsList.value(0, "").length())
-            {
-            firstrow.append(docsList.at(0));
-            }
-        if (docsList.value(1, "").length())
-            {
-            if (firstrow.length())
-                firstrow.append(" ");
-            firstrow.append(docsList.at(1));
-            }
-        if (firstrow.length() == 0)
-            {
-            firstrow = hbTrId("txt_phob_dblist_unnamed");
-            }
-        listitem->setData(mIconArray.at(0), Qt::DecorationRole);
-        }
-    else if (aDoc->baseAppClass().contains("audio"))
-        {
-        QStringList audioList = filterDoc(aDoc, "Title", "MediaId");
-        if (audioList.value(0, "").length())
-            {
-            firstrow.append(audioList.at(0));
-            }
-        if (firstrow.length() == 0)
-            {
-            firstrow = hbTrId("txt_mus_dblist_val_unknown4");
-            }
-        listitem->setData(mIconArray.at(1), Qt::DecorationRole);
-        if (audioList.value(1, "").length())
-            {
-            listitem->setData(audioList.at(1), Qt::UserRole + 2);
-            }
-        }
-    else if (aDoc->baseAppClass().contains("video"))
-        {
-        QStringList videoList = filterDoc(aDoc, "Title", "MediaId", "Name");
-        if (videoList.value(0, "").length())
-            {
-            firstrow.append(videoList.at(0));
-            }
-        if (firstrow.length() == 0 && videoList.value(2, "").length())
-            {
-            firstrow.append(videoList.at(2));
-            }
-        listitem->setData(mIconArray.at(2), Qt::DecorationRole);
-        if (videoList.value(1, "").length())
-            {
-            listitem->setData(videoList.at(1), Qt::UserRole + 2);
-            }
-        }
-    else if (aDoc->baseAppClass().contains("image"))
-        {
-        QStringList imageList = filterDoc(aDoc, "Name", "MediaId");
-        if (imageList.value(0, "").length())
-            {
-            firstrow.append(imageList.at(0));
-            }
-        listitem->setData(mIconArray.at(3), Qt::DecorationRole);
-        if (imageList.value(1, "").length())
-            {
-            listitem->setData(imageList.at(1), Qt::UserRole + 2);
-            }
-        }
-    else if (aDoc->baseAppClass().contains("msg email"))
-        {
-        QStringList emailList = filterDoc(aDoc, "Sender", "MailBoxId",
-                "FolderId");
-        firstrow.append(emailList.at(0));
-        listitem->setData(emailList.at(1), Qt::UserRole + 2);
-        listitem->setData(emailList.at(2), Qt::UserRole + 3);
-        listitem->setData(mIconArray.at(5), Qt::DecorationRole);
-        }
-    else if (aDoc->baseAppClass().contains("msg"))
-        {
-        QStringList msgList = filterDoc(aDoc, "Folder", "To", "From");
-        if (msgList.value(0).contains("Inbox"))
-            {
-            firstrow.append(msgList.at(2));
-            }
-        else
-            {
-            if (msgList.value(1, "").length())
-                firstrow.append(msgList.at(1));
-            }
-        listitem->setData(mIconArray.at(4), Qt::DecorationRole);
-        }
-    else if (aDoc->baseAppClass().contains("calendar"))
-        {
-        firstrow.append(filterDoc(aDoc, "Summary"));
-        if (firstrow.length() == 0)
-            {
-            firstrow = hbTrId("txt_calendar_preview_unnamed");
-            }
-        listitem->setData(mIconArray.at(6), Qt::DecorationRole);
-        }
-    else if (aDoc->baseAppClass().contains("notes"))
-        {
-        firstrow.append(filterDoc(aDoc, "Memo"));
-        if (firstrow.length() == 0)
-            {
-            firstrow = hbTrId("txt_notes_dblist_unnamed");
-            }
-        listitem->setData(mIconArray.at(7), Qt::DecorationRole);
-        }
-    else if (aDoc->baseAppClass().contains("applications"))
-        {
-        firstrow.append(filterDoc(aDoc, "Name"));
-        bool ok;
-        TRAP_IGNORE(listitem->setData(getAppIconFromAppIdL(TUid::Uid(aDoc->docId().toInt(
-                                                &ok, 16))), Qt::DecorationRole));
-        }
-    else if (aDoc->baseAppClass().contains("bookmark"))
-        {
-        firstrow.append(filterDoc(aDoc, "Name"));
-        if (firstrow.length() == 0)
-            {
-            firstrow = "UnKnown";
-            }
-        listitem->setData(secondrow, Qt::UserRole + 2);
-        listitem->setData(mIconArray.at(8), Qt::DecorationRole);
-        }
-    else if (aDoc->baseAppClass().contains("file folder"))
-        {
-        bool ok;
-        QStringList fileList = filterDoc(aDoc, "Name", "IsFolder",
-                "Extension");
-        firstrow = fileList.at(0);
-        if (fileList.at(1).toInt(&ok) == 1) // folder result icon map 
-            {
-            listitem->setData(mIconArray.at(13), Qt::DecorationRole);
-            }
-        else
-            {
-            if (fileList.at(2).contains("sis", Qt::CaseInsensitive)
-                    || fileList.at(1).contains("sisx", Qt::CaseInsensitive))
-                {
-                listitem->setData(mIconArray.at(10), Qt::DecorationRole);
-                }
-            else if (fileList.at(2).contains("java", Qt::CaseInsensitive)
-                    || fileList.at(2).contains("jar", Qt::CaseInsensitive)
-                    || fileList.at(2).contains("jad", Qt::CaseInsensitive))
-                {
-                listitem->setData(mIconArray.at(11), Qt::DecorationRole);
-                }
-            else if (fileList.at(2).contains("swf", Qt::CaseInsensitive))
-                {
-                listitem->setData(mIconArray.at(12), Qt::DecorationRole);
-                }
-            else
-                {
-                listitem->setData(mIconArray.at(14), Qt::DecorationRole);
-                }
-            }
-        }
-    else if (aDoc->baseAppClass().contains("file"))
-        {
-        QStringList fileList = filterDoc(aDoc, "Name", "Extension");
-        firstrow = fileList.at(0);
-        if (firstrow.length() == 0)
-            firstrow = aDoc->baseAppClass();
-        if (fileList.at(1).contains("txt", Qt::CaseInsensitive))
-            {
-            listitem->setData(mIconArray.at(9), Qt::DecorationRole);
-            }
-        else
-            {
-            listitem->setData(mIconArray.at(14), Qt::DecorationRole);
-            }
-        }
-    listitem->setText(firstrow);
-    listitem->setSecondaryText(secondrow);
-    listitem->setData(aDoc->docId(), Qt::UserRole);
-    listitem->setData(aDoc->baseAppClass(), Qt::UserRole + 1);
-    mListView->addItem(listitem);
-
+    parseDocument(aDoc);
     mResultparser++;
     if (mResultparser < mResultcount)
         {
         PERF_CAT_GETDOC_TIME_RESTART
-        mSearchHandler->getDocumentAsyncAtIndex(mResultparser);
+        if (mResultparser < intial_iteration)
+            {
+            mSearchHandler->getDocumentAsyncAtIndex(mResultparser);
+            }
+        else
+            {
+            mSearchHandler->getBatchDocumentAsyncAtIndex(mResultparser,
+                    batch_iteration);
+            }
         }
     else
         {
         PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG
         searchOnCategory(mSearchString);
         }
+    }
+// ---------------------------------------------------------------------------
+// SearchProgressiveState::onGetDocumentComplete
+// ---------------------------------------------------------------------------
+void SearchProgressiveState::onGetBatchDocumentComplete(int aError,
+        int aCount, CpixDocument** aDoc)
+    {
+    if (aError)
+        return;
+    for (int i = 0; i < aCount; i++)
+        {
+        parseDocument(aDoc[i]);
+        }
     delete aDoc;
+    mResultparser += aCount;
+    if (mResultparser < mResultcount)
+        {
+        PERF_CAT_GETDOC_TIME_RESTART
+        mSearchHandler->getBatchDocumentAsyncAtIndex(mResultparser,
+                batch_iteration);
+        }
+    else
+        {
+        PERF_CAT_GETDOC_ACCUMULATOR_ENDLOG
+        searchOnCategory(mSearchString);
+        }
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::getSettingCategory
@@ -594,7 +387,8 @@ void SearchProgressiveState::getSettingCategory(int item, bool avalue)
 void SearchProgressiveState::openResultitem(HbListWidgetItem * item)
     {
     if (item == NULL)
-        return;PERF_RESULT_ITEM_LAUNCH_TIME_RESTART
+        return;
+    PERF_RESULT_ITEM_LAUNCH_TIME_RESTART
     QList<QVariant> args;
     bool t;
     mRequest = NULL;
@@ -611,7 +405,7 @@ void SearchProgressiveState::openResultitem(HbListWidgetItem * item)
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("bookmark")
         QDesktopServices::openUrl(item->data(Qt::UserRole + 2).toString());
-PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
+        PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG ("")
 
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("calendar"))
@@ -619,10 +413,10 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
         QDir pluginDir = QDir(QString("z:/resource/qt/plugins/calendar"));
         QPluginLoader *calAgandaViewerPluginLoader = new QPluginLoader(
                 pluginDir.absoluteFilePath(QString(
-                                "agendaeventviewerplugin.qtplugin")));
+                        "agendaeventviewerplugin.qtplugin")));
 
         calAgandaViewerPluginInstance = qobject_cast<
-        EventViewerPluginInterface *> (
+                EventViewerPluginInterface *> (
                 calAgandaViewerPluginLoader->instance());
 
         connect(calAgandaViewerPluginInstance, SIGNAL(viewingCompleted()),
@@ -635,7 +429,7 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
     else if (item->data(Qt::UserRole + 1).toString().contains("applications"))
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("applications")
-        TRAP_IGNORE(LaunchApplicationL(TUid::Uid((item->data(Qt::UserRole)).toString().toInt(&t, 16))));
+        TRAP_IGNORE(LaunchApplicationL(TUid::Uid((item->data(Qt::UserRole)).toString().toUInt(&t, 16))));
         PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG("")
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("file"))
@@ -663,7 +457,7 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
     else if (item->data(Qt::UserRole + 1).toString().contains("notes"))
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("notes")
-        if(mNotesEditor)
+        if (mNotesEditor)
             {
             mNotesEditor->edit(item->data(Qt::UserRole).toInt());
             }
@@ -677,7 +471,8 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
                 "viewMessage(QVariant,QVariant,QVariant)", true);
 
         args << item->data(Qt::UserRole + 2).toULongLong(&t) << item->data(
-                Qt::UserRole + 3).toULongLong(&t) << item->data(Qt::UserRole).toULongLong(&t);
+                Qt::UserRole + 3).toULongLong(&t)
+                << item->data(Qt::UserRole).toULongLong(&t);
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("msg"))
         {
@@ -688,9 +483,9 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
         int uid = (item->data(Qt::UserRole)).toInt(&t);
         args << uid;
         }
-    else if(item->data(Qt::UserRole + 1).toString().contains("links"))
+    else if (item->data(Qt::UserRole + 1).toString().contains("links"))
         {
-        emit launchLink((item->data(Qt::UserRole)).toInt(&t),mOriginalString);
+        emit launchLink((item->data(Qt::UserRole)).toInt(&t), mOriginalString);
         }
     if (mRequest)
         {
@@ -722,7 +517,7 @@ PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG        ("")
 void SearchProgressiveState::handleOk(const QVariant& var)
     {
     Q_UNUSED(var);
-PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG    ("")
+    PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG ("")
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::handleError
@@ -779,7 +574,7 @@ void SearchProgressiveState::clear()
 void SearchProgressiveState::searchOnCategory(const QString aKeyword)
     {
 #ifdef OST_TRACE_COMPILER_IN_USE
-    if( mDatabasecount != 0 )
+    if (mDatabasecount != 0)
         {//Search just started.
         PERF_CAT_UI_ENDLOG
         }
@@ -872,6 +667,26 @@ void SearchProgressiveState::startNewSearch(const QString &aKeyword)
     {
     PERF_CAT_TOTAL_TIME_RESTART
     mOriginalString = aKeyword.trimmed();
+
+    if (!mValidateHandlerCreation)
+        {
+        for (int i = 0; i < mSearchHandlerList.count(); i++)
+            {
+            /* ignoring bookmark to getrid of unnecesary check as bookmark support is withdrawn
+             * keeping perfomance into consideration, otherwise not  
+             */
+            if (!mSearchHandlerList.at(i)->isPrepared() && (i != 9))
+                {
+                constructHandlers(i);
+                mValidateHandlerCreation = false;
+                }
+            else
+                {
+                mValidateHandlerCreation = true;
+                }
+            }
+        }
+
     for (int i = 0; i < mSearchHandlerList.count(); i++)
         {
         mSearchHandlerList.at(i)->cancelLastSearch();
@@ -884,12 +699,9 @@ void SearchProgressiveState::startNewSearch(const QString &aKeyword)
         {
         mDatabasecount = 0;
         mLinkindex = 0;
-        //Prefix query
         mSearchString = "$prefix(\"";
         mSearchString += mOriginalString;
         mSearchString += "\")";
-        /*mSearchString = mOriginalString;
-         mSearchString.append('*');*/
         searchOnCategory(mSearchString);
         }
     }
@@ -1321,7 +1133,7 @@ void SearchProgressiveState::LaunchApplicationL(const TUid aUid)
         CleanupStack::PopAndDestroy(&appArcSession);
         }
     CleanupStack::PopAndDestroy(&wsSession);
-PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG    ("")
+    PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG ("")
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::_viewingCompleted
@@ -1330,14 +1142,13 @@ void SearchProgressiveState::_viewingCompleted()
     {
     if (calAgandaViewerPluginInstance)
         calAgandaViewerPluginInstance->deleteLater();
-PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG    ("")
+    PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG ("")
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::viewReady
 // ---------------------------------------------------------------------------
 void SearchProgressiveState::viewReady()
     {
-
     if (hbApp)
         {
         if (hbApp->activateReason() == Hb::ActivationReasonActivity)
@@ -1357,7 +1168,8 @@ void SearchProgressiveState::viewReady()
             if (searchKey.length() > 0)
                 mSearchPanel->setCriteria(searchKey);
             }
-        }PERF_APP_LAUNCH_END("SearchAppplication View is ready");
+        }
+    PERF_APP_LAUNCH_END("SearchAppplication View is ready");
     emit applicationReady();
     }
 // ---------------------------------------------------------------------------
@@ -1454,4 +1266,272 @@ void SearchProgressiveState::activityRequested(const QString &name)
         if (searchKey.length() > 0)
             mSearchPanel->setCriteria(searchKey);
         }
+    }
+// ---------------------------------------------------------------------------
+// SearchProgressiveState::parseDocument
+// ---------------------------------------------------------------------------
+void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
+    {
+    PERF_CAT_GETDOC_TIME_ACCUMULATE
+    if (aDoc == NULL)
+        return;
+    QString secondrow = aDoc->excerpt();
+    QString firstrow;
+    HbListWidgetItem* listitem = new HbListWidgetItem();
+
+    if (aDoc->baseAppClass().contains("contact"))
+        {
+        QStringList docsList = filterDoc(aDoc, "GivenName", "FamilyName");
+        if (docsList.value(0, "").length())
+            {
+            firstrow.append(docsList.at(0));
+            }
+        if (docsList.value(1, "").length())
+            {
+            if (firstrow.length())
+                firstrow.append(" ");
+            firstrow.append(docsList.at(1));
+            }
+        if (firstrow.length() == 0)
+            {
+            firstrow = hbTrId("txt_phob_dblist_unnamed");
+            }
+        listitem->setData(mIconArray.at(0), Qt::DecorationRole);
+        }
+    else if (aDoc->baseAppClass().contains("audio"))
+        {
+        QStringList audioList = filterDoc(aDoc, "Title", "MediaId");
+        if (audioList.value(0, "").length())
+            {
+            firstrow.append(audioList.at(0));
+            }
+        if (firstrow.length() == 0)
+            {
+            firstrow = hbTrId("txt_mus_dblist_val_unknown4");
+            }
+        listitem->setData(mIconArray.at(1), Qt::DecorationRole);
+        if (audioList.value(1, "").length())
+            {
+            listitem->setData(audioList.at(1), Qt::UserRole + 2);
+            }
+        }
+    else if (aDoc->baseAppClass().contains("video"))
+        {
+        QStringList videoList = filterDoc(aDoc, "Title", "MediaId", "Name");
+        if (videoList.value(0, "").length())
+            {
+            firstrow.append(videoList.at(0));
+            }
+        if (firstrow.length() == 0 && videoList.value(2, "").length())
+            {
+            firstrow.append(videoList.at(2));
+            }
+        listitem->setData(mIconArray.at(2), Qt::DecorationRole);
+        if (videoList.value(1, "").length())
+            {
+            listitem->setData(videoList.at(1), Qt::UserRole + 2);
+            }
+        }
+    else if (aDoc->baseAppClass().contains("image"))
+        {
+        QStringList imageList = filterDoc(aDoc, "Name", "MediaId");
+        if (imageList.value(0, "").length())
+            {
+            firstrow.append(imageList.at(0));
+            }
+        listitem->setData(mIconArray.at(3), Qt::DecorationRole);
+        if (imageList.value(1, "").length())
+            {
+            listitem->setData(imageList.at(1), Qt::UserRole + 2);
+            }
+        }
+    else if (aDoc->baseAppClass().contains("msg email"))
+        {
+        QStringList emailList = filterDoc(aDoc, "Sender", "MailBoxId",
+                "FolderId");
+        firstrow.append(emailList.at(0));
+        listitem->setData(emailList.at(1), Qt::UserRole + 2);
+        listitem->setData(emailList.at(2), Qt::UserRole + 3);
+        listitem->setData(mIconArray.at(5), Qt::DecorationRole);
+        }
+    else if (aDoc->baseAppClass().contains("msg"))
+        {
+        QStringList msgList = filterDoc(aDoc, "Folder", "To", "From");
+        if (msgList.value(0).contains("Inbox"))
+            {
+            firstrow.append(msgList.at(2));
+            }
+        else
+            {
+            if (msgList.value(1, "").length())
+                firstrow.append(msgList.at(1));
+            }
+        listitem->setData(mIconArray.at(4), Qt::DecorationRole);
+        }
+    else if (aDoc->baseAppClass().contains("calendar"))
+        {
+        firstrow.append(filterDoc(aDoc, "Summary"));
+        if (firstrow.length() == 0)
+            {
+            firstrow = hbTrId("txt_calendar_preview_unnamed");
+            }
+        listitem->setData(mIconArray.at(6), Qt::DecorationRole);
+        }
+    else if (aDoc->baseAppClass().contains("notes"))
+        {
+        firstrow.append(filterDoc(aDoc, "Memo"));
+        if (firstrow.length() == 0)
+            {
+            firstrow = hbTrId("txt_notes_dblist_unnamed");
+            }
+        listitem->setData(mIconArray.at(7), Qt::DecorationRole);
+        }
+    else if (aDoc->baseAppClass().contains("applications"))
+        {
+        firstrow.append(filterDoc(aDoc, "Name"));
+        bool ok;
+        TRAP_IGNORE(listitem->setData(getAppIconFromAppIdL(TUid::Uid(aDoc->docId().toUInt(
+                                                &ok, 16))), Qt::DecorationRole));
+        }
+    else if (aDoc->baseAppClass().contains("bookmark"))
+        {
+        firstrow.append(filterDoc(aDoc, "Name"));
+        if (firstrow.length() == 0)
+            {
+            firstrow = "UnKnown";
+            }
+        listitem->setData(secondrow, Qt::UserRole + 2);
+        listitem->setData(mIconArray.at(8), Qt::DecorationRole);
+        }
+    else if (aDoc->baseAppClass().contains("file folder"))
+        {
+        bool ok;
+        QStringList fileList = filterDoc(aDoc, "Name", "IsFolder",
+                "Extension");
+        firstrow = fileList.at(0);
+        if (fileList.at(1).toInt(&ok) == 1) // folder result icon map 
+
+            {
+            listitem->setData(mIconArray.at(13), Qt::DecorationRole);
+            }
+        else
+            {
+            if (fileList.at(2).contains("sis", Qt::CaseInsensitive)
+                    || fileList.at(1).contains("sisx", Qt::CaseInsensitive))
+                {
+                listitem->setData(mIconArray.at(10), Qt::DecorationRole);
+                }
+            else if (fileList.at(2).contains("java", Qt::CaseInsensitive)
+                    || fileList.at(2).contains("jar", Qt::CaseInsensitive)
+                    || fileList.at(2).contains("jad", Qt::CaseInsensitive))
+                {
+                listitem->setData(mIconArray.at(11), Qt::DecorationRole);
+                }
+            else if (fileList.at(2).contains("swf", Qt::CaseInsensitive))
+                {
+                listitem->setData(mIconArray.at(12), Qt::DecorationRole);
+                }
+            else
+                {
+                listitem->setData(mIconArray.at(14), Qt::DecorationRole);
+                }
+            }
+        }
+    else if (aDoc->baseAppClass().contains("file"))
+        {
+        QStringList fileList = filterDoc(aDoc, "Name", "Extension");
+        firstrow = fileList.at(0);
+        if (firstrow.length() == 0)
+            firstrow = aDoc->baseAppClass();
+        if (fileList.at(1).contains("txt", Qt::CaseInsensitive))
+            {
+            listitem->setData(mIconArray.at(9), Qt::DecorationRole);
+            }
+        else
+            {
+            listitem->setData(mIconArray.at(14), Qt::DecorationRole);
+            }
+        }
+    listitem->setText(firstrow);
+    listitem->setSecondaryText(secondrow);
+    listitem->setData(aDoc->docId(), Qt::UserRole);
+    listitem->setData(aDoc->baseAppClass(), Qt::UserRole + 1);
+    mListView->addItem(listitem);
+
+    delete aDoc;
+    }
+
+InDeviceHandler* SearchProgressiveState::constructHandlers(int mDatabase)
+    {
+    InDeviceHandler* handler = NULL;
+    handler = new InDeviceHandler();
+    switch (mDatabase)
+        {
+        case 0:
+            {
+            handler->setCategory("");
+            break;
+            }
+        case 1:
+            {
+            handler->setCategory("contact");
+            break;
+            }
+        case 2:
+            {
+            handler->setCategory("media");
+            break;
+            }
+        case 3:
+            {
+            handler->setCategory("msg");
+            break;
+            }
+        case 4:
+            {
+            handler->setCategory("msg email");
+            break;
+            }
+        case 5:
+            {
+            handler->setCategory("calendar");
+            break;
+            }
+        case 6:
+            {
+            handler->setCategory("notes");
+            break;
+            }
+        case 7:
+            {
+            handler->setCategory("applications");
+            break;
+            }
+        case 8:
+            {
+            handler->setCategory("file");
+            break;
+            }
+        case 9:
+            {
+            // handler->setCategory("bookmark");
+            break;
+            }
+        case 10:
+            {
+            handler->setCategory("media image");
+            break;
+            }
+        case 11:
+            {
+            handler->setCategory("media audio");
+            break;
+            }
+        case 12:
+            {
+            handler->setCategory("media video");
+            break;
+            }
+        }
+    return handler;
     }

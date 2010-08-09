@@ -34,11 +34,17 @@ InDeviceHandler::~InDeviceHandler()
     {
     if (mSearchInterface)
         {
+        disconnect(mSearchInterface, SIGNAL(handleSearchResults(int,int)),
+                this, SLOT(getSearchResult(int,int)));
+        disconnect(mSearchInterface,
+                SIGNAL(handleDocument(int,CpixDocument*)), this,
+                SLOT(getDocumentAsync(int,CpixDocument*)));
+        disconnect(mSearchInterface,
+                SIGNAL(handleDocument(int,CpixDocument*)), this,
+                SLOT(getDocumentAsync(int,CpixDocument*)));
         delete mSearchInterface;
-
         }
     }
-
 // ---------------------------------------------------------------------------
 // InDeviceHandler::getSearchResult(int aError, int estimatedResultCount)
 // aError: error code
@@ -47,7 +53,6 @@ InDeviceHandler::~InDeviceHandler()
 //
 void InDeviceHandler::getSearchResult(int aError, int estimatedResultCount)
     {
-    qDebug() << aError << estimatedResultCount;
     mSearchResultCount = estimatedResultCount;
     emit handleAsyncSearchResult(aError, estimatedResultCount);
     }
@@ -60,6 +65,17 @@ void InDeviceHandler::getSearchResult(int aError, int estimatedResultCount)
 void InDeviceHandler::getDocumentAsync(int aError, CpixDocument* aDocument)
     {
     emit handleDocument(aError, aDocument);
+    }
+// ---------------------------------------------------------------------------
+// InDeviceHandler::getBatchDocumentAsync(int aError, CpixDocument* aDocument)
+// aError: error code
+// aDocument: holding the result item
+// ---------------------------------------------------------------------------
+//
+void InDeviceHandler::getBatchDocumentAsync(int aError, int aCount,
+        CpixDocument** aDocument)
+    {
+    emit handleBatchDocument(aError, aCount, aDocument);
     }
 // ---------------------------------------------------------------------------
 // InDeviceHandler::getDocumentAtIndex(int aIndex)
@@ -84,7 +100,6 @@ CpixDocument* InDeviceHandler::getDocumentAtIndex(int aIndex)
         }
     return doc;
     }
-
 
 // ---------------------------------------------------------------------------
 // InDeviceHandler::getSearchResultCount()
@@ -114,7 +129,27 @@ void InDeviceHandler::getDocumentAsyncAtIndex(int aIndex)
             return;
             }
         }
-
+    }
+// ---------------------------------------------------------------------------
+// InDeviceHandler::getBatchDocumentAsyncAtIndex
+// aIndex :  index of item to be found async
+// aCount :  number of result items
+// ---------------------------------------------------------------------------
+//
+void InDeviceHandler::getBatchDocumentAsyncAtIndex(int aIndex, int aCount)
+    {
+    if (mSearchInterface)
+        {
+        try
+            {
+            mSearchInterface->batchdocumentAsync(aIndex, aCount);
+            }
+        catch (...)
+            {
+            // handle the exception
+            return;
+            }
+        }
     }
 // ---------------------------------------------------------------------------
 // InDeviceHandler::searchAsync
@@ -148,7 +183,6 @@ void InDeviceHandler::searchAsync(QString aSearchAsyncString, QString/* aDefault
 void InDeviceHandler::cancelLastSearch()
     {
     if (mSearchInterface)
-
         {
         try
             {
@@ -183,31 +217,17 @@ void InDeviceHandler::setCategory(QString astring)
     else
         {
         mSearchInterface = CpixSearcher::newInstance("root",
-        DEFAULT_SEARCH_FIELD);
+                DEFAULT_SEARCH_FIELD);
         }
     if (mSearchInterface)
         {
-        try
-            {
-            mSearchInterface->connect(mSearchInterface,
-                    SIGNAL(handleSearchResults(int,int)), this,
-                    SLOT(getSearchResult(int,int)));
-            }
-        catch (...)
-            {
-            // handle the exception
-            }
-
-        try
-            {
-            mSearchInterface->connect(mSearchInterface,
-                    SIGNAL(handleDocument(int,CpixDocument*)), this,
-                    SLOT(getDocumentAsync(int,CpixDocument*)));
-            }
-        catch (...)
-            {
-            // handle the exception
-            }
+        connect(mSearchInterface, SIGNAL(handleSearchResults(int,int)), this,
+                SLOT(getSearchResult(int,int)));
+        connect(mSearchInterface, SIGNAL(handleDocument(int,CpixDocument*)),
+                this, SLOT(getDocumentAsync(int,CpixDocument*)));
+        connect(mSearchInterface,
+                SIGNAL(handleBatchDocuments(int,int,CpixDocument**)), this,
+                SLOT(getBatchDocumentAsync(int,int,CpixDocument**)));
         }
     }
 
@@ -222,7 +242,5 @@ bool InDeviceHandler::isPrepared()
         {
         return true;
         }
-
     return false;
-
     }

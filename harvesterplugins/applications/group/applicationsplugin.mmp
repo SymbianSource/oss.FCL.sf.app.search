@@ -46,7 +46,7 @@ LIBRARY       cpixharvesterplugininterface.lib
 LIBRARY       cpixsearchclient.lib
 LIBRARY       apgrfx.lib //for RApaLsSession
 LIBRARY       apparc.lib //for TApaAppInfo 
-LIBRARY       widgetregistryclient.lib
+//LIBRARY       widgetregistryclient.lib
 LIBRARY       centralrepository.lib    //for CRepository
 
 // For logging

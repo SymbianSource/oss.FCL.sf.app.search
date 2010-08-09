@@ -41,8 +41,9 @@
 namespace {
 
 _LIT(KCPixSearchServerPrivateDirectory, "\\Private\\2001f6f7\\");
+_LIT(KIndexingDBPath,"indexing\\indexdb");
 _LIT(KPathIndexDbPath, CPIX_INDEVICE_INDEXDB);
-
+_LIT(KfileDBPath, "\\root\\file");
 _LIT(KPathFolder, "\\root\\file\\folder");
 _LIT(KPathFileContent, "\\root\\file\\content");
 _LIT(KFileBaseAppClassContent, "root file content");
@@ -51,6 +52,7 @@ _LIT(KFilePluginAtSign, "@");
 _LIT(KFilePluginColon, ":");
 _LIT(KNameField, "Name");
 _LIT(KExtensionField, "Extension");
+_LIT(KIsFolderField, "IsFolder");
 _LIT(KMimeTypeFile, FILE_MIMETYPE);
 _LIT(KMimeTypeFolder , FOLDER_MIMETYPE);
 _LIT(KMimeTypeField , CPIX_MIMETYPE_FIELD);
@@ -273,7 +275,12 @@ void CFilePlugin::MountL(TDriveNumber aMedia, TBool aForceReharvest)
     // Check if already exists
     if (iIndexer[aMedia] && iFolderIndexer[aMedia])
         return;
-
+    //remove the database incase of memory card insertion before harvesting
+    if (aForceReharvest)
+        {        
+          RemoveFileDatabaseL(aMedia);
+        }
+        
     // Add Notifications paths prior to opening IndexDB.
     AddNotificationPathsL(aMedia);
 
@@ -649,14 +656,38 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
         {
         index_item->AddFieldL(KExtensionField, KNullDesC);
         index_item->AddFieldL(KMimeTypeField, KMimeTypeFolder, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-        }   
-    
+        }
+    TBuf<2> Isfolder;
+    Isfolder.AppendNum(aIsDir);
+    index_item->AddFieldL(KIsFolderField, Isfolder, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
     //Only content to be added to exceprt field. See appclass-hierarchy.txt
     //Add excerpt field
     //index_item->AddExcerptL(aFilePath);
     
     CleanupStack::Pop(index_item);
     return index_item;
+    }
+
+void CFilePlugin::RemoveFileDatabaseL(TDriveNumber aDrive)
+    {
+    RFs aFs;
+    User::LeaveIfError( aFs.Connect() );
+    TChar drive;
+    TInt err = aFs.DriveToChar((TDriveNumber)aDrive,drive);
+    if ( err == KErrNone )
+        {
+        TBuf<KMaxFileName> folderpath;
+        folderpath.Append(drive);
+        folderpath.Append(KFilePluginColon);
+        folderpath.Append(KCPixSearchServerPrivateDirectory);
+        folderpath.Append(KIndexingDBPath);
+        folderpath.Append(KfileDBPath);
+        CFileMan* FileMan = CFileMan::NewL(aFs);
+        if ( FileMan )
+            FileMan->Delete( folderpath );
+        delete FileMan;
+        }
+    aFs.Close();
     }
 
 #ifdef __PERFORMANCE_DATA

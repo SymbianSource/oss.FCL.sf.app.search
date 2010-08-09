@@ -25,19 +25,6 @@
 #include <mdeobjectdef.h>
 #include "harvesterserverlogger.h"
 
-#define CPIX_MIMETYPE_FIELD      L"_mimetype"
-#define LCPIX_MIMETYPE_FIELD     L"_mimetype"
-const TInt KInitialExcerptLength = 5;
-const TInt KStartPosition = 2; //Start position of absolute path
-const TInt KDrivePosition = 0; //Drive position in object Uri
-const TInt KMaxMediaLength = 14;
-const TInt KMaxExtLength = 5;
-//To unsigned decimal representation as UIds are out of range for signed decimal
-_LIT(KFormat, "%u");
-_LIT(KNameField, "Name");
-_LIT(KMediaIdField, "MediaId");
-_LIT(KExtensionField, "Extension");
-_LIT(KExcerptDelimiter, " ");
 
 // -----------------------------------------------------------------------------
 // CCPIXDocFetcher::NewL()

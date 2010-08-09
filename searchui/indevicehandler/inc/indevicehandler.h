@@ -34,7 +34,6 @@
 
 class CpixSearcher;
 class CpixDocument;
-
 SEARCH_CLASS(SearchInDeviceHandlerTest)
 
 /**
@@ -78,6 +77,12 @@ signals:
      */
     void handleDocument(int aError, CpixDocument* aDoc);
 
+    /**
+     * Signalled when user requests for the result item in batch
+     * error and result item will be returned
+     */
+    void handleBatchDocument(int aError, int aCount, CpixDocument** aDoc);
+
 private slots:
 
     /**
@@ -97,6 +102,16 @@ private slots:
      */
     void getDocumentAsync(int aError, CpixDocument* aDocument);
 
+    /**
+     * slot connects to CpixSearcher to get the result item 
+     * @since S60 ?S60_version.
+     * @param aError error code.
+     * @param aCount number of result item.
+     * @param aDocument array of Documents
+     */
+    void getBatchDocumentAsync(int aError, int aCount,
+            CpixDocument** aDocument);
+
 public:
 
     /**
@@ -113,7 +128,13 @@ public:
      */
     void getDocumentAsyncAtIndex(int aIndex);
 
-  
+    /**
+     * returns the result item asynchronously.
+     * @since S60 ?S60_version.
+     * @param aIndex index 
+     * @param aCount number of result item
+     */
+    void getBatchDocumentAsyncAtIndex(int aIndex, int aCount);
 
     /**
      * initate the search asynchronously.
@@ -163,7 +184,7 @@ private:
      */
     int mSearchResultCount;
 
-SEARCH_FRIEND_CLASS    (SearchInDeviceHandlerTest)
+    SEARCH_FRIEND_CLASS (SearchInDeviceHandlerTest)
     };
 
 #endif //INDEVICEHANDLER_H

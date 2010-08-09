@@ -23,7 +23,7 @@
 #include <csearchdocument.h>
 #include <e32base.h>
 //#include <menu2internalcrkeys.h> //for KCRUidMenu
-#include <WidgetPropertyValue.h> // EBundleDisplayName 
+//#include <WidgetPropertyValue.h> // EBundleDisplayName 
 #include <centralrepository.h>
 #include <opensystemtrace.h> 
 #include "OstTraceDefinitions.h"
@@ -81,7 +81,7 @@ CApplicationsPlugin::~CApplicationsPlugin()
     if (iAsynchronizer)
         iAsynchronizer->CancelCallback();
     iApplicationServerSession.Close();
-    iWidgetRegistry.Close();
+    //iWidgetRegistry.Close();
     //delete iHiddenApplicationsRepository;
 	delete iAsynchronizer;
 	delete iNotifier;
@@ -94,7 +94,7 @@ void CApplicationsPlugin::ConstructL()
     iAsynchronizer = CDelayedCallback::NewL( CActive::EPriorityIdle );
     iNotifier = CApaAppListNotifier::NewL( this, CActive::EPriorityHigh );
     //iHiddenApplicationsRepository = CRepository::NewL( KHiddenAppRepositoryUid );
-    User::LeaveIfError( iWidgetRegistry.Connect() );
+    //User::LeaveIfError( iWidgetRegistry.Connect() );
     }
 
 // -----------------------------------------------------------------------------
@@ -124,7 +124,8 @@ void CApplicationsPlugin::StartHarvestingL(const TDesC& /* aQualifiedBaseAppClas
    	iAsynchronizer->Start( 0, this, KHarvestingDelay );
     }
 
-// -----------------------------------------------------------------------------
+//Removing Widget Registry support
+/* -----------------------------------------------------------------------------
 void CApplicationsPlugin::AddWidgetInfoL( CSearchDocument* aDocument, TUid aUid )
     {
     TBuf<KMaxFileName> temp;//we can reuse this.
@@ -145,7 +146,7 @@ void CApplicationsPlugin::AddWidgetInfoL( CSearchDocument* aDocument, TUid aUid 
     
     OstTraceExt1( TRACE_NORMAL, DUP1_CAPPLICATIONSPLUGIN_ADDWIDGETINFOL, "CApplicationsPlugin::AddWidgetInfoL;DisplayName=%S", &temp );
     CPIXLOGSTRING2("AddApplicationInfo(): DisplayName = %S ", &temp );
-    }
+    }*/
 
 // -----------------------------------------------------------------------------
 //This need not be a member function.
@@ -248,10 +249,11 @@ void CApplicationsPlugin::CreateApplicationsIndexItemL( TApaAppInfo& aAppInfo, T
     document->AddExcerptL(excerptPtr);
     CleanupStack::PopAndDestroy(excerpt);
 #endif
-    if( iWidgetRegistry.IsWidget( aAppInfo.iUid  ) )
+    
+    /*if( iWidgetRegistry.IsWidget( aAppInfo.iUid  ) ) //Widget support
         AddWidgetInfoL( document, aAppInfo.iUid );
-    else
-        AddApplicationInfoL( document, aAppInfo );
+    else*/
+     AddApplicationInfoL( document, aAppInfo );
 
     TRAPD( error, iIndexer->AddL( *document ) );
     if( KErrNone == error )

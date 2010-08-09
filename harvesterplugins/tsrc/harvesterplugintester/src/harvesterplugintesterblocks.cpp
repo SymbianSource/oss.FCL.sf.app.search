@@ -173,6 +173,8 @@ TInt CHarvesterPluginTester::RunMethodL(
 		ENTRY( "TestImageNoIndexer",CHarvesterPluginTester::TestImageNoIndexerL ),
 		ENTRY( "TestStartEmailPlugin",CHarvesterPluginTester::TestStartEmailPluginL ),
 		ENTRY( "TestHandleEmailDoc",CHarvesterPluginTester::TestHandleEmailDocL ),
+		ENTRY( "TestEmailBaseappclass",CHarvesterPluginTester::TestEmailBaseappclassL ),
+		ENTRY( "TestEmailHandleDoc",CHarvesterPluginTester::TestEmailHandleDocL ),
         //ADD NEW ENTRY HERE
         // [test cases entries] - Do not remove
         };
@@ -2181,8 +2183,11 @@ TInt CHarvesterPluginTester::TestStartEmailPluginL( CStifItemParser& /*aItem*/ )
     iLog->Log( KExample );
     CEmailPlugin* emailPlugin = CEmailPlugin::NewL();
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( emailPlugin );    
-    emailPlugin->StartPluginL(); //Calls Add
+    emailPlugin->StartPluginL();
+    iPluginTester->SetWaitTime( (TTimeIntervalMicroSeconds32)5000000 );
     emailPlugin->StartHarvestingL( KEmailAppBasePath );
+    emailPlugin->HarvestingCompleted();
+    iPluginTester->iWaitForHarvester->Start();
     delete emailPlugin;
     delete iPluginTester;
     doLog( iLog, KErrNone, KNoErrorString );
@@ -2198,13 +2203,62 @@ TInt CHarvesterPluginTester::TestHandleEmailDocL( CStifItemParser& /*aItem*/ )
     // Print to log file
     iLog->Log( KExample );
     CEmailPlugin* emailPlugin = CEmailPlugin::NewL();
-    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( emailPlugin );   
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( emailPlugin );
+    TRAPD(err , emailPlugin->StartPluginL());
     CSearchDocument* doc = prepareemaildocument();
-    TRAPD(err , emailPlugin->HandleDocumentL( doc , ECPixAddAction));
-    iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    TRAP(err , emailPlugin->HandleDocumentL( doc , ECPixAddAction));    
+    TRAP(err , emailPlugin->HandleDocumentL( doc , ECPixRemoveAction));
+    //iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    delete doc;
     delete emailPlugin;
     delete iPluginTester;
     doLog( iLog, err, KNoErrorString );
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestEmailBaseappclassL( CStifItemParser& /*aItem*/ )
+    {
+    _LIT( KHarvesterPluginTester, "HarvesterPluginTester: %S" );
+    _LIT( KExample, "In TestEmailBaseappclassL" );
+    TestModuleIf().Printf( 0, KHarvesterPluginTester, KExample );
+    
+    TDriveNumber drive ( EDriveA ); 
+    _LIT( appcls1 ,"@c:root msg email" );
+    _LIT( appcls2 ,"@*:root msg email" );
+    _LIT( appcls3 ,"d:root msg email" );    
+    CEmailPlugin* emailPlugin = CEmailPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( emailPlugin );
+    TRAPD(err , emailPlugin->StartPluginL());
+    TRAP(err, emailPlugin->StartHarvestingL(appcls1));
+    delete emailPlugin->iIndexer[EDriveC];
+    emailPlugin->iIndexer[EDriveC] = NULL;
+    TRAP(err, emailPlugin->StartHarvestingL(appcls1));
+    TRAP(err, emailPlugin->StartHarvestingL(appcls2));
+    TRAP(err, emailPlugin->StartHarvestingL(appcls3));
+    delete emailPlugin;
+    delete iPluginTester;
+    return err;
+    }
+
+TInt CHarvesterPluginTester::TestEmailHandleDocL( CStifItemParser& /*aItem*/ )
+    {
+    _LIT( KHarvesterPluginTester, "HarvesterPluginTester: %S" );
+    _LIT( KExample, "In TestEmailHandleDocL" );
+    TestModuleIf().Printf( 0, KHarvesterPluginTester, KExample );
+    CEmailPlugin* emailPlugin = CEmailPlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( emailPlugin );
+    CSearchDocument* doc = prepareemaildocument();
+    TRAPD(err , emailPlugin->StartPluginL());
+    TRAP(err, emailPlugin->StartHarvestingL( KEmailAppBasePath ));    
+    delete emailPlugin->iIndexer[EDriveC];    
+    TRAP(err,emailPlugin->HandleDocumentL(doc,ECPixRemoveAction));
+    TRAP(err,emailPlugin->HandleDocumentL(doc,ECPixAddAction));
+    emailPlugin->MountL(EDriveC);
+    TRAP(err,emailPlugin->HandleDocumentL(doc,ECPixAddAction));
+    TRAP(err,emailPlugin->HandleDocumentL(doc,ECPixUpdateAction));
+    delete doc;
+    delete emailPlugin;
+    delete iPluginTester;
     return err;
     }
 

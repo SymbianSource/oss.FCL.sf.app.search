@@ -133,7 +133,34 @@ TBool CMMCMonitor::StartMonitoring()
     {
     OstTraceFunctionEntry0( CMMCMONITOR_STARTMONITORING_ENTRY );
     CPIXLOGSTRING("ENTER CMMCMonitor::StartMonitoring");
-    TRAP_IGNORE( RunL() ); // Need to TRAP this rather than use RunError
+    iProperty.Subscribe( iStatus );
+    SetActive();
+    User::LeaveIfError( iProperty.Get( KPSUidUikon, KUikMMCInserted, iMmcStatus ) );
+    
+    for ( TInt driveNumber = EDriveA; driveNumber <= EDriveZ; driveNumber++ )
+        {
+        const TBool foundMmc = MmcStatus( driveNumber );
+        if ( !foundMmc )
+            {
+            continue;
+            }
+
+        // This drive has been recognized as MMC. 
+        TDriveNumber drv = TDriveNumber( driveNumber );
+
+        TUint drvStatus( 0 );
+
+        const TInt err = DriveInfo::GetDriveStatus( *iFsSession, driveNumber, drvStatus );
+        if ( err ) 
+            {
+            continue;  // should not happen
+            }
+
+        if ( drvStatus & DriveInfo::EDrivePresent )
+            {            
+            iFilePlugin.MountL(drv, EFalse);
+            }
+        }
     CPIXLOGSTRING("END CMMCMonitor::StartMonitoring");
     OstTraceFunctionExit0( CMMCMONITOR_STARTMONITORING_EXIT );
     return ETrue;
@@ -242,7 +269,7 @@ void CMMCMonitor::RunL()
             OstTrace0( TRACE_NORMAL, DUP2_CMMCMONITOR_RUNL, "CMMCMonitor::RunL insert event" );
             CPIXLOGSTRING("CMMCMonitor::RunL insert event");
             // Mount MMC and force reharvest
-            iFilePlugin.MountL(drv, EFalse); //dont force reharvest
+            iFilePlugin.MountL(drv, ETrue);
             }
         else
             {

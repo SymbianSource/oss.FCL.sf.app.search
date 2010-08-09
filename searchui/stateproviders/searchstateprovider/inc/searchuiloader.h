@@ -20,15 +20,14 @@
 #include "search_global.h"
 #include <qobject.h>
 #include <qmutex.h>
-
+#include <hbmainwindow.h>
 class HbDocumentLoader;
 class HbView;
 class HbListWidget;
 class HbSearchPanel;
 class TsTaskSettings;
-class HbMainWindow;
+class SearchMainWindow;
 class HbShrinkingVkbHost;
-
 SEARCH_CLASS( SearchStateProviderTest)
 
 class SearchUiLoader : public QObject
@@ -76,7 +75,13 @@ public slots:
      * Slot to send the application to background fake exit
      * @since S60 ?S60_version.
      */
-    void slotsendtobackground();   
+    void slotsendtobackground();
+
+    /**
+     * Slot to open vkb 
+     * @since S60 ?S60_version.
+     */
+    void slotbringvkb();
 
 public:
 
@@ -105,14 +110,7 @@ public:
     HbSearchPanel* SearchPanel()
         {
         return mSearchPanel;
-        }
-
-    /**
-     * Function to listen the applicaition foreground event
-     *  @param aUid Unique app Id.
-     */
-    bool eventFilter(QObject *, QEvent *);
-
+        }    
 private:
     /**
      * Constructor.
@@ -172,15 +170,55 @@ private:
     /**
      * application main window
      */
-    HbMainWindow* mMainWindow;
+    SearchMainWindow* mMainWindow;
 
     /**
      * vkbhost to resize the result screen 
      * Own.
      */
     HbShrinkingVkbHost* mVirtualKeyboard;
+
+    /**
+     * flag to validate fake exit
+     * Own.
+     */
+    bool mBringtoForground;
 private:
-SEARCH_FRIEND_CLASS    ( SearchStateProviderTest)
+    SEARCH_FRIEND_CLASS ( SearchStateProviderTest)
     };
 
+class SearchMainWindow : public HbMainWindow
+    {
+Q_OBJECT
+public:
+    /**
+     * Constructor.
+     * @since S60 ?S60_version.
+     */
+    SearchMainWindow()
+        {
+        connect(this, SIGNAL(viewReady()), this, SLOT(slotViewReady()));
+        }
+    /**
+     * Function capture the focusin event 
+     *  @param event .
+     */
+    void focusInEvent(QFocusEvent * event)
+        {
+        Q_UNUSED(event);
+        slotViewReady();
+        }
+public slots:
+    /**
+     * Slot to send the application to background fake exit
+     * @since S60 ?S60_version.
+     */
+    void slotViewReady();
+signals:
+    /**
+     * signal to send the notification for vkb
+     * @since S60 ?S60_version.
+     */
+    void bringvkb();
+    };
 #endif //SEARCH_CONTROLLER_H

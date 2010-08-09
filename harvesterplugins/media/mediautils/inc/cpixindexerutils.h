@@ -144,6 +144,14 @@ private:
      * @param TDriveNumber aMedia drive
      */
     void RemoveUnmountedDrive(TDriveNumber aMedia);
+    
+    /*
+    * Remove unmounted drive database
+    * @param TDriveNumber aMedia drive
+    * @param TDesC& aPath path of database
+    */
+   void RemoveUnmountedDatabaseL(TDriveNumber aMedia, const TDesC& aPath);
+       
 private:
     RArray<TDriveNumber>  iMountedDrives; //Array of mounted drives
     CCPixIndexer *iIndexer[EDriveZ + 1];//Array of all Indexers

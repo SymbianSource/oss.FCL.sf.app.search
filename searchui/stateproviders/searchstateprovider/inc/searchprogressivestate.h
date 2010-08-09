@@ -144,12 +144,20 @@ private:
      */
     void constructHandlers();
 
+    InDeviceHandler* constructHandlers(int mDatabase);
+
     /**
      * setting the categories .
      * @since S60 ?S60_version.
      */
     void setSelectedCategories();
-    
+
+    /**
+     * parse the result documents.
+     * @since S60 ?S60_version.
+     */
+    void parseDocument(CpixDocument* aDoc);
+
 public slots:
 
     /**
@@ -167,6 +175,15 @@ public slots:
      * @param aDoc result item
      */
     void onGetDocumentComplete(int aError, CpixDocument* aDoc);
+
+    /**
+     * slot connects to CSearchHandler to get the result item asynchronously 
+     * @since S60 ?S60_version.
+     * @param aError error code.
+     * @param aDoc result item
+     */
+    void onGetBatchDocumentComplete(int aError, int aCount,
+            CpixDocument** aDoc);
 
     /**
      * slot connects to list view to launch the respective application
@@ -252,7 +269,6 @@ public slots:
      * @since S60 ?S60_version.
      */
     void slotPrepareResultIcons();
-
 private:
 
     /**
@@ -492,6 +508,9 @@ private:
     SearchUiLoader* mUiLoader;
 
     bool mStateStatus;
+
+    bool mValidateHandlerCreation;
+
 #ifdef OST_TRACE_COMPILER_IN_USE
     QTime m_totalSearchUiTime;
     QTime m_categorySearchUiTime;
@@ -502,7 +521,7 @@ private:
     long m_getDocumentCatergoryTimeAccumulator;
 #endif
 
-SEARCH_FRIEND_CLASS    (SearchStateProviderTest)
+    SEARCH_FRIEND_CLASS (SearchStateProviderTest)
 
     };
 

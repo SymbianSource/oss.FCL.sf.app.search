@@ -40,14 +40,12 @@
 SearchOnlineState::SearchOnlineState(QState *parent) :
     QState(parent), mMainWindow(NULL), mView(NULL), mSearchPanel(NULL)
     {
-
+    mUiLoader = SearchUiLoader::instance();
     mInternetHandler = new OnlineHandler();
     mSearchReady = true;
     mIndeviceQueryAvailable = false;
 
     mMainWindow = hbInstance->allMainWindows().at(0);
-
-    mUiLoader = SearchUiLoader::instance();
 
     mView = mUiLoader->View();
     mListView = mUiLoader->ListWidget();

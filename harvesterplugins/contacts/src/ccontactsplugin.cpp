@@ -310,16 +310,38 @@ void CContactsPlugin::AddToExcerptL(CSearchDocument& /*aDocument*/, CContactItem
 	if (! (findpos < 0) || (findpos >= aFieldSet.Count() ) )
 		{
 		CContactItemField& additionalField = aFieldSet[ findpos ];
-		CContactTextField* fieldText = additionalField.TextStorage();
-		if ( fieldText && fieldText->Text() != KNullDesC )
-			{
-			TInt currentSize = iExcerpt->Size();
-			TInt newSize = currentSize + fieldText->Text().Size() + 1;
-			iExcerpt = iExcerpt->ReAllocL(newSize);
-			TPtr ptr = iExcerpt->Des();
-			ptr.Append(fieldText->Text());
-			ptr.Append(KExcerptDelimiter);
-			}
+		TInt newfieldsize = 0;
+		if( additionalField.StorageType() == KStorageTypeDateTime)
+		            {
+		            CContactDateField* fieldDate = additionalField.DateTimeStorage();
+		            if (fieldDate)
+		                {
+		                TBuf<30> dateString;
+		                fieldDate->Time().FormatL(dateString, KTimeFormat);
+                        TInt currentSize = iExcerpt->Size();
+                        TInt newSize = currentSize + dateString.Size()+ 1;
+                        iExcerpt = iExcerpt->ReAllocL(newSize);
+                        TPtr ptr = iExcerpt->Des();
+                        ptr.Append(dateString);
+                        ptr.Append(KExcerptDelimiter);
+		                }
+		            
+		            }
+		        else
+		            {
+		            CContactTextField* fieldText = additionalField.TextStorage();
+		            if (fieldText && fieldText->Text() != KNullDesC )
+		                {
+                          TInt currentSize = iExcerpt->Size();
+                          TInt newSize = currentSize + fieldText->Text().Size() + 1;
+                          iExcerpt = iExcerpt->ReAllocL(newSize);
+                          TPtr ptr = iExcerpt->Des();
+                          ptr.Append(fieldText->Text());
+                          ptr.Append(KExcerptDelimiter);
+		                }
+		            }
+		
+		
 		}
 	}
 
@@ -391,7 +413,7 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
             AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField:: EIndexFreeText );        
 #endif            
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
-            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSIPID, KContactsSIPIDField );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldCompanyName, KContactsCompanyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldJobTitle, KContactsJobTitleField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );

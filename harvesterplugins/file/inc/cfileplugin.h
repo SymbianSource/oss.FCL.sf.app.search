@@ -79,6 +79,12 @@ private:
      * @aExt file extention
      */
 	TBool IsFileTypeMedia(const TDesC& aExt);
+	
+	/**
+     * RemoveFileDatabaseL deletes the database file from the requested drive 
+     * @aDrive drive number
+     */
+	void RemoveFileDatabaseL(TDriveNumber aDrive);
 
 public:
 	// 

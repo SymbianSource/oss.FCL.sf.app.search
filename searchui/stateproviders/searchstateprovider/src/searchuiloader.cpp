@@ -28,6 +28,8 @@
 #include <hbinstance.h>
 #include <tstasksettings.h>
 #include <hbshrinkingvkbhost.h>
+#include <qinputcontext.h>
+
 const char *SEARCHSTATEPROVIDER_DOCML = ":/xml/searchstateprovider.docml";
 const char *TOC_VIEW = "tocView";
 const char *TUT_SEARCHPANEL_WIDGET = "searchPanel";
@@ -40,7 +42,8 @@ int SearchUiLoader::m_instanceCounter = 0;
 // SearchUiLoader::SearchUiLoader
 // ---------------------------------------------------------------------------
 SearchUiLoader::SearchUiLoader() :
-    mDocumentLoader(NULL), mView(NULL), mListWidget(NULL), mSearchPanel(NULL),mClient(NULL)
+    mDocumentLoader(NULL), mView(NULL), mListWidget(NULL),
+            mSearchPanel(NULL), mClient(NULL), mMainWindow(NULL)
     {
     bool ok = false;
 
@@ -96,24 +99,24 @@ SearchUiLoader::SearchUiLoader() :
         mSearchPanel->setCancelEnabled(false);
         }
 
-    mMainWindow = hbInstance->allMainWindows().at(0);
+    mMainWindow = new SearchMainWindow();
+    connect(mMainWindow, SIGNAL(bringvkb()), this, SLOT(slotbringvkb()));
+
     HbAction *action = new HbAction(Hb::DoneNaviAction);
     connect(action, SIGNAL(triggered()), this, SLOT(slotsendtobackground()));
     mView->setNavigationAction(action);
+
     mVirtualKeyboard = new HbShrinkingVkbHost(mView);
-    QCoreApplication::instance()->installEventFilter(this);
+
+    mBringtoForground = true;
     }
 // ---------------------------------------------------------------------------
 // SearchUiLoader::~SearchUiLoader
 // ---------------------------------------------------------------------------
 SearchUiLoader::~SearchUiLoader()
     {
-    QCoreApplication::instance()->removeEventFilter(this);
-
-    if (mDocumentLoader)
-        {
-        delete mDocumentLoader;
-        }
+    delete mMainWindow;
+    delete mDocumentLoader;
     delete mClient;
     }
 // ---------------------------------------------------------------------------
@@ -127,20 +130,33 @@ void SearchUiLoader::slotsendtobackground()
     mListWidget->clear();
     mSearchPanel->setCriteria(QString());
     mMainWindow->lower();
+    mBringtoForground = true;
     }
 // ---------------------------------------------------------------------------
-// SearchUiLoader::event
+// SearchUiLoader::slotbringvkb
 // ---------------------------------------------------------------------------
-bool SearchUiLoader::eventFilter(QObject *obj, QEvent *event)
+void SearchUiLoader::slotbringvkb()
     {
-    if (event->type() == QEvent::ApplicationActivate)
+    if (mBringtoForground)
         {
         if (!mClient)
             mClient = new TsTaskSettings;
         mClient->setVisibility(true);
-        if (!(mListWidget->count()))
-            mSearchPanel->setFocus();
-        return true;
+        mSearchPanel->setFocus();
+        QInputContext *ic = qApp->inputContext();
+        if (ic)
+            {
+            mBringtoForground = false;
+            QEvent *event = new QEvent(QEvent::RequestSoftwareInputPanel);
+            ic->filterEvent(event);
+            delete event;
+            }
         }
-    return QObject::eventFilter(obj, event);
+    }
+// ---------------------------------------------------------------------------
+// SearchMainWindow::slotViewReady
+// ---------------------------------------------------------------------------
+void SearchMainWindow::slotViewReady()
+    {
+    emit bringvkb();
     }

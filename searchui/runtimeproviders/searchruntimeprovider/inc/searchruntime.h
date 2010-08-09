@@ -89,23 +89,10 @@ signals:
 private:
 
     /**
-     * Creates gui service parts
-     * @since S60 ?S60_version.
-     */
-    void createGuiServiceParts();
-
-    /**
      * Creates states
      * @since S60 ?S60_version.
      */
     void createStates();
-
-private:  
-
-    /**
-     * Window to visualize scene
-     */
-    HbMainWindow *mWindow;   
 
 SEARCH_FRIEND_CLASS    (SearchRuntimeProviderTest)
 

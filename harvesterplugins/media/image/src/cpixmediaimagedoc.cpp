@@ -107,6 +107,12 @@ CSearchDocument* CCPIXMediaImageDoc::GetCpixDocumentL(const CMdEObject& aObject,
           AddToFieldExcerptL(textProperty->Value());
           }
     
+#ifdef USE_HIGHLIGHTER
+    //Get the media file extension and store
+    TBuf<KMaxExtLength> extension;        
+    GetExtension(aObject.Uri(),extension);
+    AddToFieldExcerptL(extension);
+#endif   
     //Get user comment field
     CMdEPropertyDef& commentPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KCommentProperty );
     if(aObject.Property( commentPropDef, property )!= KErrNotFound)

@@ -248,9 +248,9 @@ private:
     bool mchangestate;
 
     OnlineHandler *mInternetHandler;
-    // QStringList mServiceProviders;
+
     QMap<int, QString> mServiceProviders;
 
-SEARCH_FRIEND_CLASS    (SearchStateProviderTest)
+    SEARCH_FRIEND_CLASS (SearchStateProviderTest)
     };
 #endif
