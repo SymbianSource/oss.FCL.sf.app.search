@@ -83,7 +83,32 @@ public: // From MDelayedCallbackObserver
 
     void DelayedCallbackL(TInt aCode);
     void DelayedError(TInt aError);
+#ifdef USE_HIGHLIGHTER
+public: // AddExcerpt function
     
+    /*
+     * Add the value to excerpt field
+     * @param TDesC& aExcerptValue excerpt value
+     */
+    void AddToFieldExcerptL(const TDesC& aExcerptValue);
+    
+ 
+private:
+ 
+    /*
+     * reset the excerpt
+     */
+    void ResetExcerpt();
+
+#endif
+    /*
+       * For date and time get discriptor value in the passed format
+       * @param TDateTime& datetime: date time to be formatted
+       * @param const TDesC& aFormat: to this format
+       * @param TDes& dateString: formated date 
+       */    
+     
+     void GetDateTimeDescriptorL(TDateTime& datetime, const TDesC& aFormat, TDes& dateString);
 private: // New functions
 	
 	void HandleChangedEntryL(const TCalChangeEntry& changedEntry);
@@ -124,7 +149,10 @@ private:
 	
 	// Start harvesting
 	TBool iStartHarvesting;
-	
+#ifdef USE_HIGHLIGHTER	
+	// Excerpt field
+    HBufC* iExcerpt;
+#endif
 	//for unit testing.
     #ifdef HARVESTERPLUGINTESTER_FRIEND
         friend class CHarvesterPluginTester;

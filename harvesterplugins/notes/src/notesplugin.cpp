@@ -360,15 +360,17 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 
 		//For notes, no content is expected in excerpt for now.
 		//See appclass-hierarchy.txt for details.
-#ifdef USE_HIGHLIGHTER		
-    	TInt excerptLength = entry->DescriptionL().Length() + 1 + dateString.Length();
-		HBufC* excerpt = HBufC::NewLC(excerptLength);
-		TPtr excerptDes = excerpt->Des();		
-		excerptDes.Append(entry->DescriptionL());
-		excerptDes.Append(KExcerptDelimiter);
-		excerptDes.Append(dateString);
-      index_item->AddExcerptL(*excerpt);
-      CleanupStack::PopAndDestroy(excerpt);
+#ifdef USE_HIGHLIGHTER
+		_LIT(KExcerptTimeFormat,"%04d/%02d/%02d %02d:%02d");
+		index_item->AddHLDisplayFieldL(entry->DescriptionL());
+		
+		dateString.Format( KExcerptTimeFormat, datetime.Year(),
+		                                     TInt(datetime.Month()+ 1),
+		                                     datetime.Day() + 1,
+		                                     datetime.Hour(),
+		                                     datetime.Minute());
+        index_item->AddExcerptL(dateString);
+    
 #endif      
 		
 		// Send for indexing

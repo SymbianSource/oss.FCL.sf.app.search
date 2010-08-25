@@ -41,9 +41,7 @@
 namespace {
 
 _LIT(KCPixSearchServerPrivateDirectory, "\\Private\\2001f6f7\\");
-_LIT(KIndexingDBPath,"indexing\\indexdb");
 _LIT(KPathIndexDbPath, CPIX_INDEVICE_INDEXDB);
-_LIT(KfileDBPath, "\\root\\file");
 _LIT(KPathFolder, "\\root\\file\\folder");
 _LIT(KPathFileContent, "\\root\\file\\content");
 _LIT(KFileBaseAppClassContent, "root file content");
@@ -221,18 +219,13 @@ void CFilePlugin::ConstructL()
 
 void CFilePlugin::StartPluginL()
 	{
-    TInt error = KErrNone;
-
-    if (!iIsMonitorInit)
-        {
-        error = iMonitor->Initialize();
-        OstTrace1( TRACE_NORMAL, CFILEPLUGIN_STARTPLUGINL, "CFilePlugin::StartPluginL;Monitor Error=%d", error );
-        CPIXLOGSTRING2("CFilePlugin::StartMonitoring, error: %i", error );
-        iIsMonitorInit = ETrue;
-        }
+    TInt error = KErrNone;    
+    error = iMonitor->Initialize();
+    OstTrace1( TRACE_NORMAL, CFILEPLUGIN_STARTPLUGINL, "CFilePlugin::StartPluginL;Monitor Error=%d", error );
+    CPIXLOGSTRING2("CFilePlugin::StartMonitoring, error: %i", error );        
 
     // Start the monitoring
-    if (error == KErrNone && iIsMonitorInit)
+    if (error == KErrNone )
         {
         iMonitor->StartMonitoring();
         OstTrace0( TRACE_NORMAL, DUP1_CFILEPLUGIN_STARTPLUGINL, "CFilePlugin::StartMonitoring - iFileMonitor->StartMonitoring " );
@@ -275,11 +268,6 @@ void CFilePlugin::MountL(TDriveNumber aMedia, TBool aForceReharvest)
     // Check if already exists
     if (iIndexer[aMedia] && iFolderIndexer[aMedia])
         return;
-    //remove the database incase of memory card insertion before harvesting
-    if (aForceReharvest)
-        {        
-          RemoveFileDatabaseL(aMedia);
-        }
         
     // Add Notifications paths prior to opening IndexDB.
     AddNotificationPathsL(aMedia);
@@ -662,32 +650,10 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
     index_item->AddFieldL(KIsFolderField, Isfolder, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
     //Only content to be added to exceprt field. See appclass-hierarchy.txt
     //Add excerpt field
-    //index_item->AddExcerptL(aFilePath);
+    index_item->AddExcerptL(aFilePath);
     
     CleanupStack::Pop(index_item);
     return index_item;
-    }
-
-void CFilePlugin::RemoveFileDatabaseL(TDriveNumber aDrive)
-    {
-    RFs aFs;
-    User::LeaveIfError( aFs.Connect() );
-    TChar drive;
-    TInt err = aFs.DriveToChar((TDriveNumber)aDrive,drive);
-    if ( err == KErrNone )
-        {
-        TBuf<KMaxFileName> folderpath;
-        folderpath.Append(drive);
-        folderpath.Append(KFilePluginColon);
-        folderpath.Append(KCPixSearchServerPrivateDirectory);
-        folderpath.Append(KIndexingDBPath);
-        folderpath.Append(KfileDBPath);
-        CFileMan* FileMan = CFileMan::NewL(aFs);
-        if ( FileMan )
-            FileMan->Delete( folderpath );
-        delete FileMan;
-        }
-    aFs.Close();
     }
 
 #ifdef __PERFORMANCE_DATA

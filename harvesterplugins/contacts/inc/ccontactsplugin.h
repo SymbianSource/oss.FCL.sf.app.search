@@ -64,6 +64,7 @@ _LIT(KContactServiceProvider, "ServiceProvider");
 _LIT(KContactAssistant, "Assistant");
 _LIT(KContactAnniversary, "Anniversary");
 _LIT(KContactBirthday, "Birthday");
+_LIT(KContactIsGroup, "IsGroup");
 _LIT(KDateSeparator, "-");
 const TInt KDateFieldLength = 10;
 const TInt KDayPosition = 8;
@@ -118,7 +119,9 @@ protected:
 	 *  Helper function: adds information field to the document and to the excerpt field(if available)
 	 */
 	void AddFieldToDocumentAndExcerptL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName, const TInt aConfig = CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-	
+#ifdef USE_HIGHLIGHTER
+	void AddFieldToHLExcerptL( CContactItemFieldSet& aFieldSet, TUid aFieldId);
+#endif
 	/**
 	 * Creates the actual contact book index item
 	 */
@@ -138,7 +141,9 @@ private:
 	TInt iCurrentIndex;	
 	/** placeholder for Excerpt text dynamic creation */
 	HBufC* iExcerpt;
-	
+#ifdef USE_HIGHLIGHTER
+	   HBufC* iHLDisplayExcerpt;
+#endif
 	// CPix database 
     CCPixIndexer* iIndexer;
 

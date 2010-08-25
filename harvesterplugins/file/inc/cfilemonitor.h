@@ -126,6 +126,9 @@ class CFileMonitor : public CActive
 	    TFastFindFSPStatusPckg iPckg;
 	    // If a folder name is changed then files in that folder need to be indexed again as path changed.
 	    CFolderRenamedHarvester* iFolderRenamedHarvester;
+        #ifdef HARVESTERPLUGINTESTER_FRIEND
+            friend class CHarvesterPluginTester;
+        #endif
 	};
 
 #endif // CFILEMONITOR_H

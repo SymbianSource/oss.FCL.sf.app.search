@@ -68,6 +68,9 @@ _LIT(KBodyField, BODY_FIELD);
 _LIT(KSubjectField, SUBJECT_FIELD);
 _LIT(KAttachmentField, ATTACHMENT_FIELD);
 _LIT(KValueAttachment, "Attachment");
+#ifdef USE_HIGHLIGHTER
+_LIT(KExcerptDelimiter, " ");
+#endif
 // ============================ MEMBER FUNCTIONS ===============================
 
 // ---------------------------------------------------------------------------
@@ -299,9 +302,19 @@ CSearchDocument* CMessageDataHandler::CreateSmsDocumentL(const TMsvId& aMsvId, c
 	HBufC *fromNameOrNumberBuf = entry.iDetails.AllocLC();
 	index_item->AddFieldL(KFromField, *fromNameOrNumberBuf,
 	        CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+#ifdef USE_HIGHLIGHTER 
+	if( aFolderId == KMsvGlobalInBoxIndexEntryIdValue)
+        {
+        index_item->AddHLDisplayFieldL(*fromNameOrNumberBuf);
+        }
+#endif	
 
 	// Add the recipients as content items
 	TBuf<64> to_field;
+	
+#ifdef USE_HIGHLIGHTER	
+	HBufC* toList = HBufC::NewL(5);
+#endif	
 	const CDesCArray
 			& recipientArray =
 					static_cast<const CDesCArray&> (iSmsMtm->AddresseeList().RecipientList());
@@ -312,8 +325,32 @@ CSearchDocument* CMessageDataHandler::CreateSmsDocumentL(const TMsvId& aMsvId, c
 			to_field.AppendNum(i);
 		index_item->AddFieldL(to_field, recipientArray.MdcaPoint(i),
 		        CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+		
+#ifdef USE_HIGHLIGHTER
+        // Folder field		
+		// Iterate through the list of recipients and add them under To field 
+		if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue)
+		    {		    
+		    TInt currentSize = toList->Size();
+            TInt newSize = currentSize + recipientArray.MdcaPoint(i).Size() + 1;
+            if(newSize > currentSize) //New size is bigger so we have to reallocate
+                {
+                toList = toList->ReAllocL(newSize);
+                }
+            TPtr ptr = toList->Des();
+            ptr.Append(recipientArray.MdcaPoint(i));
+            ptr.Append(KExcerptDelimiter);            
+            }        
+#endif
 		}
-
+#ifdef USE_HIGHLIGHTER
+	if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue)
+	    {
+	    index_item->AddHLDisplayFieldL( *toList);
+	    }
+	delete toList;
+	toList = NULL;
+#endif
 	// Add the body text as a content item
 	TInt msgLength = iSmsMtm->Body().DocumentLength();
 	HBufC* bodyText = HBufC::NewLC(msgLength);
@@ -352,9 +389,18 @@ CSearchDocument* CMessageDataHandler::CreateMmsDocumentL(const TMsvId& aMsvId, c
 	
 	// Add from field
 	index_item->AddFieldL(KFromField, iMmsMtm->Sender());
+#ifdef USE_HIGHLIGHTER 
+    if( aFolderId == KMsvGlobalInBoxIndexEntryIdValue)
+        {
+        index_item->AddHLDisplayFieldL(iMmsMtm->Sender());
+        }
+#endif
 
 	// Add the recipients as content items
 	TBuf<64> to_field;
+#ifdef USE_HIGHLIGHTER 
+    HBufC* toList = HBufC::NewL(5);
+#endif
 	const CDesCArray
 			& recipientArray =
 					static_cast<const CDesCArray&> (iMmsMtm->AddresseeList().RecipientList());
@@ -364,8 +410,33 @@ CSearchDocument* CMessageDataHandler::CreateMmsDocumentL(const TMsvId& aMsvId, c
 		if (i>0)
 			to_field.AppendNum(i);
 		index_item->AddFieldL(to_field, recipientArray.MdcaPoint(i));
+		
+#ifdef USE_HIGHLIGHTER
+        // Folder field     
+        // Iterate through the list of recipients and add them under To field 
+        if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue)
+            {           
+            TInt currentSize = toList->Size();
+            TInt newSize = currentSize + recipientArray.MdcaPoint(i).Size() + 1;
+            if(newSize > currentSize) //New size is bigger so we have to reallocate
+                {
+                toList = toList->ReAllocL(newSize);
+                }
+            TPtr ptr = toList->Des();
+            ptr.Append(recipientArray.MdcaPoint(i));
+            ptr.Append(KExcerptDelimiter);            
+            }        
+#endif
 		}
 
+#ifdef USE_HIGHLIGHTER
+    if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue)
+        {
+        index_item->AddHLDisplayFieldL( *toList);
+        }
+    delete toList;
+    toList = NULL;
+#endif
 	// Add subject
 	TPtrC subject(iMmsMtm->SubjectL());
 	index_item->AddFieldL(KSubjectField, subject);
@@ -515,8 +586,12 @@ HBufC* CMessageDataHandler::CreateExcerptLC(const TDesC& aFromAddress,
 	    }
 	else if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue && aRecipientArray.MdcaCount() > 0 )
 	    {
-        excerptLength += aRecipientArray.MdcaPoint(0).Length();
-        excerptLength += KSpace().Length(); 
+		//Multiple recepent added to excerpt
+	    for(TInt i = 0; i< aRecipientArray.MdcaCount(); i++)
+	        {
+	        excerptLength += aRecipientArray.MdcaPoint(i).Length();
+            excerptLength += KSpace().Length();
+	        }
 	    }
 
 	HBufC* excerpt = HBufC::NewL(excerptLength);
@@ -534,8 +609,11 @@ HBufC* CMessageDataHandler::CreateExcerptLC(const TDesC& aFromAddress,
         }
     else if ((aRecipientArray.MdcaCount() > 0) && (aFolderId != KMsvGlobalInBoxIndexEntryIdValue))
         {
-        excerptPtr.Append(aRecipientArray.MdcaPoint(0));
-        excerptPtr.Append(KSpace);
+        for(TInt i = 0; i< aRecipientArray.MdcaCount(); i++)
+            {
+            excerptPtr.Append(aRecipientArray.MdcaPoint(i));
+            excerptPtr.Append(KSpace);
+            }
         }
 
 	//Not deleting this code as it might have to be brought back into use

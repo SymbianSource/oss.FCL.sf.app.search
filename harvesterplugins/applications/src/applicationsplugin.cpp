@@ -159,6 +159,9 @@ void AddApplicationInfoL( CSearchDocument* aDocument, TApaAppInfo& aAppInfo )
     if( aAppInfo.iShortCaption.Compare(KNullDesC) )
         {
         aDocument->AddFieldL(KApplicationFieldCaption, aAppInfo.iShortCaption, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
+#ifdef USE_HIGHLIGHTER
+        aDocument->AddHLDisplayFieldL(aAppInfo.iShortCaption);
+#endif
         }
     else
         {
@@ -169,6 +172,9 @@ void AddApplicationInfoL( CSearchDocument* aDocument, TApaAppInfo& aAppInfo )
             TInt lengthOfNameWithoutExtention = aAppInfo.iFullName.Length() -location -1; //-1 to increment one past '\'.
             TPtrC appName = aAppInfo.iFullName.Right( lengthOfNameWithoutExtention );
             aDocument->AddFieldL(KApplicationFieldAbsolutePath, appName.Left( appName.Length() -4 /*remove ".exe"*/), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
+#ifdef USE_HIGHLIGHTER
+            aDocument->AddHLDisplayFieldL(appName.Left( appName.Length() -4 /*remove ".exe"*/));
+#endif
             }
         }
     //For applications, no content to go into exceprt field, for more info, check the appclass-hierarchy.txt

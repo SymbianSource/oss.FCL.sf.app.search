@@ -113,10 +113,21 @@ CSearchDocument* CCPIXMediaAudioDoc::GetCpixDocumentL(const CMdEObject& aObject,
        AddToFieldExcerptL(textProperty->Value());//Add artist to excerpt
        }
 #ifdef USE_HIGHLIGHTER
-    //Get the media file extension and store
+    /*//Get the media file extension and store
     TBuf<KMaxExtLength> extension;        
     GetExtension(aObject.Uri(),extension);
-    AddToFieldExcerptL(extension);
+    AddToFieldExcerptL(extension);*/
+    //Adding title to first line of highlighter
+    CMdEPropertyDef& titlePropDef = aObjectDef.GetPropertyDefL(MdeConstants::Object::KTitleProperty );
+    if(aObject.Property( titlePropDef, property ) != KErrNotFound)
+       {
+       //Add field to document
+       CMdETextProperty* textProperty = static_cast< CMdETextProperty* > (property );
+       if(textProperty->Value() != KNullDesC)
+           {
+           index_item->AddHLDisplayFieldL(textProperty->Value());
+           }
+       }
 #endif  
     CMdEPropertyDef& albumPropDef = aObjectDef.GetPropertyDefL(MdeConstants::Audio::KAlbumProperty );
     if(aObject.Property( albumPropDef, property )!= KErrNotFound)

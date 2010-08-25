@@ -41,6 +41,8 @@ _LIT(KExcerptDelimiter, " ");
 /** The delay between harvesting chunks. */
 const TInt KHarvestingDelay = 2000;
 _LIT(KCalendarTimeFormat,"%04d %02d %02d %02d %02d");
+
+_LIT(KExcerptTimeFormat,"%04d/%02d/%02d %02d:%02d");
 // ---------------------------------------------------------------------------
 // CMessagePlugin::NewL
 // ---------------------------------------------------------------------------
@@ -85,6 +87,11 @@ CCalendarPlugin::~CCalendarPlugin()
 
 	delete iEntryView;
 	delete iCalIterator;
+#ifdef USE_HIGHLIGHTER	
+	if(iExcerpt)
+	    delete iExcerpt;
+	iExcerpt = NULL;
+#endif
 	if( iSession )
 		{
 		iSession->StopChangeNotification();
@@ -350,6 +357,10 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 	{
 	if (!iIndexer)
     	return;
+#ifdef USE_HIGHLIGHTER	
+	//Reset Excerpt
+	ResetExcerpt();
+#endif	
 	
 
 	OstTrace1( TRACE_NORMAL, CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Uid=%d", aLocalUid );
@@ -385,25 +396,39 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 		// Add fields
 		index_item->AddFieldL(KCalendarSummaryField, entry->SummaryL());
 		index_item->AddFieldL(KCalendarDescriptionField, entry->DescriptionL());
-		index_item->AddFieldL(KCalendarLocationField, entry->LocationL());		
+		index_item->AddFieldL(KCalendarLocationField, entry->LocationL());
+#ifdef USE_HIGHLIGHTER
+		index_item->AddHLDisplayFieldL(entry->SummaryL());
+		AddToFieldExcerptL(entry->DescriptionL());
+		AddToFieldExcerptL(entry->LocationL());
+#endif
 
 		TBuf<30> dateString;
-		TDateTime datetime = entry->StartTimeL().TimeLocalL().DateTime();       
-		dateString.Format( KCalendarTimeFormat, datetime.Year(),
+		TDateTime datetime = entry->StartTimeL().TimeLocalL().DateTime();
+		GetDateTimeDescriptorL(datetime, KCalendarTimeFormat, dateString);
+		/*dateString.Format( KCalendarTimeFormat, datetime.Year(),
 		                                     TInt(datetime.Month()+ 1),
 		                                     datetime.Day() + 1,
 		                                     datetime.Hour(),
-		                                     datetime.Minute());
+		                                     datetime.Minute());*/
 		index_item->AddFieldL(KCalendarStartTimeField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-
-		TDateTime endTime = entry->EndTimeL().TimeLocalL().DateTime();		
-		dateString.Format( KCalendarTimeFormat, endTime.Year(),
+#ifdef USE_HIGHLIGHTER
+		GetDateTimeDescriptorL(datetime, KExcerptTimeFormat, dateString);
+		AddToFieldExcerptL(dateString);
+#endif
+		        
+		TDateTime endTime = entry->EndTimeL().TimeLocalL().DateTime();
+		GetDateTimeDescriptorL(endTime, KCalendarTimeFormat, dateString);
+		/*dateString.Format( KCalendarTimeFormat, endTime.Year(),
                                                 TInt(endTime.Month()+ 1),
                                                 endTime.Day() + 1,
                                                 endTime.Hour(),
-                                                endTime.Minute());
+                                                endTime.Minute());*/
 		index_item->AddFieldL(KCalendarEndTimeField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-		
+#ifdef USE_HIGHLIGHTER
+        GetDateTimeDescriptorL(endTime, KExcerptTimeFormat, dateString);
+        AddToFieldExcerptL(dateString);
+#endif
 		
 		if( CCalEntry::ETodo == entry->EntryTypeL())
 		    {
@@ -427,31 +452,38 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
             if( completedTime != Time::NullTTime())
                 {
                 TDateTime compTime = completedTime.DateTime();
-                dateString.Format( KCalendarTimeFormat, compTime.Year(),
+                GetDateTimeDescriptorL(compTime, KCalendarTimeFormat, dateString);
+                /*dateString.Format( KCalendarTimeFormat, compTime.Year(),
                                                     TInt(compTime.Month()+ 1),
                                                     compTime.Day() + 1,
                                                     compTime.Hour(),
-                                                    compTime.Minute());
+                                                    compTime.Minute());*/
                 index_item->AddFieldL(KCalenderCompletedField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+#ifdef USE_HIGHLIGHTER
+        GetDateTimeDescriptorL(compTime, KExcerptTimeFormat, dateString);
+        AddToFieldExcerptL(dateString);
+#endif
                 }
 		    }
 		index_item->AddFieldL(KMimeTypeField, KMimeTypeCalendar, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-#ifdef USE_HIGHLIGHTER		
-    	TInt excerptLength = 1 /*single 1-character delimiters*/ + entry->DescriptionL().Length() + entry->LocationL().Length() + 1 + entry->SummaryL().Length();
-#else    	
+
+#ifdef USE_HIGHLIGHTER
+		if(iExcerpt)
+		index_item->AddExcerptL(*iExcerpt);
+#else
+
     	TInt excerptLength = 1 /*single 1-character delimiters*/ + entry->DescriptionL().Length() + entry->LocationL().Length();
-#endif    	
+    	
 		HBufC* excerpt = HBufC::NewLC(excerptLength);
 		TPtr excerptDes = excerpt->Des();
 		excerptDes.Append(entry->DescriptionL());
 		excerptDes.Append(KExcerptDelimiter);
 		excerptDes.Append(entry->LocationL());
-#ifdef USE_HIGHLIGHTER		
-	    excerptDes.Append(KExcerptDelimiter);
-	    excerptDes.Append(entry->SummaryL());
-#endif	    
+    
 	    index_item->AddExcerptL(*excerpt);
         CleanupStack::PopAndDestroy(excerpt);
+       
+#endif
         CleanupStack::PopAndDestroy(entry);
 
 		/*
@@ -485,6 +517,57 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 		}
 
 	}
+#ifdef USE_HIGHLIGHTER
+// ---------------------------------------------------------------------------
+// CCalendarPlugin::AddToFieldExcerptL
+// ---------------------------------------------------------------------------
+//
+void CCalendarPlugin::AddToFieldExcerptL(const TDesC& aExcerptValue)
+{
+if(!iExcerpt)
+    {
+    iExcerpt = HBufC::NewL(5);
+    }
+if(aExcerptValue.Compare(KNullDesC) != 0)//value is not Null
+    {
+    TInt currentSize = iExcerpt->Size();
+    TInt newSize = currentSize + aExcerptValue.Size() + 1;
+    if(newSize > currentSize) //New size is bigger so we have to reallocate
+        {
+        iExcerpt = iExcerpt->ReAllocL(newSize);
+        }
+    TPtr ptr = iExcerpt->Des();
+    ptr.Append(aExcerptValue);
+    ptr.Append(KExcerptDelimiter);
+    }
+}
+
+// -----------------------------------------------------------------------------
+// CCalendarPlugin::ResetExcerpt() 
+// -----------------------------------------------------------------------------
+//
+void CCalendarPlugin::ResetExcerpt()
+    {
+    if(iExcerpt)
+        {
+        delete iExcerpt;
+        iExcerpt = NULL;
+        }
+    }
+#endif
+// -----------------------------------------------------------------------------
+// CCalendarPlugin::GetDateTimeDescriptorL() 
+// -----------------------------------------------------------------------------
+//
+void CCalendarPlugin::GetDateTimeDescriptorL(TDateTime& datetime, const TDesC& aFormat, TDes& dateString)
+    {
+    dateString.Format( aFormat, datetime.Year(),
+                             TInt(datetime.Month()+ 1),
+                             datetime.Day() + 1,
+                             datetime.Hour(),
+                             datetime.Minute());
+    }
+
 
 // ---------------------------------------------------------------------------
 // CCalendarPlugin::UpdatePerformaceDataL

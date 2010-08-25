@@ -47,6 +47,9 @@
 #include "cpixmdedbmanager.h"
 #include "cpixindexerutils.h"
 #include "cfolderrenamedharvester.h"
+#include "cfilemonitor.h"
+#include "cfileharvester.h"
+#include "cmmcmonitor.h"
 #include "videoplugin.h"
 #include "imageplugin.h"
 #include "cemailplugin.h"
@@ -102,6 +105,12 @@ TInt CHarvesterPluginTester::RunMethodL(
         ENTRY( "TestCreateIndexItemL_Delete", CHarvesterPluginTester::TestCreateIndexItemL ),
         ENTRY( "TestFolderCreate", CHarvesterPluginTester::TestFolderCreateL ),
         ENTRY( "TestFolderRename", CHarvesterPluginTester::TestFolderRenameL ),
+        ENTRY( "TestFileRunError", CHarvesterPluginTester::TestFileRunErrorL ),
+        ENTRY( "TestFileDoCancel", CHarvesterPluginTester::TestFileDoCancelL ),        
+        ENTRY( "TestHandleFileEngine", CHarvesterPluginTester::TestHandleFileEngineL ),
+        ENTRY( "TestFileMonitorRunL", CHarvesterPluginTester::TestFileMonitorRunL ),
+        ENTRY( "TestFileMmcMonitorRunL", CHarvesterPluginTester::TestFileMmcMonitorRunL ),
+        ENTRY( "TestFileBaseAppNegative", CHarvesterPluginTester::TestFileBaseAppNegativeL ),        
         ENTRY( "TestMessaging", CHarvesterPluginTester::TestMessageHarvesterL ),
         ENTRY( "TestMessageHarvesting", CHarvesterPluginTester::TestMessageHarvesterWithMessageL ),
         ENTRY( "TestMessageDriveChange", CHarvesterPluginTester::TestMessageHarvesterChangeDriveL ),
@@ -410,6 +419,7 @@ TInt CHarvesterPluginTester::TestFolderCreateL( CStifItemParser& /*aItem*/ )
     TInt error = KErrNone;
     CFilePlugin* filePlugin = CFilePlugin::NewL();
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    iPluginTester->SetWaitTime(2000000);
     filePlugin->StartPluginL();
     filePlugin->StartHarvestingL( KAppBasePath );
     
@@ -421,8 +431,18 @@ TInt CHarvesterPluginTester::TestFolderCreateL( CStifItemParser& /*aItem*/ )
         {
         error = fs.MkDir(KDirectoryToCreate);
         }    
-    iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    //iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    TFastFindFSPStatus& status = filePlugin->iMonitor->iPckg();    
+    status.iFileEventType = EFastFindDirCreated;
+    status.iFileName.Copy(KDirectoryToCreate);    
+    //Folder created event
+    filePlugin->iMonitor->RunL();
     
+    //Folder delete event
+    status = filePlugin->iMonitor->iPckg();    
+    status.iFileName.Copy(KDirectoryToCreate);
+    status.iFileEventType = EFastFindDirDeleted;
+    filePlugin->iMonitor->RunL();
     if(error == KErrNone)
         {
         error = doSearchL( _L("TestFolder"), KAppBaseFolderFilePath, ESearchTypeResultsExpected );
@@ -443,9 +463,9 @@ TInt CHarvesterPluginTester::TestFolderRenameL( CStifItemParser& /*aItem*/ )
     RFs fs;
     User::LeaveIfError( fs.Connect() );
     
-    CFilePlugin* filePlugin = CFilePlugin::NewL();
-    CFolderRenamedHarvester* iFolderRenameHarvester = CFolderRenamedHarvester::NewL( *filePlugin, fs);
+    CFilePlugin* filePlugin = CFilePlugin::NewL();    
     CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    
     filePlugin->StartPluginL();
     filePlugin->StartHarvestingL( KAppBasePath );    
     
@@ -463,32 +483,159 @@ TInt CHarvesterPluginTester::TestFolderRenameL( CStifItemParser& /*aItem*/ )
         {
         User::LeaveIfError(fs.RmDir(KDirectoryRenamed));
         }
-    iPluginTester->iWaitForHarvester->Start();//Wait here till Harvesting is complete.
+    filePlugin->CreateFolderFileIndexItemL( KDirectoryToCreate, ECPixAddAction );
     
-    error = doSearchL( _L("TestRenameFolder"), KAppBaseFolderFilePath, ESearchTypeResultsExpected );        
-  
-    if(error == KErrNone)
-        {
-           fs.Rename(KDirectoryToCreate, KDirectoryRenamed);
-           iFolderRenameHarvester->StartL( oldFolderName, newFolderName );           
-        }    
-    
-    User::After( (TTimeIntervalMicroSeconds32)35000000 );
-    
+    fs.Rename(KDirectoryToCreate, KDirectoryRenamed);
+    filePlugin->iMonitor->iFolderRenamedHarvester->StartL( oldFolderName, newFolderName );
+    //for code coverage
+    filePlugin->iMonitor->iFolderRenamedHarvester->RunL();
+    // To cover default case
+    filePlugin->iMonitor->iFolderRenamedHarvester->iHarvestState = (CFolderRenamedHarvester::TFileHarvesterState)5;
+    filePlugin->iMonitor->iFolderRenamedHarvester->RunL(); 
     //Search for the renamed directory
     error = doSearchL( _L("TestFolderRenamed"), KAppBaseFolderFilePath, ESearchTypeNoResultsExpected );    
     
     fs.RmDir(KDirectoryRenamed);    
-    
+    filePlugin->CreateFolderFileIndexItemL( KDirectoryRenamed, ECPixRemoveAction );
     delete filePlugin;
-    delete iFolderRenameHarvester;
-    iFolderRenameHarvester = NULL;
+    
     delete iPluginTester;
     iPluginTester = NULL;
     fs.Close();
     doLog( iLog, error, _L("Error: TestFolderRenameL") );
     
     return error;
+    }
+
+TInt CHarvesterPluginTester::TestFileRunErrorL( CStifItemParser& /*aItem */)
+    {
+    CFilePlugin* filePlugin = CFilePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    iPluginTester->SetWaitTime(2000000);
+    filePlugin->StartPluginL();
+    filePlugin->StartHarvestingL( KAppBasePath );
+    filePlugin->iMonitor->iFolderRenamedHarvester->RunError(KErrNone);
+    filePlugin->iMonitor->RunError( KErrNone );
+    filePlugin->iMmcMonitor->RunError( KErrNone );
+    filePlugin->iHarvester->RunError( KErrNone );
+    
+    delete filePlugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestFileDoCancelL( CStifItemParser& /*aItem */)
+    {
+    CFilePlugin* filePlugin = CFilePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    filePlugin->StartPluginL();     
+    filePlugin->iHarvester->DoCancel();
+    delete filePlugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestHandleFileEngineL( CStifItemParser& /*aItem */)
+    {
+    CFilePlugin* filePlugin = CFilePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    filePlugin->StartPluginL();
+    filePlugin->iMonitor->Disable();
+    filePlugin->iMonitor->Enable();    
+    //filePlugin->iMonitor->Release();
+    delete filePlugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestFileMonitorRunL( CStifItemParser& /*aItem */)
+    {
+    _LIT( KOldFileName, "C:\\data\\testfiles.txt" );
+    _LIT( KNewFileName, "C:\\data\\testfile.txt" );
+    CFilePlugin* filePlugin = CFilePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    filePlugin->StartPluginL();
+    
+    TFastFindFSPStatus& status = filePlugin->iMonitor->iPckg();    
+    status.iFileEventType = EFastFindFileCreated;
+    status.iFileName.Copy(KOldFileName);
+    status.iNewFileName.Copy(KNewFileName);
+    //File created event
+    filePlugin->iMonitor->RunL(); 
+    status = filePlugin->iMonitor->iPckg();    
+    status.iFileName.Copy(KOldFileName);
+    status.iNewFileName.Copy(KNewFileName);
+    status.iFileEventType = EFastFindFileModified;
+    //File Modified event
+    filePlugin->iMonitor->RunL();
+    
+    status = filePlugin->iMonitor->iPckg();    
+    status.iFileName.Copy(KOldFileName);
+    status.iNewFileName.Copy(KNewFileName);
+    status.iFileEventType = EFastFindFileRenamed;
+    //Rename file event
+    filePlugin->iMonitor->RunL();
+    
+    status = filePlugin->iMonitor->iPckg();    
+    status.iFileName.Copy(KOldFileName);
+    status.iNewFileName.Copy(KNewFileName);
+    status.iFileEventType = EFastFindFileReplaced;
+    //Replace file event
+    filePlugin->iMonitor->RunL();
+    
+    status = filePlugin->iMonitor->iPckg();    
+    status.iFileName.Copy(KOldFileName);
+    status.iNewFileName.Copy(KNewFileName);
+    status.iFileEventType = EFastFindFileDeleted;
+    //Delete file event
+    filePlugin->iMonitor->RunL();    
+        
+    status = filePlugin->iMonitor->iPckg();    
+    status.iFileName.Copy(KOldFileName);
+    status.iNewFileName.Copy(KNewFileName);
+    status.iFileEventType = EFastFindFileUnknown;
+    //For default test
+    filePlugin->iMonitor->RunL();
+    
+    delete filePlugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    return KErrNone;
+    }
+
+TInt CHarvesterPluginTester::TestFileMmcMonitorRunL( CStifItemParser& /*aItem */)
+    {
+    CFilePlugin* filePlugin = CFilePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    iPluginTester->SetWaitTime(2000000);
+    filePlugin->StartPluginL();
+    filePlugin->StartHarvestingL( KAppBasePath );
+    // cancel the subcribed request first
+    filePlugin->iMmcMonitor->Cancel();
+    filePlugin->iMmcMonitor->iProperty.Cancel(); 
+    
+    filePlugin->iMmcMonitor->RunL();
+    
+    delete filePlugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    return KErrNone;    
+    }
+
+TInt CHarvesterPluginTester::TestFileBaseAppNegativeL( CStifItemParser& /*aItem */)
+    {
+    _LIT(KIncorrectBaseApp,"c:root file content");
+    CFilePlugin* filePlugin = CFilePlugin::NewL();
+    CHarvesterObserver* iPluginTester = CHarvesterObserver::NewL( filePlugin );
+    filePlugin->StartPluginL();
+    TRAPD(err,filePlugin->StartHarvestingL( KIncorrectBaseApp ));
+    delete filePlugin;
+    delete iPluginTester;
+    iPluginTester = NULL;
+    return KErrNone;
     }
 /**
 * Message harvester test method.

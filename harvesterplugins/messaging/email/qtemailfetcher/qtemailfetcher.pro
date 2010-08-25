@@ -35,6 +35,7 @@ symbian{
     INCLUDEPATH += ../inc
     
     HEADERS += ../inc/memailitemobserver.h
+    HEADERS += ../../../../harvesterplugins/inc/s60performance.h
     LIBS += -lcpixsearchclient
     LIBS += -lnmailclientapi
         

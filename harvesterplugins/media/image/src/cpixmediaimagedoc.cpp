@@ -108,10 +108,9 @@ CSearchDocument* CCPIXMediaImageDoc::GetCpixDocumentL(const CMdEObject& aObject,
           }
     
 #ifdef USE_HIGHLIGHTER
-    //Get the media file extension and store
-    TBuf<KMaxExtLength> extension;        
-    GetExtension(aObject.Uri(),extension);
-    AddToFieldExcerptL(extension);
+       TInt slashpos = GetUri().LocateReverse('\\');
+       TPtrC name = GetUri().Mid( (slashpos+1) );
+       index_item->AddHLDisplayFieldL(name);
 #endif   
     //Get user comment field
     CMdEPropertyDef& commentPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KCommentProperty );

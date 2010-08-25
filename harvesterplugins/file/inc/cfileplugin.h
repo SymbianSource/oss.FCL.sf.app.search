@@ -79,12 +79,6 @@ private:
      * @aExt file extention
      */
 	TBool IsFileTypeMedia(const TDesC& aExt);
-	
-	/**
-     * RemoveFileDatabaseL deletes the database file from the requested drive 
-     * @aDrive drive number
-     */
-	void RemoveFileDatabaseL(TDriveNumber aDrive);
 
 public:
 	// 
@@ -156,12 +150,16 @@ private:
     CFileHarvester* iHarvester;
 
     // Monitor
-    TBool iIsMonitorInit;
+    //TBool iIsMonitorInit;  unused variable
     CFileMonitor* iMonitor;
 
     // MMC monitor
     CMMCMonitor* iMmcMonitor; 
-    
+   
+    //for unit testing.
+    #ifdef HARVESTERPLUGINTESTER_FRIEND
+        friend class CHarvesterPluginTester;
+    #endif
 #ifdef __PERFORMANCE_DATA
     TTime iStartTime[26];// for the all drives
     TTime iCompleteTime;

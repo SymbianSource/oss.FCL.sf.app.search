@@ -109,6 +109,10 @@ class CMMCMonitor : public CActive
         TBool iMmcStatus;
         // MMC Inserted/ejected property
         RProperty iProperty;
+        //for unit testing.
+        #ifdef HARVESTERPLUGINTESTER_FRIEND
+            friend class CHarvesterPluginTester;
+        #endif
     };
 
 #endif // CMMCMONITOR_H

@@ -15,3 +15,6 @@
 
 // Uncomment to get harvester plugin performance logs
 //MACRO __PERFORMANCE_DATA
+
+// For enabling Highlighter
+//MACRO USE_HIGHLIGHTER

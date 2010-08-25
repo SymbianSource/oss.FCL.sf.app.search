@@ -28,7 +28,6 @@ const TInt KMsgPluginBaseAppClassMaxLen = 64;
 // local declarations and functions
 namespace {
 _LIT(KCPixSearchServerPrivateDirectory, "\\Private\\2001f6f7\\");
-_LIT(KIndexingDBPath,"indexing\\indexdb");
 _LIT(KPathIndexDbPath, CPIX_INDEVICE_INDEXDB);
 
 _LIT(KAtSign, "@");
@@ -277,8 +276,6 @@ void CCPixIndexerUtils::MountDriveL(TDriveNumber aMedia,
         }
     if(IsDriveCanbeMountedL(aMedia))
         {
-        //clean the existing database if any
-        RemoveUnmountedDatabaseL(aMedia,aPath);
         // Form the baseappclass for this media
         TBuf<KMsgPluginBaseAppClassMaxLen> baseAppClass;
         FormBaseAppClass(TDriveNumber(aMedia), aBaseAppClassGeneric,baseAppClass);
@@ -468,32 +465,6 @@ void CCPixIndexerUtils::ResetAllL()
 RArray<TDriveNumber>& CCPixIndexerUtils::CCPixIndexerUtils::GetMountedDriveList()
     {
     return iMountedDrives;
-    }
-
-// -----------------------------------------------------------------------------
-// CCPixIndexerUtils::RemoveUnmountedDatabase()
-// -----------------------------------------------------------------------------
-//
-void CCPixIndexerUtils::RemoveUnmountedDatabaseL(TDriveNumber aMedia, const TDesC& aPath)
-    {
-    RFs aFs;
-    User::LeaveIfError( aFs.Connect() );
-    TChar drive;
-    TInt err = aFs.DriveToChar((TDriveNumber)aMedia,drive);
-    if ( err == KErrNone )
-        {
-        TBuf<KMaxFileName> folderpath;
-        folderpath.Append(drive);
-        folderpath.Append(KColon);
-        folderpath.Append(KCPixSearchServerPrivateDirectory);
-        folderpath.Append(KIndexingDBPath);
-        folderpath.Append(aPath);
-        CFileMan* FileMan = CFileMan::NewL(aFs);
-        if ( FileMan )
-            FileMan->Delete( folderpath );
-        delete FileMan;
-        }
-    aFs.Close();
     }
 
 //End of file

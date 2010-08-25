@@ -160,14 +160,23 @@ void SearchOnlineHandlerTest::testPerformInDeviceSearch()
 //Will be corrected in later (estimate 4.6.0) Qt release for Symbian.
 int main(int argc, char *argv[])
     {
-    QApplication app(argc, argv);
-    int error = 0;
-    TRAPD(err,
-            QTEST_DISABLE_KEYPAD_NAVIGATION
-            SearchOnlineHandlerTest tc;
-            error = QTest::qExec(&tc, argc, argv););
-    Q_UNUSED(err);
-    return error;
+    QCoreApplication app(argc, argv);
+#ifdef __WINSCW__
+    char *new_argv[3];
+    QString str = "C:\\data\\" + QFileInfo(
+            QCoreApplication::applicationFilePath()).baseName() + ".log";
+    QByteArray bytes = str.toAscii();
+    char arg1[] = "-o";
+    new_argv[0] = argv[0];
+    new_argv[1] = arg1;
+    new_argv[2] = bytes.data();
+    SearchOnlineHandlerTest tc;
+    return QTest::qExec(&tc, 3, new_argv);
+#else
+    SearchOnlineHandlerTest tc;
+    return QTest::qExec(&tc, argc, argv);
+#endif
+
     }
 #else //Q_OS_SYMBIAN
 QTEST_MAIN(SearchOnlineHandlerTest)

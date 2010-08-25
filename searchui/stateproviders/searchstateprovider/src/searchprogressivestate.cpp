@@ -53,6 +53,10 @@
 #include <hbabstractviewitem.h>
 #include <hblistviewitem.h>
 #include <hbactivitymanager.h>
+#include <xqaiwdecl.h>
+#include <qservicemanager.h>
+#include <qurl.h>
+QTM_USE_NAMESPACE
 #define hbApp qobject_cast<HbApplication*>(qApp)
 const int totalcategories_normalreason = 10;
 const int totalcategories_activityreasonreason = 13;
@@ -395,8 +399,8 @@ void SearchProgressiveState::openResultitem(HbListWidgetItem * item)
     if (item->data(Qt::UserRole + 1).toString().contains("contact"))
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("contact")
-        mRequest = mAiwMgr->create("com.nokia.services.phonebookservices",
-                "Fetch", "open(int)", true);
+        mRequest = mAiwMgr->create("com.nokia.symbian.IContactsView",
+                "openContactCard(int)", true);
 
         int uid = (item->data(Qt::UserRole)).toInt(&t);
         args << uid;
@@ -410,10 +414,9 @@ void SearchProgressiveState::openResultitem(HbListWidgetItem * item)
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("calendar"))
         {
-        QDir pluginDir = QDir(QString("z:/resource/qt/plugins/calendar"));
+        QDir pluginDir = QDir(CALENDAR_EVENTVIEWER_PLUGIN_PATH);
         QPluginLoader *calAgandaViewerPluginLoader = new QPluginLoader(
-                pluginDir.absoluteFilePath(QString(
-                        "agendaeventviewerplugin.qtplugin")));
+                pluginDir.absoluteFilePath(CALENDAR_EVENTVIEWER_PLUGIN_NAME));
 
         calAgandaViewerPluginInstance = qobject_cast<
                 EventViewerPluginInterface *> (
@@ -429,7 +432,7 @@ void SearchProgressiveState::openResultitem(HbListWidgetItem * item)
     else if (item->data(Qt::UserRole + 1).toString().contains("applications"))
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("applications")
-        TRAP_IGNORE(LaunchApplicationL(TUid::Uid((item->data(Qt::UserRole)).toString().toUInt(&t, 16))));
+        TRAP_IGNORE(LaunchApplicationL((item->data(Qt::UserRole)).toString()));
         PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG("")
         }
     else if (item->data(Qt::UserRole + 1).toString().contains("file"))
@@ -1093,47 +1096,24 @@ QString SearchProgressiveState::getDrivefromMediaId(QString aMediaId)
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::LaunchApplicationL
 // ---------------------------------------------------------------------------
-void SearchProgressiveState::LaunchApplicationL(const TUid aUid)
+void SearchProgressiveState::LaunchApplicationL(const QString aUid)
     {
-    RWsSession wsSession;
-    User::LeaveIfError(wsSession.Connect());
-    CleanupClosePushL<RWsSession> (wsSession);
-    CAknTaskList *taskList = CAknTaskList::NewL(wsSession);
-    TApaTask task = taskList->FindRootApp(aUid);
-    delete taskList;
-    if (task.Exists())
+    QServiceManager serviceManager;
+    QObject* mActivityManager = serviceManager.loadInterface(
+            "com.nokia.qt.activities.ActivityManager");
+    if (!mActivityManager)
         {
-        task.BringToForeground();
+        return;
         }
-    else
-        {
-        TApaAppInfo appInfo;
-        TApaAppCapabilityBuf capabilityBuf;
-        RApaLsSession appArcSession;
-        User::LeaveIfError(appArcSession.Connect());
-        CleanupClosePushL<RApaLsSession> (appArcSession);
-        User::LeaveIfError(appArcSession.GetAppInfo(appInfo, aUid));
-        User::LeaveIfError(
-                appArcSession.GetAppCapability(capabilityBuf, aUid));
-        TApaAppCapability &caps = capabilityBuf();
-        TFileName appName = appInfo.iFullName;
-        CApaCommandLine *cmdLine = CApaCommandLine::NewLC();
-        cmdLine->SetExecutableNameL(appName);
-        if (caps.iLaunchInBackground)
-            {
-            cmdLine->SetCommandL(EApaCommandBackground);
-            }
-        else
-            {
-            cmdLine->SetCommandL(EApaCommandRun);
-            }
-        //cmdLine->SetTailEndL(aParam);
-        User::LeaveIfError(appArcSession.StartApp(*cmdLine));
-        CleanupStack::PopAndDestroy(cmdLine);
-        CleanupStack::PopAndDestroy(&appArcSession);
-        }
-    CleanupStack::PopAndDestroy(&wsSession);
-    PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG ("")
+    QUrl url;
+    url.setScheme(XQURI_SCHEME_ACTIVITY);
+    QString str("0x");
+    str.append(aUid);
+    url.setHost(str);
+    QMetaObject::invokeMethod(mActivityManager, "launchActivity",
+            Q_ARG(QUrl, url));
+    delete mActivityManager;
+    PERF_RESULT_ITEM_LAUNCH_TIME_ENDLOG("")
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::_viewingCompleted
@@ -1201,8 +1181,7 @@ void SearchProgressiveState::slotPrepareResultIcons()
             << "qtg_large_photos" << "qtg_large_message" << "qtg_large_email"
             << "qtg_large_calendar" << "qtg_large_notes"
             << "qtg_large_web_link" << "qtg_large_text" << "qtg_large_sisx"
-            << "qtg_large_java" << "qtg_large_flash" << "qtg_large_folder"
-            << "qtg_large_query";
+            << "qtg_large_java" << "qtg_large_flash" << "qtg_large_query";
     mIconArray.clear();
     for (int i = 0; i < icons.count(); i++)
         {
@@ -1278,6 +1257,7 @@ void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
     QString secondrow = aDoc->excerpt();
     QString firstrow;
     HbListWidgetItem* listitem = new HbListWidgetItem();
+    bool addtoList = true;
 
     if (aDoc->baseAppClass().contains("contact"))
         {
@@ -1305,7 +1285,7 @@ void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
             {
             firstrow.append(audioList.at(0));
             }
-        if (firstrow.length() == 0)
+        else
             {
             firstrow = hbTrId("txt_mus_dblist_val_unknown4");
             }
@@ -1322,7 +1302,7 @@ void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
             {
             firstrow.append(videoList.at(0));
             }
-        if (firstrow.length() == 0 && videoList.value(2, "").length())
+        else
             {
             firstrow.append(videoList.at(2));
             }
@@ -1335,10 +1315,9 @@ void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
     else if (aDoc->baseAppClass().contains("image"))
         {
         QStringList imageList = filterDoc(aDoc, "Name", "MediaId");
-        if (imageList.value(0, "").length())
-            {
-            firstrow.append(imageList.at(0));
-            }
+
+        firstrow.append(imageList.at(0));
+
         listitem->setData(mIconArray.at(3), Qt::DecorationRole);
         if (imageList.value(1, "").length())
             {
@@ -1364,7 +1343,13 @@ void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
         else
             {
             if (msgList.value(1, "").length())
+                {
                 firstrow.append(msgList.at(1));
+                }
+            else if (msgList.value(0).contains("Drafts"))
+                {
+                firstrow = QString("(no recipient)");
+                }
             }
         listitem->setData(mIconArray.at(4), Qt::DecorationRole);
         }
@@ -1409,10 +1394,9 @@ void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
         QStringList fileList = filterDoc(aDoc, "Name", "IsFolder",
                 "Extension");
         firstrow = fileList.at(0);
-        if (fileList.at(1).toInt(&ok) == 1) // folder result icon map 
-
+        if (fileList.at(1).toInt(&ok) == 1) // not to show folder results 
             {
-            listitem->setData(mIconArray.at(13), Qt::DecorationRole);
+            addtoList = false;
             }
         else
             {
@@ -1433,7 +1417,7 @@ void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
                 }
             else
                 {
-                listitem->setData(mIconArray.at(14), Qt::DecorationRole);
+                listitem->setData(mIconArray.at(13), Qt::DecorationRole);
                 }
             }
         }
@@ -1449,18 +1433,23 @@ void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
             }
         else
             {
-            listitem->setData(mIconArray.at(14), Qt::DecorationRole);
+            listitem->setData(mIconArray.at(13), Qt::DecorationRole);
             }
         }
     listitem->setText(firstrow);
     listitem->setSecondaryText(secondrow);
     listitem->setData(aDoc->docId(), Qt::UserRole);
     listitem->setData(aDoc->baseAppClass(), Qt::UserRole + 1);
-    mListView->addItem(listitem);
+    if (addtoList)
+        mListView->addItem(listitem);
+    else
+        delete listitem;
 
     delete aDoc;
     }
-
+// ---------------------------------------------------------------------------
+// SearchProgressiveState::constructHandlers overloaded
+// ---------------------------------------------------------------------------
 InDeviceHandler* SearchProgressiveState::constructHandlers(int mDatabase)
     {
     InDeviceHandler* handler = NULL;

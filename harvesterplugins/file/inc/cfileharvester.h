@@ -138,6 +138,10 @@ class CFileHarvester : public CActive
         TInt iCurrentIndex;
         TInt iStepNumber;
         RPointerArray<TFileName> iIgnorePaths;
+        
+        #ifdef HARVESTERPLUGINTESTER_FRIEND
+            friend class CHarvesterPluginTester;
+        #endif
     };
 
 #endif // CFILEHARVESTER_H

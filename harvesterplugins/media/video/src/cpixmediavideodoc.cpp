@@ -104,15 +104,22 @@ CSearchDocument* CCPIXMediaVideoDoc::GetCpixDocumentL(const CMdEObject& aObject,
     if(aObject.Property( titlePropDef, property ) != KErrNotFound)
         {
         CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
-        if( textProperty->Value().Compare(KNullDesC) > 0 )AddToFieldExcerptL(name); //Add name to excerpt field
+        if( textProperty->Value().Compare(KNullDesC) > 0 )
+            {
+#ifdef USE_HIGHLIGHTER    
+            index_item->AddHLDisplayFieldL(textProperty->Value());
+            AddToFieldExcerptL(name); //Add name to excerpt field
+#else  
+            AddToFieldExcerptL(name); //Add name to excerpt field
+#endif
+            }
+            else
+            {
+#ifdef USE_HIGHLIGHTER    
+            index_item->AddHLDisplayFieldL(name);
+#endif
+            }
         }
-#ifdef USE_HIGHLIGHTER
-    //Get the media file extension and store
-    TBuf<KMaxExtLength> extension;        
-    GetExtension(aObject.Uri(),extension);
-    AddToFieldExcerptL(extension);
-#endif 
-
     //URI and Excerpt is done add additional properties here 
     
     CMdEPropertyDef& artistPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KArtistProperty );

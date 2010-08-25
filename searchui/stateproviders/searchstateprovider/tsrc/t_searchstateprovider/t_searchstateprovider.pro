@@ -17,7 +17,9 @@
 TEMPLATE = app
 
 DEFINES += BUILD_SEARCHSTATEPROVIDER
+CONFIG += hb console mobility
 
+MOBILITY = serviceframework
 symbian {
 	CONFIG(debug, debug|release) {
 	    DESTDIR = ./debug

@@ -320,7 +320,7 @@ private:
      * Function to launch the result item for application category 
      *  @param aUid Unique app Id.
      */
-    void LaunchApplicationL(const TUid aUid);
+    void LaunchApplicationL(const QString aUid);
 
     /**
      * Function to parse the  CpixDocument with the given filter       

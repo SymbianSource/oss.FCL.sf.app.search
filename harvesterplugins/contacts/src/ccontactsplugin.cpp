@@ -87,6 +87,13 @@ CContactsPlugin::~CContactsPlugin()
 	//delete NULL is safe - so no need to test nullity of iExceprt (which routinely
 	//keeps getting deleted in the plugin).
 	delete iExcerpt;
+#ifdef USE_HIGHLIGHTER    
+            if(iHLDisplayExcerpt)
+                {
+                delete iHLDisplayExcerpt;
+                iHLDisplayExcerpt = NULL;
+                }
+#endif            
 	}
 	
 // -----------------------------------------------------------------------------
@@ -373,6 +380,7 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
     
 	// creating CSearchDocument object with unique ID for this application
 	TBuf<20> docid_str;
+	TBuf<2> isGroup;
 	docid_str.AppendNum(aContentId);
 	
 	if (aActionType == ECPixAddAction || aActionType == ECPixUpdateAction )
@@ -384,10 +392,17 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
         CleanupStack::PushL( contact );
 		if( contact->Type() == KUidContactGroup )
 		    {
-            index_item->AddFieldL(KContactsGivenNameField, static_cast<CContactGroup*>( contact )->GetGroupLabelL(), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized);
+            // Added IsGroup field to differenciate Group with contacts, its value made true in case of groups
+            isGroup.AppendNum(ETrue);
+            index_item->AddFieldL( KContactIsGroup, isGroup, CDocumentField::EStoreYes | CDocumentField::EIndexNo );
+            index_item->AddFieldL( KContactsGivenNameField, static_cast<CContactGroup*>( contact )->GetGroupLabelL(), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
             OstTraceExt1( TRACE_NORMAL, DUP1_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, ";Adding Contact Group=%S", ( static_cast<CContactGroup*>( contact )->GetGroupLabelL() ) );
             CPIXLOGSTRING2("Adding Contact Group %S", &( static_cast<CContactGroup*>( contact )->GetGroupLabelL() ) );
+#ifdef USE_HIGHLIGHTER
+            index_item->AddHLDisplayFieldL(static_cast<CContactGroup*>( contact )->GetGroupLabelL());
+#else
             index_item->AddExcerptL( static_cast<CContactGroup*>( contact )->GetGroupLabelL() );
+#endif            
 		    }
 		else//If the contact item is a regular contact.
 		    {
@@ -399,19 +414,28 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
             iExcerpt = HBufC::NewL(2);
             
             CContactItemFieldSet& fieldSet = contact->CardFields();
-
+            //IsGroup value made false in case of contact
+            isGroup.AppendNum(EFalse);
+            index_item->AddFieldL( KContactIsGroup, isGroup,CDocumentField::EStoreYes | CDocumentField::EIndexNo);
             //For contacts, all fields __except__ GivenName and FamilyName should be added to excerpt.
             //See appclass-hierarchy.txt for details.
             /* The order of fields in excerpt is as below. The order in this case
              * is the order of fields shown when you 'Edit' the contact.
              */
-#ifdef USE_HIGHLIGHTER            
-            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
-            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField:: EIndexFreeText );
-#else
+
             AddFieldL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
             AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField:: EIndexFreeText );        
-#endif            
+#ifdef USE_HIGHLIGHTER    
+            if(iHLDisplayExcerpt)
+                {
+                delete iHLDisplayExcerpt;
+                iHLDisplayExcerpt = NULL;
+                }
+            AddFieldToHLExcerptL( fieldSet, KUidContactFieldGivenName);
+            AddFieldToHLExcerptL( fieldSet, KUidContactFieldFamilyName);
+            if(iHLDisplayExcerpt)
+            index_item->AddHLDisplayFieldL(*iHLDisplayExcerpt);
+#endif 
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSIPID, KContactsSIPIDField );
@@ -507,6 +531,39 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 			}			
 		}
     }
+
+#ifdef USE_HIGHLIGHTER
+void CContactsPlugin::AddFieldToHLExcerptL( CContactItemFieldSet& aFieldSet, TUid aFieldId)
+    {
+    if(!iHLDisplayExcerpt)
+        {
+    iHLDisplayExcerpt = HBufC::NewL(2);
+        }
+    // Find field
+    TInt findpos = aFieldSet.Find(aFieldId);
+  
+    if (! (findpos < 0) || (findpos >= aFieldSet.Count() ) )
+         {
+            CContactItemField& additionalField = aFieldSet[findpos];
+            CContactTextField* fieldText = additionalField.TextStorage();
+            
+            
+            if (fieldText && fieldText->Text() != KNullDesC)//value is not Null
+                {
+                TInt currentSize = iHLDisplayExcerpt->Size();
+                TInt newSize = currentSize + fieldText->Text().Length() + 1;
+                if(newSize > currentSize) //New size is bigger so we have to reallocate
+                    {
+                    iHLDisplayExcerpt = iHLDisplayExcerpt->ReAllocL(newSize);
+                    }
+                TPtr ptr = iHLDisplayExcerpt->Des();
+        ptr.Append(fieldText->Text());
+        ptr.Append(KExcerptDelimiter);
+                }
+        }    
+    }
+
+#endif
 
 // ---------------------------------------------------------------------------
 // CContactsPlugin::GetDateL
