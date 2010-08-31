@@ -73,7 +73,8 @@ CVideoPlugin::~CVideoPlugin()
     delete iObjectJobQueueManager;
     delete iMdsUtils;
     delete iVideoDocument;
-    iIndexerUtil->UnMountAllDrivesL(_L(MEDIAGENERICAPPCLASS));
+    if ( iIndexerUtil )
+      TRAP_IGNORE(iIndexerUtil->UnMountAllDrivesL(_L(MEDIAGENERICAPPCLASS)));
     delete iIndexerUtil;
     delete iMMcMonitor;
     delete iDBManager;

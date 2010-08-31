@@ -300,6 +300,7 @@ void QEmailFetcher::processNextMailbox(){
     //More mailboxes available.
     delete iMailFolderList; iMailFolderList = NULL;
     iMailFolderList = new NmApiFolderListing( this, iMailBoxes.at( iCurrentMailboxIndex++ ).id() );
+    qDebug() << "\n QEmailFetcher::processing "<< iMailBoxes.at( iCurrentMailboxIndex-1 ).name()<< "Mailbox";
     connect( iMailFolderList, SIGNAL(foldersListed( qint32 )), this, SLOT(handleMailFoldersListed( qint32)) );
     iMailFolderList->start();
    
@@ -343,7 +344,7 @@ void QEmailFetcher::processNextFolder(){
             this, 
             iFolders.at( iCurrentFolderIndex++ ).id(),
             iMailBoxes.at( iCurrentMailboxIndex-1 ).id() ); //we have already incremented iMailboxIndex.
-
+    qDebug() << "\n QEmailFetcher::collecting mails from the "<< iFolders.at( iCurrentFolderIndex++ ).name() << "Folder \n";
     connect(iEnvelopeListing, SIGNAL(envelopesListed(qint32)),this,SLOT(processMessages(qint32)));
     iEnvelopeListing->start();
     qDebug() << "QEmailFetcher::processNextFolder :processNextFolder";
@@ -373,11 +374,14 @@ void QEmailFetcher::processMessages(qint32 aCount){
 void QEmailFetcher::handleMessageEvent( EmailClientApi::NmApiMessageEvent aEvent, quint64 aMailboxId, quint64 aFolderId, QList<quint64> aMessageList){
     NmApiMessageEnvelope envelope;
     qDebug() << "QEmailFetcher::handleMessageEvent :START";
+    qDebug() << "\n QEmailFetcher::aEvent="<< aEvent<<" MailboxId =" << aMailboxId << " FolderId = "<< aFolderId;
     const int messageCount = aMessageList.count();
+    qDebug() << "\n QEmailFetcher::message count="<< messageCount;
     if( messageCount>0 ){
     if( aEvent == MessageCreated || aEvent == MessageChanged ){
         qDebug() << "QEmailFetcher::handleMessageEvent :MessageCreated || MessageChanged";
         for( int i=0; i<messageCount; i++ ){
+            qDebug() << "\n MessageId"<< aMessageList.at( i );
             if( iEmailService->getEnvelope( aMailboxId, aFolderId, aMessageList.at( i ), envelope ) ){
                qDebug() << "QEmailFetcher::handleMessageEvent :HandleDocumentL";
                 QT_TRAP_THROWING( 
@@ -390,6 +394,7 @@ void QEmailFetcher::handleMessageEvent( EmailClientApi::NmApiMessageEvent aEvent
     else if( aEvent == MessageDeleted ) {
         qDebug() << "QEmailFetcher::handleMessageEvent :MessageDeleted";
         for( int i=0; i<messageCount; i++ ){
+                qDebug() << "\n MessageId"<< aMessageList.at( i );
                 qDebug() << "QEmailFetcher::handleMessageEvent :MessageDeleted : HandleDocumentL";
                 QT_TRAP_THROWING( 
                 iEmailObserver.HandleDocumentL( getPartialSearchDocument( aMessageList.at( i ) ), ECPixRemoveAction ) );

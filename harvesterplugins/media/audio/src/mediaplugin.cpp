@@ -88,7 +88,8 @@ CAudioPlugin::~CAudioPlugin()
 	delete iObjectJobQueueManager;
 	delete iMdsUtils;
 	delete iAudioDocument;
-	iIndexerUtil->UnMountAllDrivesL(_L(MEDIAGENERICAPPCLASS));
+	if (iIndexerUtil)
+	  TRAP_IGNORE(iIndexerUtil->UnMountAllDrivesL(_L(MEDIAGENERICAPPCLASS)));
 	delete iIndexerUtil;
 	delete iMMcMonitor;
 	delete iDBManager;

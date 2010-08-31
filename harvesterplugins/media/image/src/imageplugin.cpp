@@ -86,7 +86,8 @@ CImagePlugin::~CImagePlugin()
 	delete iObjectJobQueueManager;
 	delete iMdsUtils;
 	delete iImageDocument;
-	iIndexerUtil->UnMountAllDrivesL(_L(MEDIAGENERICAPPCLASS));
+	if ( iIndexerUtil )
+	   TRAP_IGNORE(iIndexerUtil->UnMountAllDrivesL(_L(MEDIAGENERICAPPCLASS)));
 	delete iIndexerUtil;
 	delete iMMcMonitor;
 	delete iDBManager;
