@@ -21,6 +21,7 @@
 #include "search_global.h"
 
 #include <qobject.h>
+#include <hbapplication.h>
 
 class QStateMachine;
 
@@ -34,7 +35,7 @@ class QStateMachine;
  * @lib ?library
  * @since S60 ?S60_version
  */
-class SearchApplication : public QObject
+class SearchApplication : public HbApplication
     {
 Q_OBJECT
 
@@ -45,7 +46,7 @@ public:
      * @since S60 ?S60_version.     
      * @param aParent Parent object.
      */
-    SearchApplication(QObject* aParent = 0);
+    SearchApplication(int argc, char *argv[]);
 
     /**
      * Destructor.
@@ -64,6 +65,8 @@ signals:
      * @since S60 ?S60_version.     
      */
     void exit();
+    
+    void applicationReady();
 
 public slots:
 
@@ -98,6 +101,8 @@ private slots:
      * @since S60 ?S60_version.     
      */
     void handleRuntimeFaulted();
+    
+    void sentMattiEventSlot();
 
 private:
 

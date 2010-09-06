@@ -24,7 +24,6 @@
 #include <qstate.h>
 #include <qdebug.h>
 
-
 // states
 const char initStateFileUri[] = "search.nokia.com/state/initstate";
 
@@ -49,7 +48,6 @@ SearchStateProvider::SearchStateProvider(QObject *parent) :
 //
 QState* SearchStateProvider::createState(const QString& uri)
     {
-
     if (uri == wizardProgressiveStateUri)
         {
         return new SearchProgressiveState();
@@ -63,10 +61,8 @@ QState* SearchStateProvider::createState(const QString& uri)
         return new SearchInitState();
         }
     else if (uri == wizardOnlineStateUri)
-            {
-            return new SearchOnlineState();
-            }
-
-    qDebug() << "SEARCH: No state found for mUri: " << uri;
+        {
+        return new SearchOnlineState();
+        }
     return NULL;
     }

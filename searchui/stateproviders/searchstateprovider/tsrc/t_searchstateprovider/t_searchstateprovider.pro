@@ -13,27 +13,13 @@
 #
 # Description:  Search stateprovider unit test project file
 #
-
+QT += testlib
 TEMPLATE = app
 
 DEFINES += BUILD_SEARCHSTATEPROVIDER
 CONFIG += hb console mobility
-
 MOBILITY = serviceframework
-symbian {
-	CONFIG(debug, debug|release) {
-	    DESTDIR = ./debug
-	} else {
-	    DESTDIR = ./release    
-	}
-}
 
-win32 {
- 	               
-    LIBS += -L$$PWD/../../../../../bin/debug
-    
-    DESTDIR = $$PWD/../../../../../bin/debug/
-}
 
 LIBS += -lsearchindevicehandler
 LIBS += -lxqservice 
@@ -52,10 +38,7 @@ LIBS += -lws32
 LIBS += -lavkon
 LIBS += -ltstaskmonitorclient.dll
 
-CONFIG += qtestlib \
-          symbian_test \
-          debug_and_release \
-          console
+CONFIG += qtestlib
 CONFIG += hb
 
 QT += xml \
@@ -78,11 +61,9 @@ symbian {
 CONFIG += symbian_test               
 TARGET.UID2 = 0x100039CE
 TARGET.UID3 = 0x20026F9A
-TARGET.CAPABILITY = CAP_APPLICATION AllFiles
-TARGET.EPOCSTACKSIZE = 0x14000 // 80kB
-TARGET.EPOCHEAPSIZE = 0x20000 0x800000 // 128kB - 16MB
+TARGET.CAPABILITY = ALL -TCB -DRM
 INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE 
-INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE
+INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE 
 }
 
 include(t_searchstateprovider.pri)

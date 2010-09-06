@@ -54,6 +54,7 @@
 #include <hblistviewitem.h>
 #include <hbactivitymanager.h>
 #include <xqaiwdecl.h>
+#include <xqaiwdeclplat.h>
 #include <qservicemanager.h>
 #include <qurl.h>
 QTM_USE_NAMESPACE
@@ -62,6 +63,8 @@ const int totalcategories_normalreason = 10;
 const int totalcategories_activityreasonreason = 13;
 const int intial_iteration = 3;
 const int batch_iteration = 20;
+#define SEARCHAPPUID "2002C377"
+
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::SearchProgressiveState
 // ---------------------------------------------------------------------------
@@ -186,10 +189,8 @@ void SearchProgressiveState::constructHandlers()
 // SearchProgressiveState::onEntry
 // ---------------------------------------------------------------------------
 void SearchProgressiveState::onEntry(QEvent *event)
-    {
-    //  WMS_LOG << "::onEntry";
+    {    
     QState::onEntry(event);
-
     mStateStatus = true;// used for conditional execution for the slots that are connected as transitions
     if (mSearchPanel)
         {
@@ -399,8 +400,7 @@ void SearchProgressiveState::openResultitem(HbListWidgetItem * item)
     if (item->data(Qt::UserRole + 1).toString().contains("contact"))
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("contact")
-        mRequest = mAiwMgr->create("com.nokia.symbian.IContactsView",
-                "openContactCard(int)", true);
+        mRequest = mAiwMgr->create(XQI_CONTACTS_VIEW,XQOP_CONTACTS_VIEW_CONTACT_CARD, true);
 
         int uid = (item->data(Qt::UserRole)).toInt(&t);
         args << uid;
@@ -469,9 +469,7 @@ void SearchProgressiveState::openResultitem(HbListWidgetItem * item)
     else if (item->data(Qt::UserRole + 1).toString().contains("msg email"))
         {
 
-        mRequest = mAiwMgr->create("nmail",
-                "com.nokia.symbian.IEmailMessageView",
-                "viewMessage(QVariant,QVariant,QVariant)", true);
+        mRequest = mAiwMgr->create(XQI_EMAIL_MESSAGE_VIEW,XQOP_EMAIL_MESSAGE_VIEW, true);
 
         args << item->data(Qt::UserRole + 2).toULongLong(&t) << item->data(
                 Qt::UserRole + 3).toULongLong(&t)
@@ -480,8 +478,7 @@ void SearchProgressiveState::openResultitem(HbListWidgetItem * item)
     else if (item->data(Qt::UserRole + 1).toString().contains("msg"))
         {
         PERF_RESULT_ITEM_FOR_LAUNCHING("msg")
-        mRequest = mAiwMgr->create("messaging",
-                "com.nokia.symbian.IMessageView", "view(int)", true);
+        mRequest = mAiwMgr->create(XQI_MESSAGE_VIEW, XQOP_MESSAGE_VIEW, true);
 
         int uid = (item->data(Qt::UserRole)).toInt(&t);
         args << uid;
@@ -1097,7 +1094,11 @@ QString SearchProgressiveState::getDrivefromMediaId(QString aMediaId)
 // SearchProgressiveState::LaunchApplicationL
 // ---------------------------------------------------------------------------
 void SearchProgressiveState::LaunchApplicationL(const QString aUid)
-    {
+    {  
+    if(aUid.contains(SEARCHAPPUID,Qt::CaseInsensitive))
+        {       
+        return;
+        }
     QServiceManager serviceManager;
     QObject* mActivityManager = serviceManager.loadInterface(
             "com.nokia.qt.activities.ActivityManager");
@@ -1190,23 +1191,6 @@ void SearchProgressiveState::slotPrepareResultIcons()
             icon = HbIcon("qtg_large_application");
         mIconArray.append(icon);
         }
-    /*QList<TUid> appUid;
-     appUid.append(TUid::Uid(0x20022EF9));//contact
-     appUid.append(TUid::Uid(0x10207C62));//audio
-     appUid.append(TUid::Uid(0x200211FE));//video 
-     appUid.append(TUid::Uid(0x20000A14));//image 
-     appUid.append(TUid::Uid(0x2001FE79));//msg
-     appUid.append(TUid::Uid(0x200255BA));//email 
-     appUid.append(TUid::Uid(0x10005901));//calender
-     appUid.append(TUid::Uid(0x20029F80));//notes
-     //appUid.Append(TUid::Uid(0x20022F35));//application
-     appUid.append(TUid::Uid(0x10008D39));//bookmark
-     appUid.append(TUid::Uid(0x2002BCC0));//files
-
-     for (int i = 0; i < appUid.count(); i++)
-     {
-     TRAP_IGNORE(mIconArray.append(getAppIconFromAppIdL(appUid.at(i))));
-     }*/
     }
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::activityRequested

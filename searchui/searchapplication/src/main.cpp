@@ -29,37 +29,36 @@
 //
 int main(int argc, char *argv[])
     {
-    SEARCH_FUNC_ENTRY("SEARCH::Search::main");
-    PERF_APP_LAUNCH_END("SearchApplication Main Called");
-    HbApplication app(argc, argv);
+    SEARCH_FUNC_ENTRY("SEARCH::Search::main"); PERF_APP_LAUNCH_END("SearchApplication Main Called");
 
+    SearchApplication search(argc, argv);
     QTranslator translator;
     QString lang = QLocale::system().name();
     QString path = "Z:/resource/qt/translations/";
     translator.load("search_" + lang, path);
-    app.installTranslator(&translator);
+    search.installTranslator(&translator);
 
     QTranslator commonTranslator;
     commonTranslator.load("common_" + lang, path);
-    app.installTranslator(&commonTranslator);
+    search.installTranslator(&commonTranslator);
 
     QTranslator musicTranslator;
     musicTranslator.load("musicplayer_" + lang, path);
-    app.installTranslator(&musicTranslator);
+    search.installTranslator(&musicTranslator);
 
     QTranslator contactsTranslator;
     contactsTranslator.load("contacts_" + lang, path);
-    app.installTranslator(&contactsTranslator);
+    search.installTranslator(&contactsTranslator);
 
     QTranslator calenderTranslator;
     calenderTranslator.load("calendar_" + lang, path);
-    app.installTranslator(&calenderTranslator);
+    search.installTranslator(&calenderTranslator);
 
     QTranslator notesTranslator;
     notesTranslator.load("notes_" + lang, path);
-    app.installTranslator(&notesTranslator);
+    search.installTranslator(&notesTranslator);
     PERF_APP_LAUNCH_END("Search Component Cunstructions starts");
-    SearchApplication search;
+
     PERF_APP_LAUNCH_END("Search Component Cunstructions Ends");
 #ifdef ROM
     QDir::setCurrent("Z:/");
@@ -67,12 +66,9 @@ int main(int argc, char *argv[])
     QDir::setCurrent("C:/");
     SEARCHDEBUG("main() - SearchApplication's current dir set to C:/");
 #endif //ROM
-    QObject::connect(&app, SIGNAL(aboutToQuit()), &search, SLOT(stop()));
-    QObject::connect(&search, SIGNAL(exit()), &app, SLOT(quit()),
-            Qt::QueuedConnection);
     search.start();
     PERF_APP_LAUNCH_END("SearchApplication Ends, Main Event Loop");
-    int ret = app.exec();
+    int ret = search.exec();
     SEARCH_FUNC_EXIT("SEARCH::Search::main");
     return ret;
     }

@@ -27,6 +27,7 @@ class HbListWidget;
 class HbSearchPanel;
 class TsTaskSettings;
 class SearchMainWindow;
+class SearchHbApplication;
 class HbShrinkingVkbHost;
 SEARCH_CLASS( SearchStateProviderTest)
 
@@ -110,7 +111,7 @@ public:
     HbSearchPanel* SearchPanel()
         {
         return mSearchPanel;
-        }    
+        }
 private:
     /**
      * Constructor.
@@ -221,4 +222,5 @@ signals:
      */
     void bringvkb();
     };
+
 #endif //SEARCH_CONTROLLER_H

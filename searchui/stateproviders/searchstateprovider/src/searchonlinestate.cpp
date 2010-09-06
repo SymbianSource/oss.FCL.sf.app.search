@@ -253,6 +253,6 @@ void SearchOnlineState::slotviewReady()
                 startOnlineSearch(searchKey);
                 }
             }
-        }//PERF_APP_LAUNCH_END("SearchAppplication View is ready");
+        }
     emit applicationReady();
     }

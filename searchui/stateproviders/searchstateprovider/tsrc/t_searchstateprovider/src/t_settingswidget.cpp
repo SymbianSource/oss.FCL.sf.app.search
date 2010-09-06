@@ -9,6 +9,7 @@
 #include <hbaction.h>
 #include <qdir.h>
 #include <hbmainwindow.h>
+#include <hbaction.h>
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 //
@@ -31,6 +32,13 @@ void SearchStateProviderTest::teststoreSettingsToiniFile()
 
     settingswizard->mCategoryDbMapping.insert("Contacts", true);
     settingswizard->mCategoryDbMapping.insert("Messages", true);
+    HbAction * action = new HbAction();
+      //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
+      settingswizard->mActions.append(action);
+
+      action = new HbAction();
+      //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
+      settingswizard->mActions.append(action);
 
     settingswizard->q_currentIndexChanged(0);
 
@@ -88,6 +96,13 @@ void SearchStateProviderTest::testlaunchSettingWidget()
     SettingsWidget* settingswizard = new SettingsWidget();
     settingswizard->mCategoryDbMapping.insert("Contacts", true);
     settingswizard->mCategoryDbMapping.insert("Messages", true);
+    HbAction * action = new HbAction();
+        // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
+         settingswizard->mActions.append(action);
+
+         action = new HbAction();
+         //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
+         settingswizard->mActions.append(action);
 
     settingswizard->q_currentIndexChanged(0);
     settingswizard->launchSettingWidget();
@@ -161,6 +176,13 @@ void SearchStateProviderTest::testcheckBoxOkEvent()
 
     settingswizard->mCategoryDbMapping.insert("Contacts", true);
     settingswizard->mCategoryDbMapping.insert("Messages", true);
+    HbAction * action = new HbAction();
+          // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
+           settingswizard->mActions.append(action);
+
+           action = new HbAction();
+           //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
+           settingswizard->mActions.append(action);
 
     settingswizard->q_currentIndexChanged(0);
 
@@ -176,6 +198,14 @@ void SearchStateProviderTest::testcheckBoxCancelEvent()
 
     settingswizard->mCategoryDbMapping.insert("Contacts", true);
     settingswizard->mCategoryDbMapping.insert("Messages", true);
+    
+    HbAction * action = new HbAction();
+          // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
+           settingswizard->mActions.append(action);
+
+           action = new HbAction();
+           //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
+           settingswizard->mActions.append(action);
 
     settingswizard->q_currentIndexChanged(0);
     QSignalSpy spy(settingswizard, SIGNAL(settingsEvent(bool)));
@@ -190,6 +220,13 @@ void SearchStateProviderTest::testitemChecked()
     settingswizard->initialize();
     settingswizard->mCategoryDbMapping.insert("Contacts", true);
     settingswizard->mCategoryDbMapping.insert("Messages", true);
+    HbAction * action = new HbAction();
+          // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
+           settingswizard->mActions.append(action);
+
+           action = new HbAction();
+           //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
+           settingswizard->mActions.append(action);
 
     settingswizard->q_currentIndexChanged(0);
 
@@ -220,6 +257,13 @@ void SearchStateProviderTest::testq_currentIndexChanged()
        settingswizard->mCategoryDbMapping.insert("Contacts", true);
        settingswizard->mCategoryDbMapping.insert("Messages", true);
        settingswizard->initialize();
+       HbAction * action = new HbAction();
+             // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
+              settingswizard->mActions.append(action);
+
+              action = new HbAction();
+              //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
+              settingswizard->mActions.append(action);
 
        settingswizard->q_currentIndexChanged(0);
        settingswizard->q_currentIndexChanged(1);
@@ -231,6 +275,13 @@ void SearchStateProviderTest::selectedItemCategory()
 
     settingswizard->mCategoryDbMapping.insert("Contacts", true);
     settingswizard->mCategoryDbMapping.insert("Messages", true);
+    HbAction * action = new HbAction();
+          // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
+           settingswizard->mActions.append(action);
+
+           action = new HbAction();
+           //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
+           settingswizard->mActions.append(action);
     settingswizard->q_currentIndexChanged(0);
     QSignalSpy spy(settingswizard, SIGNAL(selectedItemCategory(int,bool)));
     settingswizard->loadDeviceSettings();

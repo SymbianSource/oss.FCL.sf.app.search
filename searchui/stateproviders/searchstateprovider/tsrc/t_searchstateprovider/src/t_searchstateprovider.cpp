@@ -27,6 +27,8 @@
 #include <hbmainwindow.h>
 #include <hbview.h>
 #include <hbgraphicsscene.h>
+#include <hbapplication.h>
+#include <hbnamespace.h>
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -177,22 +179,11 @@ HbMainWindow* SearchStateProviderTest::mainWindow()
 //Will be corrected in later (estimate 4.6.0) Qt release for Symbian.
 int main(int argc, char *argv[])
     {
-    QCoreApplication app(argc, argv);
-#ifdef __WINSCW__
-    char *new_argv[3];
-    QString str = "C:\\data\\" + QFileInfo(
-            QCoreApplication::applicationFilePath()).baseName() + ".log";
-    QByteArray bytes = str.toAscii();
-    char arg1[] = "-o";
-    new_argv[0] = argv[0];
-    new_argv[1] = arg1;
-    new_argv[2] = bytes.data();
+    HbApplication app(argc, argv);
     SearchStateProviderTest tc;
-    return QTest::qExec(&tc, 3, new_argv);
-#else
-    SearchStateProviderTest tc;
-    return QTest::qExec(&tc, argc, argv);
-#endif
+       
+    int ret = QTest::qExec(&tc, argc, argv);
+    return ret;
     }
 #else //Q_OS_SYMBIAN
 QTEST_MAIN(SearchStateProviderTest)

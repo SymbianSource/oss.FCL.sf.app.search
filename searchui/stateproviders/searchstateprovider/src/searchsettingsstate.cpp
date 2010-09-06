@@ -11,12 +11,12 @@
  *
  * Contributors:
  *
- * Description:  Implements the wizard activation and interactions.
+ * Description:  Search Setting state.
  *
  */
 
 #include "searchsettingsstate.h"
-
+#include "settingswidget.h"
 #include <hbdocumentloader.h>
 #include <hbview.h>
 #include <hblabel.h>
@@ -29,8 +29,6 @@
 #include <qdebug.h>
 #include <qgraphicswidget.h>
 #include <qdir.h>
-#include"settingswidget.h"
-
 // ---------------------------------------------------------------------------
 // SearchSettingsState::SearchSettingsState
 // ---------------------------------------------------------------------------
@@ -46,10 +44,9 @@ SearchSettingsState::SearchSettingsState(QState *parent) :
 
     connect(mWidget, SIGNAL(selectedItemCategory(int, bool)), this,
             SLOT(getItemCategory(int, bool)));
-    
-    connect(mWidget, SIGNAL(ISProvidersIcon(HbIcon, int)), this,
-                SLOT(slotISProvidersIcon(HbIcon, int)));
 
+    connect(mWidget, SIGNAL(ISProvidersIcon(HbIcon, int)), this,
+            SLOT(slotISProvidersIcon(HbIcon, int)));
     }
 // ---------------------------------------------------------------------------
 // SearchSettingsState::~SearchSettingsState
@@ -59,7 +56,6 @@ SearchSettingsState::~SearchSettingsState()
     {
     delete mDocumentLoader;
     delete mWidget;
-
     }
 // ---------------------------------------------------------------------------
 // SearchSettingsState::slotISProvidersIcon
@@ -67,9 +63,8 @@ SearchSettingsState::~SearchSettingsState()
 //
 void SearchSettingsState::slotISProvidersIcon(HbIcon icon, int id)
     {
-    emit publishISProviderIcon(id,icon);
+    emit publishISProviderIcon(id, icon);
     }
-
 // ---------------------------------------------------------------------------
 // SearchSettingsState::getItemCategory
 // ---------------------------------------------------------------------------
@@ -84,7 +79,6 @@ void SearchSettingsState::getItemCategory(int str, bool avalue)
 //
 void SearchSettingsState::onEntry(QEvent *event)
     {
-    qDebug() << "search:SearchSettingsState::onEntry";
     QState::onEntry(event);
     emit settingslaunched();
     if (minitialCount)
@@ -109,7 +103,6 @@ void SearchSettingsState::onEntry(QEvent *event)
 void SearchSettingsState::onExit(QEvent *event)
     {
     QState::onExit(event);
-
     }
 // ---------------------------------------------------------------------------
 // SearchSettingsState::handleBackEvent

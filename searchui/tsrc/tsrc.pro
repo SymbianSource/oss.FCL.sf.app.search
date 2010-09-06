@@ -18,8 +18,7 @@ TEMPLATE = subdirs
 
 SUBDIRS  += indexdb \ 
 ../indevicehandler/tsrc \
-	   ../stateproviders/searchstateprovider/tsrc \
-../onlinehandler/tsrc
+	   ../stateproviders/searchstateprovider/tsrc 
 
 	   
            

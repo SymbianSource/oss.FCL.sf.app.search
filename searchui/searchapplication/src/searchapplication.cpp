@@ -19,26 +19,16 @@
 #include <qstatemachine.h>
 #include <searchruntimeprovider.h>
 #include <searchruntime.h>
+#include <hbapplication.h>
 
 // ---------------------------------------------------------------------------
 // SearchApplication::SearchApplication
 // ---------------------------------------------------------------------------
 //
-SearchApplication::SearchApplication(QObject* aParent) :
-    QObject(aParent), mRuntime(NULL)
+SearchApplication::SearchApplication(int argc, char *argv[]) :
+    HbApplication(argc, argv), mRuntime(NULL)
     {
-    SEARCH_FUNC_ENTRY("SEARCH::SearchApplication::SearchApplication");
-
-    SearchRuntimeProvider *interface = new SearchRuntimeProvider();
-    mRuntime = interface->createPlugin();
-    if (mRuntime)
-        {
-        mRuntime->setParent(this);
-        connect(mRuntime, SIGNAL(started()),this, SLOT(handleRuntimeStarted()));
-        connect(mRuntime, SIGNAL(stopped()),this, SLOT(handleRuntimeStopped()));
-        connect(mRuntime, SIGNAL(faulted()),this, SLOT(handleRuntimeFaulted()));
-        } 
-		SEARCH_FUNC_EXIT("SEARCH::SearchApplication::SearchApplication");
+    SEARCH_FUNC_ENTRY("SEARCH::SearchApplication::SearchApplication"); SEARCH_FUNC_EXIT("SEARCH::SearchApplication::SearchApplication");
     }
 
 // ---------------------------------------------------------------------------
@@ -47,6 +37,10 @@ SearchApplication::SearchApplication(QObject* aParent) :
 //
 SearchApplication::~SearchApplication()
     {
+    if (mRuntime)
+        {
+        mRuntime->stop();
+        }
     if (mRuntime)
         {
         disconnect(mRuntime, SIGNAL(started()), this,
@@ -59,7 +53,6 @@ SearchApplication::~SearchApplication()
         delete mRuntime;
         }
     }
-
 // ---------------------------------------------------------------------------
 // SearchApplication::start()
 // ---------------------------------------------------------------------------
@@ -67,7 +60,20 @@ SearchApplication::~SearchApplication()
 void SearchApplication::start()
     {
     SEARCH_FUNC_ENTRY("SEARCH::Search::start");
-
+    SearchRuntimeProvider *interface = new SearchRuntimeProvider();
+    mRuntime = interface->createPlugin();
+    if (mRuntime)
+        {
+        mRuntime->setParent(this);
+        connect(mRuntime, SIGNAL(started()), this,
+                SLOT(handleRuntimeStarted()));
+        connect(mRuntime, SIGNAL(stopped()), this,
+                SLOT(handleRuntimeStopped()));
+        connect(mRuntime, SIGNAL(faulted()), this,
+                SLOT(handleRuntimeFaulted()));
+        connect(mRuntime, SIGNAL(sentMattiEventSignal()), this,
+                SLOT(sentMattiEventSlot()));
+        }
     if (mRuntime)
         {
         mRuntime->start();
@@ -75,9 +81,7 @@ void SearchApplication::start()
     else
         {
         emit exit();
-        }
-
-    SEARCH_FUNC_EXIT("SEARCH::Search::start");
+        } SEARCH_FUNC_EXIT("SEARCH::Search::start");
     }
 
 // ---------------------------------------------------------------------------
@@ -119,4 +123,9 @@ void SearchApplication::handleRuntimeStopped()
 void SearchApplication::handleRuntimeFaulted()
     {
     emit exit();
+    }
+
+void SearchApplication::sentMattiEventSlot()
+    {
+    emit applicationReady();
     }

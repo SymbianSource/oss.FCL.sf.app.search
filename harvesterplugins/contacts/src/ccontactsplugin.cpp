@@ -436,7 +436,7 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
             if(iHLDisplayExcerpt)
             index_item->AddHLDisplayFieldL(*iHLDisplayExcerpt);
 #endif 
-            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField );
+            AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexPhoneNumber );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSIPID, KContactsSIPIDField );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldCompanyName, KContactsCompanyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );

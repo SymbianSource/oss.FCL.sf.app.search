@@ -78,6 +78,8 @@ private slots:
      * @since S60 ?S60_version.
      */
     void handleStateMachineStopped();
+    
+    void sendMattiEvent();
 
 signals:
 
@@ -85,6 +87,8 @@ signals:
      * Emission of this signal initiates a transition to the final state.     
      */
     void stopStateMachine();
+    
+    void sentMattiEventSignal();
 
 private:
 

@@ -109,6 +109,7 @@ SearchUiLoader::SearchUiLoader() :
     mVirtualKeyboard = new HbShrinkingVkbHost(mView);
 
     mBringtoForground = true;
+
     }
 // ---------------------------------------------------------------------------
 // SearchUiLoader::~SearchUiLoader
@@ -153,6 +154,7 @@ void SearchUiLoader::slotbringvkb()
             }
         }
     }
+
 // ---------------------------------------------------------------------------
 // SearchMainWindow::slotViewReady
 // ---------------------------------------------------------------------------

@@ -105,16 +105,7 @@ private slots:
     void testq_currentIndexChanged();
     void selectedItemCategory();
 
-    /**
-     * t_searchonlinestate.cpp
-     */
-    void teststartOnlineSearch();
-    void testonlinesetSettings();
-    void testonlinecancelSearch();    
-    void testslotbackEventTriggered();
-    void testslotIndeviceQuery();
-    void testslotlaunchLink();
-    void testslotviewReady();    
+   
 
     /**
      * t_searchstateprovider.cpp

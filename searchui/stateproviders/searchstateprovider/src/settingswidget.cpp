@@ -212,8 +212,7 @@ void SettingsWidget::q_currentIndexChanged(int avalue)
             if (i.key() == mSelectedProvider)
                 selectedindex = Iterator;
             Iterator++;
-            internetCategoryList.append(i.value());
-            qDebug() << i.value();
+            internetCategoryList.append(i.value());            
             }
         mModelItem->setContentWidgetData("items", internetCategoryList);
 

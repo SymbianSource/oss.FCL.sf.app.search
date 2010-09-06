@@ -13,7 +13,7 @@
 #
 # Description:  Search stateprovider unit test project file
 #
-
+QT += testlib
 TEMPLATE = app
 
 

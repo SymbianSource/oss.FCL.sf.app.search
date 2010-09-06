@@ -92,6 +92,7 @@ void SearchRuntime::createStates()
 
     QState* wizardProgressiveState = stateProvider.createState(
             wizardProgressiveStateUri);
+    connect(wizardProgressiveState,SIGNAL(applicationReady()),this,SLOT(sendMattiEvent()));
     // set state specific data
     wizardProgressiveState->setParent(searchRootState);
     wizardProgressiveState->setObjectName(wizardProgressiveStateUri);
@@ -103,6 +104,7 @@ void SearchRuntime::createStates()
 
     QState* wizardOnlineState = stateProvider.createState(
             wizardOnlineStateUri);
+    connect(wizardOnlineState,SIGNAL(applicationReady()),this,SLOT(sendMattiEvent()));
     wizardOnlineState->setParent(searchRootState);
     wizardOnlineState->setObjectName(wizardOnlineStateUri);
 
@@ -173,4 +175,8 @@ void SearchRuntime::createStates()
     connect(this, SIGNAL(started()), SLOT(handleStateMachineStarted()));
     connect(this, SIGNAL(stopped()), SLOT(handleStateMachineStopped()));
     connect(this, SIGNAL(finished()), SLOT(handleStateMachineStopped()));
+    }
+void SearchRuntime::sendMattiEvent()
+    {
+    emit sentMattiEventSignal();
     }
