@@ -9,11 +9,10 @@
 	<collection id="search_plat" name="Search Platform Interfaces" level="api">
 	<component id="onlinesearchplugin_api" name="Online Search Plugin API" introduced="^4" class="api" filter="s60">
 	   <meta rel="Api" href="search_plat/onlinesearchplugin_api/onlinesearchplugin_api.metaxml"/>
-	  <unit bldFile="search_plat/onlinesearchplugin_api" qt:proFile="onlinesearchplugin_api.pro"/>
 	 </component>
 	<component id="onlinesearchproviders_api" name="Online Search Providers API" introduced="^4" class="api" filter="s60">
 	   <meta rel="Api" href="search_plat/onlinesearchproviders_api/onlinesearchproviders_api.metaxml"/>
-	  <unit bldFile="search_plat/onlinesearchproviders_api" qt:proFile="onlinesearchproviders_api.pro"/>
+	  <unit bldFile="search_plat" qt:proFile="search_plat.pro"/>
 	 </component>
 	</collection>
 	<collection id="onlinesearchproviders" name="Online Search Providers" level="eng">

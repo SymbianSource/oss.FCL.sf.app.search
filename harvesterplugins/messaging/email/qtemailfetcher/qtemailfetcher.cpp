@@ -231,6 +231,7 @@ CSearchDocument* QEmailFetcher::getSearchDocumentL( const NmApiMessageEnvelope& 
     //Adding subject and body to the excerpt. 
     QString excerpt ;
     excerpt = aEnvelope.subject();
+	excerpt += " " ;
     excerpt += msgBody ;
     doc->AddExcerptL( qt_QString2TPtrC(excerpt) );
     );
