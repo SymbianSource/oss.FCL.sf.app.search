@@ -56,6 +56,8 @@ LIBRARY       libstdcpp.lib //for std::exception from QT_TRYCATCH_LEAVING
 OPTION CW -wchar_t on
 MACRO _WCHAR_T_DECLARED
 
+OPTION ARMCC --visibility_inlines_hidden 
+
 // For logging
 LIBRARY 	  flogger.lib 
 
