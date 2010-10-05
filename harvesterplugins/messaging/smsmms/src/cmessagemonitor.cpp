@@ -278,5 +278,17 @@ TInt CMessageMonitor::RunError(TInt /* aError */)
 		return KErrNone; // Don't panic
 	}
 
+void CMessageMonitor::ResumeL()
+    {
+    OstTraceFunctionEntry0( CMESSAGEMONITOR_RESUMEL_ENTRY );
+    while (iMessages.Count()>0 && iMessagePlugin.GetHarvesterState())
+        {
+        TMessageRecord message = iMessages[0];
+        iMessages.Remove(0);
+        iMessagePlugin.MessageItemL(message.iMsvId, message.iAction, message.iFolderId);
+        }
+    OstTraceFunctionExit0( CMESSAGEMONITOR_RESUMEL_EXIT );
+    }
+
 // End Of File
 

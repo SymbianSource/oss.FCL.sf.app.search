@@ -19,3 +19,5 @@
 PRJ_MMPFILES
 audioplugin.mmp
 
+PRJ_EXPORTS
+../data/audioconfig.xml /epoc32/data/z/resource/qt/plugins/searchsrv/contentconfig/audioconfig.xml

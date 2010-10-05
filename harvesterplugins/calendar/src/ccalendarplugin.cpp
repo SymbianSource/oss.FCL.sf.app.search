@@ -87,11 +87,13 @@ CCalendarPlugin::~CCalendarPlugin()
 
 	delete iEntryView;
 	delete iCalIterator;
-#ifdef USE_HIGHLIGHTER	
+	iJobQueue.Reset();
+	iJobQueue.Close();
+//#ifdef USE_HIGHLIGHTER	
 	if(iExcerpt)
 	    delete iExcerpt;
 	iExcerpt = NULL;
-#endif
+//#endif
 	if( iSession )
 		{
 		iSession->StopChangeNotification();
@@ -105,6 +107,7 @@ CCalendarPlugin::~CCalendarPlugin()
 //  
 void CCalendarPlugin::ConstructL()
 	{
+    iIndexState = ETrue;
 	iAsynchronizer = CDelayedCallback::NewL( CActive::EPriorityIdle );
 	iSession = CCalSession::NewL();	
 	TRAPD ( err , iSession->OpenL( iSession->DefaultFileNameL() ) );
@@ -153,6 +156,7 @@ void CCalendarPlugin::StartHarvestingL(const TDesC& /*aQualifiedBaseAppClass*/)
     {
     iIndexer->ResetL();
     iStartHarvesting = ETrue;
+    iHarvestState = EHarvesterStartHarvest;
 #ifdef __PERFORMANCE_DATA
     iStartTime.UniversalTime();
 #endif  
@@ -177,7 +181,7 @@ void CCalendarPlugin::Progress( TInt /*aPercentageCompleted*/ )
 //
 void CCalendarPlugin::Completed( TInt aError )
 	{
-	// No error code and harvesting is needed star harvesting.
+	// No error code and harvesting is needed start harvesting.
 	iFirstEntry = ETrue;
 	if (aError == KErrNone && iStartHarvesting)
 		{
@@ -201,47 +205,51 @@ TBool CCalendarPlugin::NotifyProgress()
 //
 void CCalendarPlugin::DelayedCallbackL( TInt /*aCode*/ )
     {
+    if(!iIndexState)
+        return;
     // Harvest items on each call
 	TPtrC8 uid( KNullDesC8 );
+	
+    if( iFirstEntry )
+        {
+        uid.Set( iCalIterator->FirstL() );
+        iFirstEntry = EFalse;
+        }
+    else
+        {
+        uid.Set( iCalIterator->NextL() );
+        }
 
-	if( iFirstEntry )
-		{
-		uid.Set( iCalIterator->FirstL() );
-		iFirstEntry = EFalse;
-		}
-	else
-		{
-		uid.Set( iCalIterator->NextL() );
-		}
+    if( uid != KNullDesC8 )
+        {
+        RPointerArray<CCalEntry> entryArray;
+        CleanupResetAndDestroyPushL(entryArray);
+        iEntryView->FetchL( uid, entryArray );
+        // Handle only the first (i.e. parent entry)
+        if( entryArray.Count() > 0 )
+            {
+            CCalEntry* entry = (CCalEntry*)entryArray[ 0 ];
+            OstTrace1( TRACE_NORMAL, CCALENDARPLUGIN_DELAYEDCALLBACKL, "CCalendarPlugin::DelayedCallbackL();Harvesting id=%d", entry->LocalUidL() );
+            CPIXLOGSTRING2("CCalendarPlugin::DelayedCallbackL(): Harvesting id=%d.", entry->LocalUidL());
+            CreateEntryL( entry->LocalUidL(), ECPixAddAction );
+            }
+        CleanupStack::PopAndDestroy(&entryArray);
 
-	if( uid != KNullDesC8 )
-		{
-		RPointerArray<CCalEntry> entryArray;
-		CleanupResetAndDestroyPushL(entryArray);
-		iEntryView->FetchL( uid, entryArray );
-		// Handle only the first (i.e. parent entry)
-		if( entryArray.Count() > 0 )
-			{
-			CCalEntry* entry = (CCalEntry*)entryArray[ 0 ];
-			OstTrace1( TRACE_NORMAL, CCALENDARPLUGIN_DELAYEDCALLBACKL, "CCalendarPlugin::DelayedCallbackL();Harvesting id=%d", entry->LocalUidL() );
-			CPIXLOGSTRING2("CCalendarPlugin::DelayedCallbackL(): Harvesting id=%d.", entry->LocalUidL());
-			CreateEntryL( entry->LocalUidL(), ECPixAddAction );
-			}
-		CleanupStack::PopAndDestroy(&entryArray);
-
-		// Request next entry.
-		iAsynchronizer->Start( 0, this, KHarvestingDelay );
-		}
-	else
-		{
-		// Harvesting was successfully completed
-		iFirstEntry = ETrue; // Make sure we can harvest next time as well...
-		Flush(*iIndexer);
+        // Request next entry.
+        iAsynchronizer->Start( 0, this, KHarvestingDelay );
+        }
+    else
+        {
+        // Harvesting was successfully completed
+        iFirstEntry = ETrue; // Make sure we can harvest next time as well...
+        Flush(*iIndexer);
 #ifdef __PERFORMANCE_DATA
     UpdatePerformaceDataL();
 #endif
-		iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrNone);		
-		}
+        iHarvestState = EHarvesterIdleState;
+        iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrNone);		
+        }
+
 	}
 
 // ---------------------------------------------------------------------------
@@ -253,6 +261,7 @@ void CCalendarPlugin::DelayedError(TInt aError)
 	// Harvesting was completed
 	iFirstEntry = ETrue; // Make sure we can harvest next time as well...
 	Flush(*iIndexer);
+	iHarvestState = EHarvesterIdleState;
 	iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), aError);
 	}
 
@@ -289,7 +298,10 @@ void CCalendarPlugin::HandleChangedEntryL(const TCalChangeEntry& changedEntry)
 			CreateEntryL( changedEntry.iEntryId, ECPixAddAction );
 			UpdatePerformaceDataL(ECPixAddAction);
 #else
-			CreateEntryL( changedEntry.iEntryId, ECPixAddAction );
+			if( iIndexState )
+			    CreateEntryL( changedEntry.iEntryId, ECPixAddAction );
+			else
+			    OverWriteOrAddToQueueL(changedEntry.iEntryId, ECPixAddAction);
 #endif
 			break;
 			}
@@ -303,7 +315,10 @@ void CCalendarPlugin::HandleChangedEntryL(const TCalChangeEntry& changedEntry)
 			CreateEntryL( changedEntry.iEntryId, ECPixAddAction );
 			UpdatePerformaceDataL(ECPixAddAction);
 #else
-			CreateEntryL( changedEntry.iEntryId, ECPixRemoveAction );
+			if( iIndexState )
+			    CreateEntryL( changedEntry.iEntryId, ECPixRemoveAction );
+			else
+			    OverWriteOrAddToQueueL(changedEntry.iEntryId, ECPixRemoveAction);
 #endif
 			break;
 			}
@@ -317,7 +332,10 @@ void CCalendarPlugin::HandleChangedEntryL(const TCalChangeEntry& changedEntry)
 			CreateEntryL( changedEntry.iEntryId, ECPixUpdateAction );
 			UpdatePerformaceDataL(ECPixUpdateAction);
 #else
-			CreateEntryL( changedEntry.iEntryId, ECPixUpdateAction );
+			if( iIndexState )
+			    CreateEntryL( changedEntry.iEntryId, ECPixUpdateAction );
+			else
+			    OverWriteOrAddToQueueL(changedEntry.iEntryId, ECPixUpdateAction);
 #endif
 			break;
 			}
@@ -338,6 +356,7 @@ void CCalendarPlugin::HandleChangedEntryL(const TCalChangeEntry& changedEntry)
 
 			iFirstEntry = ETrue; // Make sure we can harvest next time as well...
 			Flush(*iIndexer);
+			iJobQueue.Reset();
 			iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrCancel);
 			iObserver->RemoveHarvestingQueue(this, iIndexer->GetBaseAppClass());
 			iObserver->AddHarvestingQueue(this, iIndexer->GetBaseAppClass(), ETrue);
@@ -357,14 +376,12 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 	{
 	if (!iIndexer)
     	return;
-#ifdef USE_HIGHLIGHTER	
+//#ifdef USE_HIGHLIGHTER	
 	//Reset Excerpt
 	ResetExcerpt();
-#endif	
-	
-
+//#endif
 	OstTrace1( TRACE_NORMAL, CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin::CreateEntryL();Uid=%d", aLocalUid );
-	CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL():  Uid = %d.", aLocalUid);
+	CPIXLOGSTRING2("CCalendarPlugin::CreateEntryL():  Uid = %d.", aLocalUid);	
 	
 	// creating CSearchDocument object with unique ID for this application
 	TBuf<20> docid_str;
@@ -392,43 +409,35 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
             CPIXLOGSTRING("CCalendarPlugin::CreateEntryL(): Donot harvest Note item.");
             return;
 		    }
-
+		OstTrace0( TRACE_NORMAL, DUP3_CCALENDARPLUGIN_CREATEENTRYL, "CCalendarPlugin:: Indexing Calender" );
 		// Add fields
 		index_item->AddFieldL(KCalendarSummaryField, entry->SummaryL());
 		index_item->AddFieldL(KCalendarDescriptionField, entry->DescriptionL());
 		index_item->AddFieldL(KCalendarLocationField, entry->LocationL());
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 		index_item->AddHLDisplayFieldL(entry->SummaryL());
 		AddToFieldExcerptL(entry->DescriptionL());
 		AddToFieldExcerptL(entry->LocationL());
-#endif
+//#endif
 
 		TBuf<30> dateString;
 		TDateTime datetime = entry->StartTimeL().TimeLocalL().DateTime();
 		GetDateTimeDescriptorL(datetime, KCalendarTimeFormat, dateString);
-		/*dateString.Format( KCalendarTimeFormat, datetime.Year(),
-		                                     TInt(datetime.Month()+ 1),
-		                                     datetime.Day() + 1,
-		                                     datetime.Hour(),
-		                                     datetime.Minute());*/
+		
 		index_item->AddFieldL(KCalendarStartTimeField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 		GetDateTimeDescriptorL(datetime, KExcerptTimeFormat, dateString);
 		AddToFieldExcerptL(dateString);
-#endif
+//#endif
 		        
 		TDateTime endTime = entry->EndTimeL().TimeLocalL().DateTime();
 		GetDateTimeDescriptorL(endTime, KCalendarTimeFormat, dateString);
-		/*dateString.Format( KCalendarTimeFormat, endTime.Year(),
-                                                TInt(endTime.Month()+ 1),
-                                                endTime.Day() + 1,
-                                                endTime.Hour(),
-                                                endTime.Minute());*/
+		
 		index_item->AddFieldL(KCalendarEndTimeField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
         GetDateTimeDescriptorL(endTime, KExcerptTimeFormat, dateString);
         AddToFieldExcerptL(dateString);
-#endif
+//#endif
 		
 		if( CCalEntry::ETodo == entry->EntryTypeL())
 		    {
@@ -452,27 +461,23 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
             if( completedTime != Time::NullTTime())
                 {
                 TDateTime compTime = completedTime.DateTime();
-                GetDateTimeDescriptorL(compTime, KCalendarTimeFormat, dateString);
-                /*dateString.Format( KCalendarTimeFormat, compTime.Year(),
-                                                    TInt(compTime.Month()+ 1),
-                                                    compTime.Day() + 1,
-                                                    compTime.Hour(),
-                                                    compTime.Minute());*/
+                GetDateTimeDescriptorL(compTime, KCalendarTimeFormat, dateString);                
                 index_item->AddFieldL(KCalenderCompletedField, dateString, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
         GetDateTimeDescriptorL(compTime, KExcerptTimeFormat, dateString);
         AddToFieldExcerptL(dateString);
-#endif
+//#endif
                 }
 		    }
 		index_item->AddFieldL(KMimeTypeField, KMimeTypeCalendar, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
 
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 		if(iExcerpt)
 		index_item->AddExcerptL(*iExcerpt);
+/*
 #else
 
-    	TInt excerptLength = 1 /*single 1-character delimiters*/ + entry->DescriptionL().Length() + entry->LocationL().Length();
+    	TInt excerptLength = 1 single 1-character delimiters + entry->DescriptionL().Length() + entry->LocationL().Length();
     	
 		HBufC* excerpt = HBufC::NewLC(excerptLength);
 		TPtr excerptDes = excerpt->Des();
@@ -484,6 +489,7 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
         CleanupStack::PopAndDestroy(excerpt);
        
 #endif
+*/
         CleanupStack::PopAndDestroy(entry);
 
 		/*
@@ -517,13 +523,16 @@ void CCalendarPlugin::CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionTy
 		}
 
 	}
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 // ---------------------------------------------------------------------------
 // CCalendarPlugin::AddToFieldExcerptL
 // ---------------------------------------------------------------------------
 //
 void CCalendarPlugin::AddToFieldExcerptL(const TDesC& aExcerptValue)
 {
+OstTraceFunctionEntry0( CCALENDARPLUGIN_ADDTOFIELDEXCERPTL_ENTRY );
+OstTraceExt1( TRACE_NORMAL, CCALENDARPLUGIN_ADDTOFIELDEXCERPTL, "CCalendarPlugin::AddToFieldExcerptL;excerptvalue=%S", aExcerptValue );
+
 if(!iExcerpt)
     {
     iExcerpt = HBufC::NewL(5);
@@ -540,6 +549,7 @@ if(aExcerptValue.Compare(KNullDesC) != 0)//value is not Null
     ptr.Append(aExcerptValue);
     ptr.Append(KExcerptDelimiter);
     }
+OstTraceFunctionExit0( CCALENDARPLUGIN_ADDTOFIELDEXCERPTL_EXIT );
 }
 
 // -----------------------------------------------------------------------------
@@ -554,7 +564,7 @@ void CCalendarPlugin::ResetExcerpt()
         iExcerpt = NULL;
         }
     }
-#endif
+//#endif
 // -----------------------------------------------------------------------------
 // CCalendarPlugin::GetDateTimeDescriptorL() 
 // -----------------------------------------------------------------------------
@@ -567,8 +577,81 @@ void CCalendarPlugin::GetDateTimeDescriptorL(TDateTime& datetime, const TDesC& a
                              datetime.Hour(),
                              datetime.Minute());
     }
-
-
+// -----------------------------------------------------------------------------
+// CCalendarPlugin::PausePluginL() 
+// -----------------------------------------------------------------------------
+//
+void CCalendarPlugin::PausePluginL()
+    {
+    OstTraceFunctionEntry0( CCALENDARPLUGIN_PAUSEPLUGINL_ENTRY );
+    iIndexState = EFalse;
+    OstTraceFunctionExit0( CCALENDARPLUGIN_PAUSEPLUGINL_EXIT );
+    }
+// -----------------------------------------------------------------------------
+// CCalendarPlugin::ResumePluginL() 
+// -----------------------------------------------------------------------------
+//
+void CCalendarPlugin::ResumePluginL()
+    {
+    OstTraceFunctionEntry0( CCALENDARPLUGIN_RESUMEPLUGINL_ENTRY );
+    iIndexState = ETrue;
+        
+    if( iHarvestState == EHarvesterStartHarvest )
+        {
+        if(iAsynchronizer->CallbackPending())
+            iAsynchronizer->CancelCallback();
+        iAsynchronizer->Start( 0, this, KHarvestingDelay );
+        }
+    else
+        {
+        IndexQueuedItems();
+        }
+    OstTraceFunctionExit0( CCALENDARPLUGIN_RESUMEPLUGINL_EXIT );
+    }
+// -----------------------------------------------------------------------------
+// CCalendarPlugin::OverWriteOrAddToQueueL() 
+// -----------------------------------------------------------------------------
+//
+void CCalendarPlugin::OverWriteOrAddToQueueL(const TCalLocalUid& aLocalUid, TCPixActionType aActionType)
+    {
+    OstTraceFunctionEntry0( CCALENDARPLUGIN_OVERWRITEORADDTOQUEUEL_ENTRY );
+    TRecord entry;    
+    for (TInt i=0; i<iJobQueue.Count(); i++)
+        {
+            if (iJobQueue[i].iLocalUid == aLocalUid)
+            {
+                // Older version found
+                iJobQueue[i].iLocalUid = aLocalUid;
+                iJobQueue[i].iActionType = aActionType;
+                OstTraceFunctionExit0( CCALENDARPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT );
+                return;
+            }
+        }        
+    // older not found, append
+    entry.iActionType = aActionType;
+    entry.iLocalUid = aLocalUid;
+    iJobQueue.AppendL(entry);
+    OstTraceFunctionExit0( DUP1_CCALENDARPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT );
+    }
+// -----------------------------------------------------------------------------
+// CCalendarPlugin::IndexQueuedItems() 
+// -----------------------------------------------------------------------------
+//
+void CCalendarPlugin::IndexQueuedItems()
+    {
+    OstTraceFunctionEntry0( CCALENDARPLUGIN_INDEXQUEUEDITEMS_ENTRY );
+    while (iJobQueue.Count()>0)
+        {
+        TRecord entry = iJobQueue[0];        
+        //Let the indexer handle this object TRAP it as it can leave
+        TRAPD(err,CreateEntryL( entry.iLocalUid, entry.iActionType ));        
+        if(KErrNone == err)
+            {
+            iJobQueue.Remove(0);
+            }
+        }
+    OstTraceFunctionExit0( CCALENDARPLUGIN_INDEXQUEUEDITEMS_EXIT );
+    }
 // ---------------------------------------------------------------------------
 // CCalendarPlugin::UpdatePerformaceDataL
 // ---------------------------------------------------------------------------

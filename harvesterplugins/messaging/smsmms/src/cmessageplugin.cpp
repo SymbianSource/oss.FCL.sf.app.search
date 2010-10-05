@@ -131,6 +131,7 @@ CMessagePlugin::~CMessagePlugin()
     // remove notification paths before destroying iMonitor
     for (TInt i=EDriveA; i<=EDriveZ; i++)
         UnMount(TDriveNumber(i), EFalse);
+    iMountDrives.Close();    
 	delete iMessageDataHandler;
 	delete iMessageHarvester;	
 	delete iMessageMonitor;	
@@ -144,6 +145,7 @@ CMessagePlugin::~CMessagePlugin()
 //  
 void CMessagePlugin::ConstructL()
 {
+    iIndexState = ETrue;
     TInt err = iFs.Connect();
     OstTrace1( TRACE_NORMAL, CMESSAGEPLUGIN_CONSTRUCTL, "CMessagePlugin::ConstructL;iFs Connect Error=%d", err );
     CPIXLOGSTRING2("CMessagePlugin::ConstructL, iFs.Connect: %i", err);
@@ -195,7 +197,14 @@ void CMessagePlugin::StartHarvestingL(const TDesC& aQualifiedBaseAppClass)
 #ifdef __PERFORMANCE_DATA
     iStartTime.UniversalTime();
 #endif
-    iMessageHarvester->StartHarvestingL();
+    if( iIndexState )
+        {
+        iMessageHarvester->StartHarvestingL();
+        }
+    else
+        {
+        iMountDrives.Append(TDriveNumber(drive));
+        }
 	OstTraceFunctionExit0( CMESSAGEPLUGIN_STARTHARVESTINGL_EXIT );
 	}
 
@@ -535,6 +544,42 @@ void CMessagePlugin::HarvestingCompleted(TInt aError)
 #endif
     iObserver->HarvestingCompleted(this, baseAppClass, aError);
 }
+
+void CMessagePlugin::PausePluginL()
+    {
+    OstTraceFunctionEntry0( CMESSAGEPLUGIN_PAUSEPLUGINL_ENTRY );
+    iIndexState = EFalse;
+    OstTraceFunctionExit0( CMESSAGEPLUGIN_PAUSEPLUGINL_EXIT );
+    }
+
+void CMessagePlugin::ResumePluginL()
+    {
+    OstTraceFunctionEntry0( CMESSAGEPLUGIN_RESUMEPLUGINL_ENTRY );
+    iIndexState = ETrue;
+    //IndexQueuedItems();
+    iMessageDataHandler->ResumeL();
+    iMessageMonitor->ResumeL();
+    iMessageHarvester->ResumeRequest();
+    MountAvailableDrivesInQueue();
+    OstTraceFunctionExit0( CMESSAGEPLUGIN_RESUMEPLUGINL_EXIT );
+    }
+
+void CMessagePlugin::MountAvailableDrivesInQueue()
+    {
+    OstTraceFunctionEntry0( CMESSAGEPLUGIN_MOUNTAVAILABLEDRIVESINQUEUE_ENTRY );
+    for(TInt i=0;i<iMountDrives.Count();i++)
+        {
+        TDriveNumber drive = iMountDrives[i];
+        iMountDrives.Remove(i);
+        iMessageHarvester->StartHarvestingL();        
+        }
+    OstTraceFunctionExit0( CMESSAGEPLUGIN_MOUNTAVAILABLEDRIVESINQUEUE_EXIT );
+    }
+
+TBool CMessagePlugin::GetHarvesterState()
+    {
+    return iIndexState;
+    }
 
 // ---------------------------------------------------------------------------
 // CMessagePlugin::UpdatePerformaceDataL

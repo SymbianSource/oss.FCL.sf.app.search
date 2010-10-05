@@ -1,4 +1,20 @@
-// Created by TraceCompiler 2.1.2
+/*
+* Copyright (c) 2010 Nokia Corporation and/or its subsidiary(-ies).
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  
+*
+*/
+// Created by TraceCompiler 2.3.0
 // DO NOT EDIT, CHANGES WILL BE LOST
 
 #ifndef __CFOLDERRENAMEDHARVESTERTRACES_H__
@@ -17,6 +33,8 @@
 #define CFOLDERRENAMEDHARVESTER_RUNL_ENTRY 0x8a002d
 #define CFOLDERRENAMEDHARVESTER_RUNL_EXIT 0x8a002e
 #define DUP1_CFOLDERRENAMEDHARVESTER_RUNL_EXIT 0x8a002f
+#define CFOLDERRENAMEDHARVESTER_HANDLEFOLDERRENAMEL_ENTRY 0x8a0050
+#define CFOLDERRENAMEDHARVESTER_HANDLEFOLDERRENAMEL_EXIT 0x8a0051
 #define CFOLDERRENAMEDHARVESTER_GETNEXTFOLDERL 0x86003c
 #define DUP1_CFOLDERRENAMEDHARVESTER_GETNEXTFOLDERL 0x86003d
 #define CFOLDERRENAMEDHARVESTER_DOCANCEL 0x86003e

@@ -23,6 +23,13 @@
 #include <HbIcon>
 
 
+/**
+ * @file
+ * @ingroup Common
+ * @brief Provides management functions for service provider in online search plugin ecosystem.
+ */
+
+
 class ServiceProvider
 {
 public:

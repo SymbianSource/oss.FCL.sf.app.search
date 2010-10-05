@@ -37,9 +37,9 @@ RESOURCE REGISTRY_INFO theInfo
                                         {
                                         implementation_uid = 0x2001F702;
                                         version_no = 1;
-                                        display_name = "Contacts";
-                                        default_data = "Contacts";
-                                        opaque_data = "";
+                                        display_name = "Contact";
+                                        default_data = "Contact";
+                                        opaque_data = "z:\\resource\\qt\\plugins\\searchsrv\\contentconfig\\contactconfig.xml";
                                         }
                                 };
                         }

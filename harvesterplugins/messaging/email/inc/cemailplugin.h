@@ -51,6 +51,10 @@ public:
 	  */ 
 	 void HarvestingCompleted();
 	 
+     void PausePluginL();
+     
+     void ResumePluginL();
+	 
 	 /**
      * Gets the database observer class
      */

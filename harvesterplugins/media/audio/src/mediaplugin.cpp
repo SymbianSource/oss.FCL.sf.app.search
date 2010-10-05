@@ -99,7 +99,7 @@ CAudioPlugin::~CAudioPlugin()
 // -----------------------------------------------------------------------------
 void CAudioPlugin::ConstructL()
 	{
-	
+    iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
 	}
 
 // -----------------------------------------------------------------------------
@@ -116,7 +116,7 @@ void CAudioPlugin::StartPluginL()
 	//Instantiate all monitoring and harvesting class here
 	iMdsUtils = CMdsSessionObjectUtils::NewL();
 	iMdsUtils->InitializeL(); //Create valid session in it
-	iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
+	//iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
 	iMdeHarvester = CMdeHarvester::NewL(iMdsUtils->GetSession(),
 	                                    this,iObjectJobQueueManager);
 	iMdsMonitor = CMdsMediaMonitor::NewL(iMdsUtils->GetSession(),iObjectJobQueueManager);
@@ -208,6 +208,8 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
             CPIXLOGSTRING("CAudioPlugin::HandleMdeItemL(): Indexer not found");
             return;
             }
+        OstTrace0( TRACE_NORMAL, DUP12_CAUDIOPLUGIN_HANDLEMDEITEML, "CAudioPlugin::HandleMdeItemL Indexing Audio" );
+        
         // Send for indexing
         if (aActionType == ECPixAddAction)
             {
@@ -328,6 +330,20 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
             }
         iIndexer = NULL;//Assign to null not pointing to any memory
         }    
+    }
+
+void CAudioPlugin::PausePluginL()
+    {
+    OstTraceFunctionEntry0( CAUDIOPLUGIN_PAUSEPLUGINL_ENTRY );
+    iObjectJobQueueManager->PauseL();
+    OstTraceFunctionExit0( CAUDIOPLUGIN_PAUSEPLUGINL_EXIT );
+    }
+
+void CAudioPlugin::ResumePluginL()
+    {
+    OstTraceFunctionEntry0( CAUDIOPLUGIN_RESUMEPLUGINL_ENTRY );
+    iObjectJobQueueManager->ResumeL();
+    OstTraceFunctionExit0( CAUDIOPLUGIN_RESUMEPLUGINL_EXIT );
     }
 
 #ifdef __PERFORMANCE_DATA

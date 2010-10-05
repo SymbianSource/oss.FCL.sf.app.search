@@ -55,7 +55,7 @@ _LIT(KNpdUpdateTime , "Date");
 //Reference from CPix calender harvester plugin.
 _LIT(KNotesTimeFormat,"%04d %02d %02d %02d %02d");
 
-_LIT(KExcerptDelimiter, " ");
+//_LIT(KExcerptDelimiter, " ");
 // ---------------------------------------------------------------------------
 // CNotesPlugin::NewL
 // ---------------------------------------------------------------------------
@@ -99,6 +99,8 @@ CNotesPlugin::~CNotesPlugin()
 	delete iIndexer;
     delete iNotesInstanceView;
 	delete iEntryView;
+	iJobQueue.Reset();
+	iJobQueue.Close();
 	iNotesInstanceArray.ResetAndDestroy();
 	if( iSession )
 		{
@@ -113,6 +115,7 @@ CNotesPlugin::~CNotesPlugin()
 //  
 void CNotesPlugin::ConstructL()
 	{
+    iIndexState = ETrue;
 	iAsynchronizer = CDelayedCallback::NewL( CActive::EPriorityIdle );
 	iSession = CCalSession::NewL();
 	TRAPD ( err , iSession->OpenL( iSession->DefaultFileNameL() ) );
@@ -171,6 +174,7 @@ void CNotesPlugin::StartHarvestingL(const TDesC& /*aQualifiedBaseAppClass*/)
     OstTraceFunctionEntry0( CNOTESPLUGIN_STARTHARVESTINGL_ENTRY );
     CPIXLOGSTRING("CNotesPlugin::StartHarvestingL: Enter");
     iIndexer->ResetL();
+    iHarvestState = EHarvesterStartHarvest;
     //Have taken start time and end time reference from calender plugin
     TTime startTime , endTime;
     InitTimeValuesL( startTime , endTime );
@@ -199,6 +203,10 @@ void CNotesPlugin::DelayedCallbackL( TInt /*aCode*/ )
     OstTraceFunctionEntry0( CNOTESPLUGIN_DELAYEDCALLBACKL_ENTRY );
     // Harvest items on each call
     CPIXLOGSTRING("CNotesPlugin::DelayedCallbackL: Enter");
+    //If paused state
+    if(!iIndexState)
+       return;
+    
     if( iNoteCount )
         {
         OstTrace1( TRACE_NORMAL, CNOTESPLUGIN_DELAYEDCALLBACKL, "CNotesPlugin::DelayedCallbackL;Remaining Notes Count=%d", iNoteCount );
@@ -219,7 +227,8 @@ void CNotesPlugin::DelayedCallbackL( TInt /*aCode*/ )
 #ifdef __PERFORMANCE_DATA
     UpdatePerformaceDataL();
 #endif
-		iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrNone);		
+        iHarvestState = EHarvesterIdleState;
+        iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrNone);		
 		}
 	OstTraceFunctionExit0( CNOTESPLUGIN_DELAYEDCALLBACKL_EXIT );
 	}
@@ -232,6 +241,7 @@ void CNotesPlugin::DelayedError(TInt aError)
 	{
 	// Harvesting was completed
 	Flush(*iIndexer);
+	iHarvestState = EHarvesterIdleState;
 	iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), aError);
 	}
 
@@ -266,7 +276,10 @@ void CNotesPlugin::HandleNoteChangedEntryL(const TCalChangeEntry& changedEntry)
 			{
 			OstTrace1( TRACE_NORMAL, CNOTESPLUGIN_HANDLENOTECHANGEDENTRYL, "CNotesPlugin::HandleNoteChangedEntryL;Monitored add id=%d", changedEntry.iEntryId );
 			CPIXLOGSTRING2("CNotesPlugin::HandleNoteChangedEntryL(): Monitored add id=%d.", changedEntry.iEntryId);
-			CreateNoteEntryL( changedEntry.iEntryId, ECPixAddAction );
+			if( iIndexState )
+			    CreateNoteEntryL( changedEntry.iEntryId, ECPixAddAction );
+			else
+			    OverWriteOrAddToQueueL(changedEntry.iEntryId, ECPixAddAction);
 			break;
 			}
 
@@ -274,7 +287,10 @@ void CNotesPlugin::HandleNoteChangedEntryL(const TCalChangeEntry& changedEntry)
 			{	
 			OstTrace1( TRACE_NORMAL, DUP1_CNOTESPLUGIN_HANDLENOTECHANGEDENTRYL, "CNotesPlugin::HandleNoteChangedEntryL;Monitored delete id=%d", changedEntry.iEntryId );
 			CPIXLOGSTRING2("CNotesPlugin::HandleNoteChangedEntryL(): Monitored delete id=%d.", changedEntry.iEntryId);
-			CreateNoteEntryL( changedEntry.iEntryId, ECPixRemoveAction );
+			if( iIndexState )
+			    CreateNoteEntryL( changedEntry.iEntryId, ECPixRemoveAction );
+			else
+			    OverWriteOrAddToQueueL(changedEntry.iEntryId, ECPixRemoveAction);
 			break;
 			}
 
@@ -282,7 +298,10 @@ void CNotesPlugin::HandleNoteChangedEntryL(const TCalChangeEntry& changedEntry)
 			{
 			OstTrace1( TRACE_NORMAL, DUP2_CNOTESPLUGIN_HANDLENOTECHANGEDENTRYL, "CNotesPlugin::HandleNoteChangedEntryL;Monitored update id=%d", changedEntry.iEntryId );
 			CPIXLOGSTRING2("CNotesPlugin::HandleNoteChangedEntryL(): Monitored update id=%d.", changedEntry.iEntryId);
-			CreateNoteEntryL( changedEntry.iEntryId, ECPixUpdateAction );
+			if( iIndexState )
+			    CreateNoteEntryL( changedEntry.iEntryId, ECPixUpdateAction );
+			else
+			    OverWriteOrAddToQueueL(changedEntry.iEntryId, ECPixUpdateAction);
 			break;
 			}
 
@@ -297,6 +316,7 @@ void CNotesPlugin::HandleNoteChangedEntryL(const TCalChangeEntry& changedEntry)
 			// Now add it to the harvesting queue and force a reharvest.
 
 			Flush(*iIndexer);
+			iJobQueue.Reset();
 			iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrCancel);
 			iObserver->RemoveHarvestingQueue(this, iIndexer->GetBaseAppClass());
 			iObserver->AddHarvestingQueue(this, iIndexer->GetBaseAppClass(), ETrue);
@@ -340,6 +360,8 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 	        CleanupStack::PopAndDestroy(entry);
 	        return;
 	        }
+	    OstTrace0( TRACE_NORMAL, DUP4_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::Indexing Notes" );
+	    
 	    OstTrace0( TRACE_NORMAL, DUP2_CNOTESPLUGIN_CREATENOTEENTRYL, "CNotesPlugin::CreateNoteEntryL(): Creating document." );
 	    CPIXLOGSTRING("CNotesPlugin::CreateNoteEntryL(): Creating document.");
 		CSearchDocument* index_item = CSearchDocument::NewLC(docid_str, _L(NOTESAPPCLASS));
@@ -360,7 +382,7 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 
 		//For notes, no content is expected in excerpt for now.
 		//See appclass-hierarchy.txt for details.
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 		_LIT(KExcerptTimeFormat,"%04d/%02d/%02d %02d:%02d");
 		index_item->AddHLDisplayFieldL(entry->DescriptionL());
 		
@@ -371,7 +393,7 @@ void CNotesPlugin::CreateNoteEntryL( const TCalLocalUid& aLocalUid, TCPixActionT
 		                                     datetime.Minute());
         index_item->AddExcerptL(dateString);
     
-#endif      
+//#endif      
 		
 		// Send for indexing
 		if (aActionType == ECPixAddAction)
@@ -442,6 +464,81 @@ void CNotesPlugin::InitTimeValuesL( TTime& aStartTime, TTime& aEndTime )
     aEndTime = enddate;
     CPIXLOGSTRING2("CNotesPlugin::InitTimeValuesL: Exit with Error = %d", error);     
     OstTraceFunctionExit0( CNOTESPLUGIN_INITTIMEVALUESL_EXIT );
+    }
+// ---------------------------------------------------------------------------
+// CNotesPlugin::PausePluginL
+// ---------------------------------------------------------------------------
+//
+void CNotesPlugin::PausePluginL()
+    {
+    OstTraceFunctionEntry0( CNOTESPLUGIN_PAUSEPLUGINL_ENTRY );
+    iIndexState = EFalse;
+    OstTraceFunctionExit0( CNOTESPLUGIN_PAUSEPLUGINL_EXIT );
+    }
+// ---------------------------------------------------------------------------
+// CNotesPlugin::ResumePluginL
+// ---------------------------------------------------------------------------
+//
+void CNotesPlugin::ResumePluginL()
+    {
+    OstTraceFunctionEntry0( CNOTESPLUGIN_RESUMEPLUGINL_ENTRY );
+    iIndexState = ETrue;
+            
+    if(iHarvestState == EHarvesterStartHarvest)
+        {
+        if(iAsynchronizer->CallbackPending())
+            iAsynchronizer->CancelCallback();
+        iAsynchronizer->Start( 0, this, KHarvestingDelay );
+        }
+    else
+        {
+        IndexQueuedItems();
+        }
+    OstTraceFunctionExit0( CNOTESPLUGIN_RESUMEPLUGINL_EXIT );
+    }
+// ---------------------------------------------------------------------------
+// CNotesPlugin::OverWriteOrAddToQueueL
+// ---------------------------------------------------------------------------
+//
+void CNotesPlugin::OverWriteOrAddToQueueL(const TCalLocalUid& aLocalUid, TCPixActionType aActionType)
+    {
+    OstTraceFunctionEntry0( CNOTESPLUGIN_OVERWRITEORADDTOQUEUEL_ENTRY );
+    TRecord entry;    
+    for (TInt i=0; i<iJobQueue.Count(); i++)
+        {
+            if (iJobQueue[i].iLocalUid == aLocalUid)
+            {
+                // Older version found
+                iJobQueue[i].iLocalUid = aLocalUid;
+                iJobQueue[i].iActionType = aActionType;
+                OstTraceFunctionExit0( CNOTESPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT );
+                return;
+            }
+        }        
+    // older not found, append
+    entry.iActionType = aActionType;
+    entry.iLocalUid = aLocalUid;
+    iJobQueue.AppendL(entry);
+    OstTraceFunctionExit0( DUP1_CNOTESPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT );
+    }
+// ---------------------------------------------------------------------------
+// CNotesPlugin::IndexQueuedItems
+// ---------------------------------------------------------------------------
+//
+void CNotesPlugin::IndexQueuedItems()
+    {
+    OstTraceFunctionEntry0( CNOTESPLUGIN_INDEXQUEUEDITEMS_ENTRY );
+    while (iJobQueue.Count()>0)
+        {
+        TRecord entry = iJobQueue[0];        
+        //Let the indexer handle this object TRAP it as it can leave
+        TRAPD(err,CreateNoteEntryL( entry.iLocalUid, entry.iActionType ));        
+        if(KErrNone == err)
+            {
+            iJobQueue.Remove(0);
+            }
+        }
+    OstTraceFunctionExit0( CNOTESPLUGIN_INDEXQUEUEDITEMS_EXIT );
     }
 
 #ifdef __PERFORMANCE_DATA

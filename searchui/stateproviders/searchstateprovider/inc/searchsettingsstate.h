@@ -91,13 +91,6 @@ private:
     void isInternetOn();
 public slots:
     /**
-     * Called when it receive the selected category information from the settingwidget class
-     * @since S60 ?S60_version.
-     */
-
-    void getItemCategory(int, bool);
-
-    /**
      * Signalled when back action is triggerd from toolbaar.
      * @since S60 ?S60_version.
      */
@@ -120,13 +113,7 @@ signals:
      * Emitted when ok/cancel clicked on settings page
      * @since S60 ?S60_version.
      */
-    void clickstatus(bool);
-
-    /**
-     * Emitted when categories selected for searching
-     * @since S60 ?S60_version.
-     */
-    void publishSelectedCategory(int, bool);
+    void clickstatus(bool);  
 
     /**
      * Emitted when internet search is selectead 

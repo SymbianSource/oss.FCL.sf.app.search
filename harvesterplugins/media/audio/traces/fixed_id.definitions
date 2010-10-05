@@ -1,6 +1,27 @@
+##
+# This is Default Licence added by TraceCompiler
+# Copyright (c) 2010 Nokia Corporation and/or its subsidiary(-ies).
+# All rights reserved.
+# This component and the accompanying materials are made available
+# under the terms of "Eclipse Public License v1.0"
+# which accompanies this distribution, and is available
+# at the URL "http://www.eclipse.org/legal/epl-v10.html".
+#
+# Initial Contributors:
+# Nokia Corporation - initial contribution.
+#
+# Contributors:
+#
+# Description: 
+#
+##
 #Fixed group and trace id definitions. If this file is removed, the identifiers are rebuilt.
 [GROUP]TRACE_FLOW=0x8a
 [GROUP]TRACE_NORMAL=0x86
+[TRACE]TRACE_FLOW[0x8A]_CAUDIOPLUGIN_PAUSEPLUGINL_ENTRY=0x7
+[TRACE]TRACE_FLOW[0x8A]_CAUDIOPLUGIN_PAUSEPLUGINL_EXIT=0x8
+[TRACE]TRACE_FLOW[0x8A]_CAUDIOPLUGIN_RESUMEPLUGINL_ENTRY=0x9
+[TRACE]TRACE_FLOW[0x8A]_CAUDIOPLUGIN_RESUMEPLUGINL_EXIT=0xa
 [TRACE]TRACE_FLOW[0x8A]_CAUDIOPLUGIN_STARTHARVESTINGL_ENTRY=0x5
 [TRACE]TRACE_FLOW[0x8A]_CAUDIOPLUGIN_STARTHARVESTINGL_EXIT=0x6
 [TRACE]TRACE_FLOW[0x8A]_CAUDIOPLUGIN_STARTPLUGINL_ENTRY=0x3
@@ -10,6 +31,7 @@
 [TRACE]TRACE_NORMAL[0x86]_CAUDIOPLUGIN_HANDLEMDEITEML=0x1
 [TRACE]TRACE_NORMAL[0x86]_DUP10_CAUDIOPLUGIN_HANDLEMDEITEML=0xb
 [TRACE]TRACE_NORMAL[0x86]_DUP11_CAUDIOPLUGIN_HANDLEMDEITEML=0xc
+[TRACE]TRACE_NORMAL[0x86]_DUP12_CAUDIOPLUGIN_HANDLEMDEITEML=0xd
 [TRACE]TRACE_NORMAL[0x86]_DUP1_CAUDIOPLUGIN_HANDLEMDEITEML=0x2
 [TRACE]TRACE_NORMAL[0x86]_DUP2_CAUDIOPLUGIN_HANDLEMDEITEML=0x3
 [TRACE]TRACE_NORMAL[0x86]_DUP3_CAUDIOPLUGIN_HANDLEMDEITEML=0x4

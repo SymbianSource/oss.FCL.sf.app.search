@@ -1,4 +1,20 @@
-// Created by TraceCompiler 2.2.3
+/*
+* Copyright (c) 2010 Nokia Corporation and/or its subsidiary(-ies).
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  
+*
+*/
+// Created by TraceCompiler 2.3.0
 // DO NOT EDIT, CHANGES WILL BE LOST
 
 #ifndef __CMESSAGEMONITORTRACES_H__
@@ -16,6 +32,8 @@
 #define CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL_EXIT 0x8a000c
 #define CMESSAGEMONITOR_HANDLEMSGDELETEDL_ENTRY 0x8a000d
 #define CMESSAGEMONITOR_HANDLEMSGDELETEDL_EXIT 0x8a000e
+#define CMESSAGEMONITOR_RESUMEL_ENTRY 0x8a0023
+#define CMESSAGEMONITOR_RESUMEL_EXIT 0x8a0024
 #define CMESSAGEMONITOR_HANDLEMSGMOVEDL 0x860016
 #define CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL 0x860017
 #define DUP1_CMESSAGEMONITOR_HANDLEMSGCREATEDCHANGEDL 0x860018

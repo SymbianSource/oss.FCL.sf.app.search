@@ -61,6 +61,17 @@ data=DATAZ_\private\10202be9\20029ac7.cre       private\10202be9\20029ac7.cre
 
 data=ZSYSTEM\install\cpixsearchapp_stub.sis    System\Install\cpixsearchapp_stub.sis
 
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\filesconfig.xml       resource\qt\plugins\searchsrv\contentconfig\filesconfig.xml
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\applicationconfig.xml       resource\qt\plugins\searchsrv\contentconfig\applicationconfig.xml
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\calendarconfig.xml       resource\qt\plugins\searchsrv\contentconfig\calendarconfig.xml
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\contactconfig.xml       resource\qt\plugins\searchsrv\contentconfig\contactconfig.xml
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\audioconfig.xml       resource\qt\plugins\searchsrv\contentconfig\audioconfig.xml
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\imageconfig.xml       resource\qt\plugins\searchsrv\contentconfig\imageconfig.xml
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\videoconfig.xml       resource\qt\plugins\searchsrv\contentconfig\videoconfig.xml
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\emailconfig.xml       resource\qt\plugins\searchsrv\contentconfig\emailconfig.xml
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\smsmmsconfig.xml       resource\qt\plugins\searchsrv\contentconfig\smsmmsconfig.xml
+data=DATAZ_\resource\qt\plugins\searchsrv\contentconfig\notesconfig.xml       resource\qt\plugins\searchsrv\contentconfig\notesconfig.xml
+
 #endif //FF_SEARCH_SW
 
 #endif // __CPIXHARVESTER_IBY__

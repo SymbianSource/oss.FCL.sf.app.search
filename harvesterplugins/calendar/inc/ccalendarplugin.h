@@ -50,7 +50,18 @@ _LIT(KCalendarPriorityLow, "Low");
 class CCalendarPlugin : public CIndexingPlugin, public MDelayedCallbackObserver, public MCalProgressCallBack, public MCalChangeCallBack2
 {
 public: // Constructors and destructor
-	
+    
+    enum THarvesterState
+            {
+            EHarvesterIdleState,
+            EHarvesterStartHarvest        
+            };
+    struct TRecord 
+        {
+        TCalLocalUid iLocalUid;
+        TCPixActionType iActionType;
+        };
+    
 	static CCalendarPlugin* NewL();
 	static CCalendarPlugin* NewLC();
 	virtual ~CCalendarPlugin();
@@ -58,6 +69,8 @@ public: // Constructors and destructor
 public: // From CIndexingPlugin
 	void StartPluginL();
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
+	void PausePluginL();
+	void ResumePluginL();
 	
 public: // From MCalProgressCallBack
 
@@ -83,7 +96,7 @@ public: // From MDelayedCallbackObserver
 
     void DelayedCallbackL(TInt aCode);
     void DelayedError(TInt aError);
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 public: // AddExcerpt function
     
     /*
@@ -100,7 +113,7 @@ private:
      */
     void ResetExcerpt();
 
-#endif
+//#endif
     /*
        * For date and time get discriptor value in the passed format
        * @param TDateTime& datetime: date time to be formatted
@@ -112,8 +125,20 @@ private:
 private: // New functions
 	
 	void HandleChangedEntryL(const TCalChangeEntry& changedEntry);
-	
-	void CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionType aActionType );	
+	/*
+     * Indexes a calendar entry
+     */
+	void CreateEntryL( const TCalLocalUid& aLocalUid, TCPixActionType aActionType );
+	/*
+     * Adds/updates a calender entry to queue on pause of plugin
+     * @param const TCalLocalUid& aLocalUid: unique UID of a calender entry
+     * @param TCPixActionType aActionType: add/update or delete event
+     */
+	void OverWriteOrAddToQueueL(const TCalLocalUid& aLocalUid, TCPixActionType aActionType);
+	/*
+     * On resume, removes the entries from the queue and starts indexing
+     */    
+	void IndexQueuedItems();
 
 private: // Constructors
 	
@@ -147,12 +172,18 @@ private:
 	/** Are we positioned at first entry? */
 	TBool iFirstEntry;
 	
+	//State of harvester either to pause/resume
+    TBool iIndexState;    
+    // Queue of documents to be indexed
+    RArray<TRecord> iJobQueue;    
+    //harvesting state
+    THarvesterState iHarvestState;
 	// Start harvesting
 	TBool iStartHarvesting;
-#ifdef USE_HIGHLIGHTER	
+//#ifdef USE_HIGHLIGHTER	
 	// Excerpt field
     HBufC* iExcerpt;
-#endif
+//#endif
 	//for unit testing.
     #ifdef HARVESTERPLUGINTESTER_FRIEND
         friend class CHarvesterPluginTester;

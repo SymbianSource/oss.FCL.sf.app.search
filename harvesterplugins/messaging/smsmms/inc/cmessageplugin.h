@@ -52,7 +52,9 @@ public:
 	 */
 	void StartPluginL();
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
-	
+    void PausePluginL();
+    void ResumePluginL();
+    
 	/**
 	* callback from MMsvSessionObserver
 	*/
@@ -117,6 +119,10 @@ public:
      * returns ETrue if it is removable else EFalse.
      */
     TBool IsMediaRemovableL(TDriveNumber& aDrive);
+    
+    TBool GetHarvesterState();
+    
+    void MountAvailableDrivesInQueue();    
 
 public:
 	/*
@@ -141,6 +147,10 @@ private:
     TInt     iCurrentDrive;
     // CPix indexer 
     CCPixIndexer* iIndexer[EDriveZ+1]; // EDriveZ enum value is 25, so add 1.
+    
+    TBool iIndexState;
+    
+    RArray<TDriveNumber>  iMountDrives;    
     
 #ifdef HARVESTERPLUGINTESTER_FRIEND
     friend class CHarvesterPluginTester;

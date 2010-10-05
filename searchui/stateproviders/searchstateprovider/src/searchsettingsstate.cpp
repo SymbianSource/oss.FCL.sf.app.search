@@ -26,7 +26,6 @@
 #include <hbaction.h>
 #include <hbgridview.h>
 #include <qstandarditemmodel.h>
-#include <qdebug.h>
 #include <qgraphicswidget.h>
 #include <qdir.h>
 // ---------------------------------------------------------------------------
@@ -41,10 +40,7 @@ SearchSettingsState::SearchSettingsState(QState *parent) :
 
     connect(mWidget, SIGNAL(settingsEvent(bool)), this,
             SLOT(handleBackEvent(bool)));
-
-    connect(mWidget, SIGNAL(selectedItemCategory(int, bool)), this,
-            SLOT(getItemCategory(int, bool)));
-
+    
     connect(mWidget, SIGNAL(ISProvidersIcon(HbIcon, int)), this,
             SLOT(slotISProvidersIcon(HbIcon, int)));
     }
@@ -66,14 +62,6 @@ void SearchSettingsState::slotISProvidersIcon(HbIcon icon, int id)
     emit publishISProviderIcon(id, icon);
     }
 // ---------------------------------------------------------------------------
-// SearchSettingsState::getItemCategory
-// ---------------------------------------------------------------------------
-//
-void SearchSettingsState::getItemCategory(int str, bool avalue)
-    {
-    emit publishSelectedCategory(str, avalue);
-    }
-// ---------------------------------------------------------------------------
 // SearchSettingsState::onEntry
 // ---------------------------------------------------------------------------
 //
@@ -88,8 +76,6 @@ void SearchSettingsState::onEntry(QEvent *event)
         mWidget->loadIS();
         isInternetOn();
         minitialCount = false;
-       // isInternetOn();
-        //emit backEventTriggered();
         }
     else
         {

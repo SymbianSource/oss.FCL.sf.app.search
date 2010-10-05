@@ -39,7 +39,7 @@ RESOURCE REGISTRY_INFO theInfo
                                         version_no = 1;
                                         display_name = "Calendar";
                                         default_data = "Calendar";
-                                        opaque_data = "";
+                                        opaque_data = "z:\\resource\\qt\\plugins\\searchsrv\\contentconfig\\calendarconfig.xml";
                                         }
                                 };
                         }

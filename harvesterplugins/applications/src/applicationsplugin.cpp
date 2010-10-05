@@ -30,16 +30,16 @@
 #ifdef OST_TRACE_COMPILER_IN_USE
 #include "applicationspluginTraces.h"
 #endif
-
-
+#include<usif/scr/appreginfo.h>
 //Hidden applications
 //#define KHiddenAppRepositoryUid KCRUidMenu
-
+#define KNumberOfAppInfoToBeRead 1
 _LIT( KMimeTypeField, CPIX_MIMETYPE_FIELD );
 _LIT( KMimeTypeApplication, APPLICATION_MIMETYPE);
 
 /** Field names */
-_LIT(KApplicationFieldCaption, "Name");
+_LIT(KApplicationFieldShortCaption, "Name");
+_LIT(KApplicationFieldCaption, "CaptionName");
 _LIT(KApplicationFieldUid, "Uid");
 _LIT(KApplicationFieldAbsolutePath, "Path");
 
@@ -77,152 +77,165 @@ CApplicationsPlugin::CApplicationsPlugin()
 
 // -----------------------------------------------------------------------------
 CApplicationsPlugin::~CApplicationsPlugin()
-	{
+    {
+    OstTraceFunctionEntry0( CAPPLICATIONSPLUGIN_CAPPLICATIONSPLUGIN_ENTRY );
+
     if (iAsynchronizer)
         iAsynchronizer->CancelCallback();
-    iApplicationServerSession.Close();
+    //iApplicationServerSession.Close();
+    iScrView.Close();
+    iScrSession.Close();
     //iWidgetRegistry.Close();
     //delete iHiddenApplicationsRepository;
-	delete iAsynchronizer;
-	delete iNotifier;
-	delete iIndexer;
-	}
+    delete iAsynchronizer;
+    delete iNotifier;
+    delete iIndexer;
+    OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_CAPPLICATIONSPLUGIN_EXIT );
+    }
 
 // -----------------------------------------------------------------------------
 void CApplicationsPlugin::ConstructL()
-	{
-    iAsynchronizer = CDelayedCallback::NewL( CActive::EPriorityIdle );
-    iNotifier = CApaAppListNotifier::NewL( this, CActive::EPriorityHigh );
+    {
+    OstTraceFunctionEntry0( CAPPLICATIONSPLUGIN_CONSTRUCTL_ENTRY );
+	iIndexState = ETrue;
+    iAsynchronizer = CDelayedCallback::NewL(CActive::EPriorityIdle);
+    iNotifier = CApaAppListNotifier::NewL(this, CActive::EPriorityHigh);
     //iHiddenApplicationsRepository = CRepository::NewL( KHiddenAppRepositoryUid );
     //User::LeaveIfError( iWidgetRegistry.Connect() );
+    OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_CONSTRUCTL_EXIT );
     }
 
 // -----------------------------------------------------------------------------
 void CApplicationsPlugin::StartPluginL()
-	{
-    User::LeaveIfError( iApplicationServerSession.Connect() );
-	User::LeaveIfError(iSearchSession.DefineVolume( _L(APPLICATIONS_QBASEAPPCLASS), KNullDesC ));
-    
-	// Open database
-	iIndexer = CCPixIndexer::NewL(iSearchSession);
-	iIndexer->OpenDatabaseL( _L(APPLICATIONS_QBASEAPPCLASS) );
+    {
+    OstTraceFunctionEntry0( CAPPLICATIONSPLUGIN_STARTPLUGINL_ENTRY );
+    TRAPD(error,iScrSession.Connect());
+    if (error != KErrNone)
+        return;
 
-	// Start harvester for this plugin
-	iObserver->AddHarvestingQueue( this, iIndexer->GetBaseAppClass() );
-	}
+    User::LeaveIfError(iSearchSession.DefineVolume(
+            _L(APPLICATIONS_QBASEAPPCLASS), KNullDesC));
+
+    // Open database
+    iIndexer = CCPixIndexer::NewL(iSearchSession);
+    iIndexer->OpenDatabaseL(_L(APPLICATIONS_QBASEAPPCLASS));
+
+    // Start harvester for this plugin
+    iObserver->AddHarvestingQueue(this, iIndexer->GetBaseAppClass());
+    OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_STARTPLUGINL_EXIT );
+    }
 
 // -----------------------------------------------------------------------------
 void CApplicationsPlugin::StartHarvestingL(const TDesC& /* aQualifiedBaseAppClass */)
     {
-    // Harvest items on each call
-    User::LeaveIfError( iApplicationServerSession.GetAllApps() );//if not KErrNone
+    OstTraceFunctionEntry0( CAPPLICATIONSPLUGIN_STARTHARVESTINGL_ENTRY );
+
+    // Harvest items on each call   
+    iScrView.OpenViewL(iScrSession);
     iIndexer->ResetL();
+    iHarvestState = EHarvesterStartHarvest;
     //No need to check IsStatred() since this is the first start. 
 #ifdef __PERFORMANCE_DATA
     iStartTime.UniversalTime();
 #endif
-   	iAsynchronizer->Start( 0, this, KHarvestingDelay );
+    iAsynchronizer->Start(0, this, KHarvestingDelay);
+    OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_STARTHARVESTINGL_EXIT );
     }
-
-//Removing Widget Registry support
-/* -----------------------------------------------------------------------------
-void CApplicationsPlugin::AddWidgetInfoL( CSearchDocument* aDocument, TUid aUid )
-    {
-    TBuf<KMaxFileName> temp;//we can reuse this.
-    
-    iWidgetRegistry.GetWidgetPath( aUid, temp );
-    aDocument->AddFieldL(KApplicationFieldAbsolutePath, temp,  CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-    CPIXLOGSTRING2("AddApplicationInfo(): PATH = %S ", &temp);
-    OstTraceExt1( TRACE_NORMAL, CAPPLICATIONSPLUGIN_ADDWIDGETINFOL, "CApplicationsPlugin::AddWidgetInfoL;PATH=%S", &temp );
-
-    //GetWidgetPropertyValueL returns CWidgetPropertyValue* which in turn has an operator to convert to TDesC
-    aDocument->AddFieldL(KApplicationFieldCaption, *(iWidgetRegistry.GetWidgetPropertyValueL( aUid, EBundleDisplayName )), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
-
-    //For applications, no content to go into exceprt field.
-    //For more info, check the appclass-hierarchy.txt
-    //iWidgetRegistry.GetWidgetBundleName( aUid, temp );
-    //aDocument->AddExcerptL( temp );
-    aDocument->AddExcerptL( KNullDesC );
-    
-    OstTraceExt1( TRACE_NORMAL, DUP1_CAPPLICATIONSPLUGIN_ADDWIDGETINFOL, "CApplicationsPlugin::AddWidgetInfoL;DisplayName=%S", &temp );
-    CPIXLOGSTRING2("AddApplicationInfo(): DisplayName = %S ", &temp );
-    }*/
 
 // -----------------------------------------------------------------------------
 //This need not be a member function.
-void AddApplicationInfoL( CSearchDocument* aDocument, TApaAppInfo& aAppInfo )
+void AddApplicationInfoL(CSearchDocument* aDocument,
+                         Usif::TAppRegInfo& aAppInfo)
     {
-    TBuf<KMaxFileName> docidString = aAppInfo.iUid.Name(); //This returns stuff in the form "[UID]". So remove the brackets.
-    docidString = docidString.Mid( KUidStartIndex, KUidEndIndex );
+    OstTraceFunctionEntry0( _ADDAPPLICATIONINFOL_ENTRY );
+
+    TBuf<KMaxFileName> docidString = aAppInfo.Uid().Name(); //This returns stuff in the form "[UID]". So remove the brackets.
+    docidString = docidString.Mid(KUidStartIndex, KUidEndIndex);
     
     //We index the exe name (without extension), only if the title is not present.
-    if( aAppInfo.iShortCaption.Compare(KNullDesC) )
+    if (aAppInfo.ShortCaption().Compare(KNullDesC))
         {
-        aDocument->AddFieldL(KApplicationFieldCaption, aAppInfo.iShortCaption, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
-#ifdef USE_HIGHLIGHTER
-        aDocument->AddHLDisplayFieldL(aAppInfo.iShortCaption);
-#endif
+        aDocument->AddFieldL(KApplicationFieldShortCaption,
+                aAppInfo.ShortCaption(), CDocumentField::EStoreYes
+                        | CDocumentField::EIndexTokenized
+                        | CDocumentField::EIndexFreeText);
+        
+        if (aAppInfo.Caption().Compare(KNullDesC))
+                {
+                aDocument->AddFieldL(KApplicationFieldCaption,
+                        aAppInfo.Caption(), CDocumentField::EStoreYes
+                                | CDocumentField::EIndexTokenized
+                                | CDocumentField::EIndexFreeText);
+                }
+
+        aDocument->AddHLDisplayFieldL(aAppInfo.ShortCaption());
+        }
+    else if (aAppInfo.Caption().Compare(KNullDesC))
+        {
+        aDocument->AddFieldL(KApplicationFieldShortCaption,
+                aAppInfo.Caption(), CDocumentField::EStoreYes
+                        | CDocumentField::EIndexTokenized
+                        | CDocumentField::EIndexFreeText);
+
+        aDocument->AddFieldL(KApplicationFieldCaption, aAppInfo.Caption(),
+                CDocumentField::EStoreYes | CDocumentField::EIndexTokenized);
         }
     else
         {
         //Find the *last* location of '\' and remove the .exe to get just the filename.
-        TInt location = aAppInfo.iFullName.LocateReverse('\\');
-        if( location > 0 )
+        TInt location = aAppInfo.FullName().LocateReverse('\\');
+        if (location > 0)
             {
-            TInt lengthOfNameWithoutExtention = aAppInfo.iFullName.Length() -location -1; //-1 to increment one past '\'.
-            TPtrC appName = aAppInfo.iFullName.Right( lengthOfNameWithoutExtention );
-            aDocument->AddFieldL(KApplicationFieldAbsolutePath, appName.Left( appName.Length() -4 /*remove ".exe"*/), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-#ifdef USE_HIGHLIGHTER
-            aDocument->AddHLDisplayFieldL(appName.Left( appName.Length() -4 /*remove ".exe"*/));
-#endif
+            TInt lengthOfNameWithoutExtention = aAppInfo.FullName().Length()
+                    - location - 1; //-1 to increment one past '\'.
+            TPtrC appName = aAppInfo.FullName().Right(
+                    lengthOfNameWithoutExtention);
+            aDocument->AddFieldL(KApplicationFieldShortCaption, appName.Left(
+                    appName.Length() - 4 /*remove ".exe"*/),
+                    CDocumentField::EStoreYes
+                            | CDocumentField::EIndexTokenized);
+
+            aDocument->AddFieldL(KApplicationFieldCaption, KNullDesC,
+                    CDocumentField::EStoreYes
+                            | CDocumentField::EIndexTokenized);
+
+            aDocument->AddHLDisplayFieldL(
+                    appName.Left(appName.Length() - 4 /*remove ".exe"*/));
             }
+        }
+
+    if (aAppInfo.FullName().Compare(KNullDesC))
+        {
+        aDocument->AddFieldL(KApplicationFieldAbsolutePath,
+                aAppInfo.FullName(), CDocumentField::EStoreYes
+                        | CDocumentField::EIndexTokenized
+                        | CDocumentField::EAggregateNo);
+
         }
     //For applications, no content to go into exceprt field, for more info, check the appclass-hierarchy.txt
     //aDocument->AddExcerptL( aAppInfo.iCaption );
-    aDocument->AddExcerptL( KNullDesC );
-    
-    OstTraceExt2( TRACE_NORMAL, _ADDAPPLICATIONINFOL, "::AddApplicationInfoL;UID=%S;PATH=%S", &docidString, &aAppInfo.iFullName );
-    OstTraceExt2( TRACE_NORMAL, DUP1__ADDAPPLICATIONINFOL, "::AddApplicationInfoL;Excerpt=%S;Caption=%S", &aAppInfo.iCaption, &aAppInfo.iShortCaption );
-    
-    CPIXLOGSTRING3("AddApplicationInfo(): UID = %S, PATH = %S ", &docidString, &aAppInfo.iFullName );
-    CPIXLOGSTRING3("AddApplicationInfo():  Excerpt = %S, Caption = %S ", &aAppInfo.iCaption, &aAppInfo.iShortCaption );
+    aDocument->AddExcerptL(KNullDesC);
+
+    OstTraceExt2( TRACE_NORMAL, _ADDAPPLICATIONINFOL, "::AddApplicationInfoL;UID=%S;PATH=%S", &docidString, &aAppInfo.FullName() );
+	OstTraceExt2( TRACE_NORMAL, DUP1__ADDAPPLICATIONINFOL, "::AddApplicationInfoL;Excerpt=%S;Caption=%S", &aAppInfo.Caption(), &aAppInfo.ShortCaption() );
+    OstTraceFunctionExit0( _ADDAPPLICATIONINFOL_EXIT );
     }
 
 // -----------------------------------------------------------------------------
 TBool CApplicationsPlugin::IsAppHiddenL(TUid aUid)
     {
     //Application should not have 'hidden' capability.
-    TBool ret( EFalse );
-    TApaAppCapabilityBuf cap;
+    TBool ret( EFalse );    
     OstTrace1( TRACE_NORMAL, CAPPLICATIONSPLUGIN_ISAPPHIDDENL, "CApplicationsPlugin::IsAppHiddenL;UID=%d", aUid );
     CPIXLOGSTRING2("CApplicationsPlugin::IsAppHidden(): UID = %d", aUid );
-    if ( iApplicationServerSession.GetAppCapability(cap, aUid) == KErrNone )
-        {
-        OstTraceState0( STATE_DUP1_CAPPLICATIONSPLUGIN_ISAPPHIDDENL, "GetCapability returned KErrNone", "" );
     
-        CPIXLOGSTRING("CApplicationsPlugin::IsAppHidden(): GetCapability returned KErrNone");
-        ret = cap().iAppIsHidden;
-        }
-
-    //This commented code is left here as the following functionality may need to be 
-    //returned if and when this or similar APIs are available for 10.1
+    Usif::RRegistrationInfoForApplication appRegInfo;
+    appRegInfo.OpenL(iScrSession, aUid);
+    Usif::TApplicationCharacteristics appCharacteristics;
+    appRegInfo.GetAppCharacteristicsL(appCharacteristics);
+    ret = appCharacteristics.iAppIsHidden;
+    appRegInfo.Close();
     
-    //Application should not be listed hidden in application shell.
-//    TBuf<NCentralRepositoryConstants::KMaxUnicodeStringLength> uidResult;
-//    if( iHiddenApplicationsRepository->Get( KMenuHideApplication, uidResult ) == KErrNone )
-//        {
-//        CPIXLOGSTRING2("CApplicationsPlugin::CreateApplicationsIndexItemL(): Hidden UIDs = %S", &uidResult );
-//        TBufC16<NCentralRepositoryConstants::KMaxUnicodeStringLength> buf(uidResult);
-//        HBufC* uidString = buf.AllocLC();
-//        //If not in the list, it means it is hidden; so dont harvest
-//        if( uidString->FindF( aUid.Name().Mid( KUidStartIndex, KUidEndIndex ) ) != KErrNotFound ) 
-//            {
-//            CleanupStack::PopAndDestroy( uidString );
-//            CPIXLOGSTRING("CApplicationsPlugin::IsAppHidden(): UID in hidden app repository");
-//            return EFalse;
-//            }
-//        CleanupStack::PopAndDestroy( uidString );
-//        }
     OstTrace1( TRACE_NORMAL, DUP1_CAPPLICATIONSPLUGIN_ISAPPHIDDENL, "CApplicationsPlugin::IsAppHiddenL;Return Value=%d", &ret );
 
     CPIXLOGSTRING2("CApplicationsPlugin::IsAppHidden(): %d", &ret);
@@ -230,81 +243,93 @@ TBool CApplicationsPlugin::IsAppHiddenL(TUid aUid)
     }
 
 // -----------------------------------------------------------------------------
-void CApplicationsPlugin::CreateApplicationsIndexItemL( TApaAppInfo& aAppInfo, TCPixActionType /*aActionType*/ )
+void CApplicationsPlugin::CreateApplicationsIndexItemL(RPointerArray<
+        Usif::TAppRegInfo>& aAppInfo, TCPixActionType /*aActionType*/)
     {
     //If application has 'hidden' capability, don't index.
-    if( IsAppHiddenL( aAppInfo.iUid ) ) return;
-    
-    TBuf<KMaxFileName> docidString;
-    docidString.Append( aAppInfo.iUid.Name() ); //This returns descriptor in the form "[UID]". So remove the brackets.
-    docidString = docidString.Mid( KUidStartIndex, KUidEndIndex  );
-    
-    CSearchDocument* document = CSearchDocument::NewLC( docidString, _L(APPLICATIONS_APPCLASS) );
-    //The UID field should not be aggregated for now as we dont want it to be searchable by default.
-    //By default, all tokenized fields are aggregated and therefore searchable.
-    //If we dont tokenize, then the field will not be searchable at all.
-    //As a middle path, we tokenize this field, but explicitly chose NOT to aggregate it.
-    //That way, if a client is interested in the UID field, he can choose to query it explicitly.
-    document->AddFieldL(KMimeTypeField, KMimeTypeApplication, CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized );
-    document->AddFieldL(KApplicationFieldUid, docidString, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EAggregateNo );
-#ifdef USE_HIGHLIGHTER    
-    TInt excerptLength = docidString.Length();
-    HBufC* excerpt = HBufC::NewL(excerptLength);
-    TPtr excerptPtr = excerpt->Des();
-    CleanupStack::PushL(excerpt);
-    document->AddExcerptL(excerptPtr);
-    CleanupStack::PopAndDestroy(excerpt);
-#endif
-    
-    /*if( iWidgetRegistry.IsWidget( aAppInfo.iUid  ) ) //Widget support
-        AddWidgetInfoL( document, aAppInfo.iUid );
-    else*/
-     AddApplicationInfoL( document, aAppInfo );
+    for (TInt i = 0; i < aAppInfo.Count(); i++)
+        {
+        if (!IsAppHiddenL(aAppInfo[i]->Uid()))
+            {
+            OstTrace0( TRACE_NORMAL, DUP2_CAPPLICATIONSPLUGIN_CREATEAPPLICATIONSINDEXITEML, "CApplicationsPlugin::Indexing Application" );
+            
+            TBuf<KMaxFileName> docidString;
+            docidString.Append(aAppInfo[i]->Uid().Name()); //This returns descriptor in the form "[UID]". So remove the brackets.
+            docidString = docidString.Mid(KUidStartIndex, KUidEndIndex);
 
-    TRAPD( error, iIndexer->AddL( *document ) );
-    if( KErrNone == error )
-        {
-        OstTrace0( TRACE_NORMAL, CAPPLICATIONSPLUGIN_CREATEAPPLICATIONSINDEXITEML, "CApplicationsPlugin::CreateApplicationsIndexItemL : No Error" );
-        CPIXLOGSTRING("CApplicationsPlugin::CreateApplicationsIndexItemL(): No Error" );
+            CSearchDocument* document = CSearchDocument::NewLC(docidString,
+                                                _L(APPLICATIONS_APPCLASS));
+            //The UID field should not be aggregated for now as we dont want it to be searchable by default.
+            //By default, all tokenized fields are aggregated and therefore searchable.
+            //If we dont tokenize, then the field will not be searchable at all.
+            //As a middle path, we tokenize this field, but explicitly chose NOT to aggregate it.
+            //That way, if a client is interested in the UID field, he can choose to query it explicitly.
+            document->AddFieldL(KMimeTypeField, KMimeTypeApplication,
+                    CDocumentField::EStoreYes | CDocumentField::EIndexUnTokenized);
+            document->AddFieldL(KApplicationFieldUid, docidString,
+                    CDocumentField::EStoreYes | CDocumentField::EIndexTokenized
+                            | CDocumentField::EAggregateNo);
+            
+            TInt excerptLength = docidString.Length();
+            HBufC* excerpt = HBufC::NewL(excerptLength);
+            TPtr excerptPtr = excerpt->Des();
+            CleanupStack::PushL(excerpt);
+            document->AddExcerptL(excerptPtr);
+            CleanupStack::PopAndDestroy(excerpt);
+            
+            /*if( iWidgetRegistry.IsWidget( aAppInfo.iUid  ) ) //Widget support
+             AddWidgetInfoL( document, aAppInfo.iUid );
+             else*/
+            AddApplicationInfoL(document, *aAppInfo[i]);
+            TRAPD( error, iIndexer->AddL( *document ) );
+            if (KErrNone == error)
+                {
+                OstTrace0( TRACE_NORMAL, CAPPLICATIONSPLUGIN_CREATEAPPLICATIONSINDEXITEML, "CApplicationsPlugin::CreateApplicationsIndexItemL : No Error" );
+                CPIXLOGSTRING("CApplicationsPlugin::CreateApplicationsIndexItemL(): No Error" );
+                }
+            else
+                {
+                OstTrace1( TRACE_NORMAL, DUP1_CAPPLICATIONSPLUGIN_CREATEAPPLICATIONSINDEXITEML, "CApplicationsPlugin::CreateApplicationsIndexItemL;Error=%d", error );
+                CPIXLOGSTRING2("CApplicationsPlugin::CreateApplicationsIndexItemL(): Error = %d", error );
+                }
+            CleanupStack::PopAndDestroy(document);
+            }        
         }
-    else 
-        {
-        OstTrace1( TRACE_NORMAL, DUP1_CAPPLICATIONSPLUGIN_CREATEAPPLICATIONSINDEXITEML, "CApplicationsPlugin::CreateApplicationsIndexItemL;Error=%d", error );
-        CPIXLOGSTRING2("CApplicationsPlugin::CreateApplicationsIndexItemL(): Error = %d", error );
-        }
-    CleanupStack::PopAndDestroy( document );
     }
 
 // -----------------------------------------------------------------------------
 void CApplicationsPlugin::DelayedCallbackL( TInt /*aCode*/ )
     {
-    TApaAppInfo appInfo;
-    const TInt error = iApplicationServerSession.GetNextApp( appInfo );
-    if(  error == KErrNone )
+    if( !iIndexState )
+        return;
+    
+    RPointerArray<Usif::TAppRegInfo> appInfo;
+    //const TInt error = iApplicationServerSession.GetNextApp(appInfo);
+    iScrView.GetNextAppInfoL(KNumberOfAppInfoToBeRead, appInfo);
+    if (appInfo.Count() > 0)
         {
         CreateApplicationsIndexItemL( appInfo, ECPixAddAction );
+		iAsynchronizer->Start( 0, this, KHarvestingDelay );
         }
-
-    if ( error != RApaLsSession::ENoMoreAppsInList )
+		else
         {
-        //No need to check IsStatred() since control reaches 
-        //here only on asynchornize complete.
-        iAsynchronizer->Start( 0, this, KHarvestingDelay );
-        }
-    else
-        {
-        Flush( *iIndexer );
+        OstTrace0( TRACE_NORMAL, CAPPLICATIONSPLUGIN_DELAYEDCALLBACKL, "CApplicationsPlugin::DelayedCallbackL:Flushing" );
+        
+        Flush(*iIndexer);
 #ifdef __PERFORMANCE_DATA
     UpdatePerformaceDataL();
 #endif
+        iHarvestState = EHarvesterIdleState;
         iObserver->HarvestingCompleted( this, iIndexer->GetBaseAppClass(), KErrNone );
         }
-	}
+    appInfo.ResetAndDestroy();
+    }
 
 // -----------------------------------------------------------------------------
 void CApplicationsPlugin::DelayedError( TInt aCode )
     {
     Flush(*iIndexer);
+    iHarvestState = EHarvesterIdleState;
     iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), aCode);
     }
    
@@ -324,6 +349,26 @@ void CApplicationsPlugin::HandleAppListEvent( TInt aEvent )
         }
     CPIXLOGSTRING("CApplicationsPlugin::HandleAppListEvent: Exit" );
     OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_HANDLEAPPLISTEVENT_EXIT );
+    }
+
+void CApplicationsPlugin::PausePluginL()
+    {
+    OstTraceFunctionEntry0( CAPPLICATIONSPLUGIN_PAUSEPLUGINL_ENTRY );
+    iIndexState = EFalse;
+    OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_PAUSEPLUGINL_EXIT );
+    }
+
+void CApplicationsPlugin::ResumePluginL()
+    {
+    OstTraceFunctionEntry0( CAPPLICATIONSPLUGIN_RESUMEPLUGINL_ENTRY );
+    iIndexState = ETrue;
+    if(iHarvestState == EHarvesterStartHarvest)
+        {
+        if(iAsynchronizer->CallbackPending())
+            iAsynchronizer->CancelCallback();
+        iAsynchronizer->Start( 0, this, KHarvestingDelay );
+        }
+    OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_RESUMEPLUGINL_EXIT );
     }
 
 #ifdef __PERFORMANCE_DATA

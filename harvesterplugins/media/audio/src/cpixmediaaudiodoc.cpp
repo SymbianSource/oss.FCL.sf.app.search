@@ -112,7 +112,7 @@ CSearchDocument* CCPIXMediaAudioDoc::GetCpixDocumentL(const CMdEObject& aObject,
                              CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
        AddToFieldExcerptL(textProperty->Value());//Add artist to excerpt
        }
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
     /*//Get the media file extension and store
     TBuf<KMaxExtLength> extension;        
     GetExtension(aObject.Uri(),extension);
@@ -128,7 +128,7 @@ CSearchDocument* CCPIXMediaAudioDoc::GetCpixDocumentL(const CMdEObject& aObject,
            index_item->AddHLDisplayFieldL(textProperty->Value());
            }
        }
-#endif  
+//#endif  
     CMdEPropertyDef& albumPropDef = aObjectDef.GetPropertyDefL(MdeConstants::Audio::KAlbumProperty );
     if(aObject.Property( albumPropDef, property )!= KErrNotFound)
        {

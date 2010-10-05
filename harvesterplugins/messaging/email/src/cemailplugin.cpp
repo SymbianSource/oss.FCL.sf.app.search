@@ -383,6 +383,16 @@ void CEmailPlugin::HarvestingCompleted(TInt aError)
     iObserver->HarvestingCompleted(this, baseAppClass, aError);
 }
 
+void CEmailPlugin::PausePluginL()
+    {
+    
+    }
+
+void CEmailPlugin::ResumePluginL()
+    {
+    
+    }
+
 // ---------------------------------------------------------------------------
 // CEmailPlugin::UpdatePerformaceDataL
 // ---------------------------------------------------------------------------

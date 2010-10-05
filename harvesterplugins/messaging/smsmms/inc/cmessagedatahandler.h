@@ -55,6 +55,8 @@ public:
 	 * @param TMsvId& aFolderId Id of the folder where message is located
 	 */
 	void GatherDataL(TMsvId& aMessageId, TCPixActionType aActionType, TMsvId& aFolderId);
+	
+	void ResumeL();
 
 private:
 	//From CActive

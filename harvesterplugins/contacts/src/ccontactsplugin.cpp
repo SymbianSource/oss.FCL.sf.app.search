@@ -87,13 +87,15 @@ CContactsPlugin::~CContactsPlugin()
 	//delete NULL is safe - so no need to test nullity of iExceprt (which routinely
 	//keeps getting deleted in the plugin).
 	delete iExcerpt;
-#ifdef USE_HIGHLIGHTER    
+	iJobQueue.Reset();
+	iJobQueue.Close();
+//#ifdef USE_HIGHLIGHTER    
             if(iHLDisplayExcerpt)
                 {
                 delete iHLDisplayExcerpt;
                 iHLDisplayExcerpt = NULL;
                 }
-#endif            
+//#endif            
 	}
 	
 // -----------------------------------------------------------------------------
@@ -103,7 +105,7 @@ CContactsPlugin::~CContactsPlugin()
 void CContactsPlugin::ConstructL()
 	{
 	iDatabase = CContactDatabase::OpenL();
-
+    iIndexState = ETrue;
 	// This pointer is valid until a change is made to the database or until 
 	// the database's active object is allowed to run. If the array is 
 	// required after one of the above two events has occurred, a copy of the 
@@ -118,7 +120,7 @@ void CContactsPlugin::ConstructL()
 // -----------------------------------------------------------------------------
 //
 void CContactsPlugin::StartPluginL()
-	{
+	{    
 	// Define this base application class, use default location
 	User::LeaveIfError(iSearchSession.DefineVolume( _L(CONTACT_QBASEAPPCLASS), KNullDesC ));
 
@@ -140,7 +142,8 @@ void CContactsPlugin::StartPluginL()
 void CContactsPlugin::StartHarvestingL(const TDesC& /*aQualifiedBaseAppClass*/)
     {
 	iIndexer->ResetL();
-	iCurrentIndex = 0;
+	iCurrentIndex = 0;	
+	iHarvestState = EHarvesterStartHarvest;
 #ifdef __PERFORMANCE_DATA
     iStartTime.UniversalTime();
 #endif  
@@ -153,6 +156,8 @@ void CContactsPlugin::StartHarvestingL(const TDesC& /*aQualifiedBaseAppClass*/)
 // 
 void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 	{
+    TRecord entry;
+    entry.iContactId = aEvent.iContactId;
 	switch( aEvent.iType )
 		{
 		case EContactDbObserverEventContactChanged:
@@ -165,7 +170,8 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
             CreateContactIndexItemL(aEvent.iContactId, ECPixUpdateAction);
             UpdatePerformaceDataL(ECPixUpdateAction);
 #else			
-			CreateContactIndexItemL(aEvent.iContactId, ECPixUpdateAction);
+			entry.iActionType = ECPixUpdateAction;
+			//CreateContactIndexItemL(aEvent.iContactId, ECPixUpdateAction);
 #endif			
 			break;
 
@@ -179,7 +185,8 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 			CreateContactIndexItemL(aEvent.iContactId, ECPixRemoveAction);
 			UpdatePerformaceDataL(ECPixRemoveAction);
 #else
-			CreateContactIndexItemL(aEvent.iContactId, ECPixRemoveAction);
+			entry.iActionType = ECPixRemoveAction;
+			//CreateContactIndexItemL(aEvent.iContactId, ECPixRemoveAction);
 #endif
 			break;
 
@@ -192,7 +199,8 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 			CreateContactIndexItemL(aEvent.iContactId, ECPixUpdateAction);
 			UpdatePerformaceDataL(ECPixUpdateAction);
 #else
-			CreateContactIndexItemL(aEvent.iContactId, ECPixAddAction);
+			entry.iActionType = ECPixAddAction;
+			//CreateContactIndexItemL(aEvent.iContactId, ECPixAddAction);
 #endif
 			break;
 
@@ -200,6 +208,10 @@ void CContactsPlugin::HandleDatabaseEventL(TContactDbObserverEvent aEvent)
 			// Ignore other events
 			break;
 		}
+        if( iIndexState )
+            CreateContactIndexItemL(aEvent.iContactId, entry.iActionType);
+        else
+            OverWriteOrAddToQueueL(entry);
 	}
 
 // -----------------------------------------------------------------------------
@@ -210,44 +222,50 @@ void CContactsPlugin::DelayedCallbackL( TInt /*aCode*/ )
     {
 	if (!iContacts || !iObserver)
 		return;
+	
+	if(!iIndexState)
+	    return;
+	    
+    // may have changed - refresh the pointer
+    iContacts = iDatabase->SortedItemsL();
 
-	// may have changed - refresh the pointer
-	iContacts = iDatabase->SortedItemsL();
+    // Read the next set of contacts.
+    for( TInt i = 0; i < KContactsPerRunL; i++ )
+        {
+        // Exit the loop if no more contacts
+        if (iCurrentIndex >= iContacts->Count())
+            break;
+    
+        // Create index item
+        OstTrace1( TRACE_NORMAL, CCONTACTSPLUGIN_DELAYEDCALLBACKL, "CContactsPlugin::DelayedCallbackL();Harvesting id=%d", (*iContacts)[iCurrentIndex] );
+        CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Harvesting id=%d.", (*iContacts)[iCurrentIndex]);
+        CreateContactIndexItemL((*iContacts)[iCurrentIndex], ECPixAddAction);
+        iCurrentIndex++;
+        }
 
-	// Read the next set of contacts.
-	for( TInt i = 0; i < KContactsPerRunL; i++ )
-		{
-		// Exit the loop if no more contacts
-		if (iCurrentIndex >= iContacts->Count())
-			break;
-		
-		// Create index item
-		OstTrace1( TRACE_NORMAL, CCONTACTSPLUGIN_DELAYEDCALLBACKL, "CContactsPlugin::DelayedCallbackL();Harvesting id=%d", (*iContacts)[iCurrentIndex] );
-		CPIXLOGSTRING2("CContactsPlugin::DelayedCallbackL(): Harvesting id=%d.", (*iContacts)[iCurrentIndex]);
-		CreateContactIndexItemL((*iContacts)[iCurrentIndex], ECPixAddAction);
-		iCurrentIndex++;
-		}
-
-	if( iAsynchronizer && (iCurrentIndex < iContacts->Count()) )
-	    {
-	    // Launch the next RunL
+    if( iAsynchronizer && (iCurrentIndex < iContacts->Count()) )
+        {
+        // Launch the next RunL
         iAsynchronizer->Start(0, this, KHarvestingDelay);
         }
-	else
-		{
-		// Harvesting was successfully completed
-		Flush(*iIndexer);
+    else
+        {
+        // Harvesting was successfully completed
+        Flush(*iIndexer);
 #ifdef __PERFORMANCE_DATA
     UpdatePerformaceDataL();
 #endif 
-		iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrNone);
-		}
+        //On Harvesting completion mark status as Idle
+        iHarvestState = EHarvesterIdleState;
+        iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), KErrNone);
+        }
 	}
 
 void CContactsPlugin::DelayedError(TInt aError)
 	{
 	// Harvesting was successfully completed
 	Flush(*iIndexer);
+	iHarvestState = EHarvesterIdleState;
 	iObserver->HarvestingCompleted(this, iIndexer->GetBaseAppClass(), aError);
 	}
 
@@ -316,8 +334,7 @@ void CContactsPlugin::AddToExcerptL(CSearchDocument& /*aDocument*/, CContactItem
 	TInt findpos = aFieldSet.Find( aFieldId );
 	if (! (findpos < 0) || (findpos >= aFieldSet.Count() ) )
 		{
-		CContactItemField& additionalField = aFieldSet[ findpos ];
-		TInt newfieldsize = 0;
+		CContactItemField& additionalField = aFieldSet[ findpos ];		
 		if( additionalField.StorageType() == KStorageTypeDateTime)
 		            {
 		            CContactDateField* fieldDate = additionalField.DateTimeStorage();
@@ -377,6 +394,7 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
     
 	OstTrace1( TRACE_NORMAL, CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, "CContactsPlugin::CreateContactIndexItemL();aContentId=%d", aContentId );
 	CPIXLOGSTRING2("CContactsPlugin::CreateContactIndexItemL(): aContentId = %d ", aContentId );
+    OstTrace0( TRACE_NORMAL, DUP8_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, "CContactsPlugin::Indexing Contact" );
     
 	// creating CSearchDocument object with unique ID for this application
 	TBuf<20> docid_str;
@@ -398,11 +416,11 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
             index_item->AddFieldL( KContactsGivenNameField, static_cast<CContactGroup*>( contact )->GetGroupLabelL(), CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
             OstTraceExt1( TRACE_NORMAL, DUP1_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML, ";Adding Contact Group=%S", ( static_cast<CContactGroup*>( contact )->GetGroupLabelL() ) );
             CPIXLOGSTRING2("Adding Contact Group %S", &( static_cast<CContactGroup*>( contact )->GetGroupLabelL() ) );
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
             index_item->AddHLDisplayFieldL(static_cast<CContactGroup*>( contact )->GetGroupLabelL());
-#else
-            index_item->AddExcerptL( static_cast<CContactGroup*>( contact )->GetGroupLabelL() );
-#endif            
+//#else
+//            index_item->AddExcerptL( static_cast<CContactGroup*>( contact )->GetGroupLabelL() );
+//#endif            
 		    }
 		else//If the contact item is a regular contact.
 		    {
@@ -425,7 +443,7 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 
             AddFieldL( *index_item, fieldSet, KUidContactFieldGivenName, KContactsGivenNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
             AddFieldL( *index_item, fieldSet, KUidContactFieldFamilyName, KContactsFamilyNameField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField:: EIndexFreeText );        
-#ifdef USE_HIGHLIGHTER    
+//#ifdef USE_HIGHLIGHTER    
             if(iHLDisplayExcerpt)
                 {
                 delete iHLDisplayExcerpt;
@@ -435,7 +453,7 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
             AddFieldToHLExcerptL( fieldSet, KUidContactFieldFamilyName);
             if(iHLDisplayExcerpt)
             index_item->AddHLDisplayFieldL(*iHLDisplayExcerpt);
-#endif 
+//#endif 
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldPhoneNumber, KContactsPhoneNumberField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexPhoneNumber );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldEMail, KContactsEMailField, CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText );
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldSIPID, KContactsSIPIDField );
@@ -470,13 +488,13 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
             
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldIMAddress, KContactIMAddress);
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldServiceProvider, KContactServiceProvider);
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldBirthday, KContactBirthday);
             AddFieldToDocumentAndExcerptL( *index_item, fieldSet, KUidContactFieldAnniversary, KContactAnniversary);
-#else
-            AddFieldL( *index_item, fieldSet, KUidContactFieldBirthday, KContactBirthday);
-            AddFieldL( *index_item, fieldSet, KUidContactFieldAnniversary, KContactAnniversary);      
-#endif            
+//#else
+//            AddFieldL( *index_item, fieldSet, KUidContactFieldBirthday, KContactBirthday);
+//            AddFieldL( *index_item, fieldSet, KUidContactFieldAnniversary, KContactAnniversary);      
+//#endif            
             index_item->AddExcerptL(*iExcerpt);
             }
         
@@ -532,7 +550,7 @@ void CContactsPlugin::CreateContactIndexItemL(TInt aContentId, TCPixActionType a
 		}
     }
 
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 void CContactsPlugin::AddFieldToHLExcerptL( CContactItemFieldSet& aFieldSet, TUid aFieldId)
     {
     if(!iHLDisplayExcerpt)
@@ -545,8 +563,7 @@ void CContactsPlugin::AddFieldToHLExcerptL( CContactItemFieldSet& aFieldSet, TUi
     if (! (findpos < 0) || (findpos >= aFieldSet.Count() ) )
          {
             CContactItemField& additionalField = aFieldSet[findpos];
-            CContactTextField* fieldText = additionalField.TextStorage();
-            
+            CContactTextField* fieldText = additionalField.TextStorage();            
             
             if (fieldText && fieldText->Text() != KNullDesC)//value is not Null
                 {
@@ -563,7 +580,7 @@ void CContactsPlugin::AddFieldToHLExcerptL( CContactItemFieldSet& aFieldSet, TUi
         }    
     }
 
-#endif
+//#endif
 
 // ---------------------------------------------------------------------------
 // CContactsPlugin::GetDateL
@@ -590,6 +607,64 @@ void CContactsPlugin::GetDateL(const TDesC& aTime, TDes& aDateString)
         }
     }
 
+void CContactsPlugin::PausePluginL()
+    {
+    OstTraceFunctionEntry0( CCONTACTSPLUGIN_PAUSEPLUGINL_ENTRY );
+    iIndexState = EFalse;
+    OstTraceFunctionExit0( CCONTACTSPLUGIN_PAUSEPLUGINL_EXIT );
+    }
+
+void CContactsPlugin::ResumePluginL()
+    {
+    OstTraceFunctionEntry0( CCONTACTSPLUGIN_RESUMEPLUGINL_ENTRY );
+    iIndexState = ETrue;
+    
+    if(iHarvestState == EHarvesterStartHarvest)
+        {
+        if(iAsynchronizer->CallbackPending())
+            iAsynchronizer->CancelCallback();
+        iAsynchronizer->Start( 0, this, KHarvestingDelay );
+        }
+    else
+        {
+        IndexQueuedItems();
+        }
+    OstTraceFunctionExit0( CCONTACTSPLUGIN_RESUMEPLUGINL_EXIT );
+    }
+
+void CContactsPlugin::OverWriteOrAddToQueueL(TRecord& aEntry)
+    {
+    OstTraceFunctionEntry0( CCONTACTSPLUGIN_OVERWRITEORADDTOQUEUEL_ENTRY );
+    for (TInt i=0; i<iJobQueue.Count(); i++)
+        {
+            if (iJobQueue[i].iContactId == aEntry.iContactId)
+            {
+                // Older version found
+                iJobQueue[i] = aEntry;
+                OstTraceFunctionExit0( CCONTACTSPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT );
+                return;
+            }
+        }        
+    // older not found, append
+    iJobQueue.AppendL(aEntry);
+    OstTraceFunctionExit0( DUP1_CCONTACTSPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT );
+    }
+
+void CContactsPlugin::IndexQueuedItems()
+    {
+    OstTraceFunctionEntry0( CCONTACTSPLUGIN_INDEXQUEUEDITEMS_ENTRY );
+    while (iJobQueue.Count()>0)
+        {
+        TRecord entry = iJobQueue[0];        
+        //Let the indexer handle this object TRAP it as it can leave
+        TRAPD(err,CreateContactIndexItemL( entry.iContactId, entry.iActionType ));        
+        if(KErrNone == err)
+            {
+            iJobQueue.Remove(0);
+            }
+        }
+    OstTraceFunctionExit0( CCONTACTSPLUGIN_INDEXQUEUEDITEMS_EXIT );
+    }
 // ---------------------------------------------------------------------------
 // CContactsPlugin::UpdatePerformaceDataL
 // ---------------------------------------------------------------------------

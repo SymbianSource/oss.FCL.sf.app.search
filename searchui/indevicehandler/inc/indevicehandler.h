@@ -19,7 +19,6 @@
 
 #include <QtCore>
 #include <qcoreapplication.h>
-#include <qdebug.h>
 #include "search_global.h"
 
 #ifdef BUILD_INDEVICEHANDLER
@@ -28,9 +27,6 @@
 #define SEARCH_INDEVICEHANDLER Q_DECL_IMPORT
 #endif
 
-#ifndef DEFAULT_SEARCH_FIELD
-#define DEFAULT_SEARCH_FIELD "_aggregate"
-#endif
 
 class CpixSearcher;
 class CpixDocument;

@@ -37,9 +37,9 @@ RESOURCE REGISTRY_INFO theInfo
                                         {
                                         implementation_uid = 0x2001F701;
                                         version_no = 1;
-                                        display_name = "Messages";
+                                        display_name = "smsmms";
                                         default_data = "Messaging";
-                                        opaque_data = "";
+                                        opaque_data = "z:\\resource\\qt\\plugins\\searchsrv\\contentconfig\\smsmmsconfig.xml";
                                         }
                                 };
                         }

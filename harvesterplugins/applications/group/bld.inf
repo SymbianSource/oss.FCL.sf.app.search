@@ -18,3 +18,7 @@
 PRJ_MMPFILES
 applicationsplugin.mmp
 
+
+PRJ_EXPORTS
+../data/applicationconfig.xml                                                  /epoc32/data/z/resource/qt/plugins/searchsrv/contentconfig/applicationconfig.xml
+

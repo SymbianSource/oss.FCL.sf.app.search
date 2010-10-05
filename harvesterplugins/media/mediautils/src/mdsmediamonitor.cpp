@@ -81,7 +81,7 @@ CMdsMediaMonitor* CMdsMediaMonitor::NewLC(CMdESession* aSession,CMdeObjectQueueM
 //
 CMdsMediaMonitor::~CMdsMediaMonitor()
     {
-    
+    StopMonitoringL();
     }
 
 // -----------------------------------------------------------------------------
@@ -131,6 +131,7 @@ void CMdsMediaMonitor::StopMonitoringL()
     if(iMdsSession)
         {
         iMdsSession->RemoveObjectObserverL(*this,&iMdsSession->GetDefaultNamespaceDefL());
+        iMdsSession->RemoveObjectPresentObserverL(*this);
         }
     }
 

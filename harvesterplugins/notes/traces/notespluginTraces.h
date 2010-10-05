@@ -1,4 +1,20 @@
-// Created by TraceCompiler 2.2.3
+/*
+* Copyright (c) 2010 Nokia Corporation and/or its subsidiary(-ies).
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description: 
+ *
+*/
+// Created by TraceCompiler 2.3.0
 // DO NOT EDIT, CHANGES WILL BE LOST
 
 #ifndef __NOTESPLUGINTRACES_H__
@@ -16,6 +32,15 @@
 #define CNOTESPLUGIN_CALCHANGENOTIFICATION_EXIT 0x8a0008
 #define CNOTESPLUGIN_INITTIMEVALUESL_ENTRY 0x8a0009
 #define CNOTESPLUGIN_INITTIMEVALUESL_EXIT 0x8a000a
+#define CNOTESPLUGIN_PAUSEPLUGINL_ENTRY 0x8a000b
+#define CNOTESPLUGIN_PAUSEPLUGINL_EXIT 0x8a000c
+#define CNOTESPLUGIN_RESUMEPLUGINL_ENTRY 0x8a000d
+#define CNOTESPLUGIN_RESUMEPLUGINL_EXIT 0x8a000e
+#define CNOTESPLUGIN_OVERWRITEORADDTOQUEUEL_ENTRY 0x8a000f
+#define CNOTESPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT 0x8a0010
+#define DUP1_CNOTESPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT 0x8a0011
+#define CNOTESPLUGIN_INDEXQUEUEDITEMS_ENTRY 0x8a0012
+#define CNOTESPLUGIN_INDEXQUEUEDITEMS_EXIT 0x8a0013
 #define CNOTESPLUGIN_STARTHARVESTINGL 0x860001
 #define CNOTESPLUGIN_DELAYEDCALLBACKL 0x860002
 #define DUP1_CNOTESPLUGIN_DELAYEDCALLBACKL 0x860003
@@ -30,6 +55,7 @@
 #define DUP3_CNOTESPLUGIN_CREATENOTEENTRYL 0x86000c
 #define DUP9_CNOTESPLUGIN_CREATENOTEENTRYL 0x860012
 #define DUP10_CNOTESPLUGIN_CREATENOTEENTRYL 0x860013
+#define DUP4_CNOTESPLUGIN_CREATENOTEENTRYL 0x860014
 
 
 #endif

@@ -30,6 +30,11 @@
 #include <msvuids.h>
 #include <mmsconst.h>
 #include "cmessageharvester.h"
+#include "OstTraceDefinitions.h"
+#ifdef OST_TRACE_COMPILER_IN_USE
+#include "cmessageharvesterTraces.h"
+#endif
+
 
 
 // ============================ MEMBER FUNCTIONS ===============================
@@ -180,8 +185,8 @@ void CMessageHarvester::GetMessageIdL()
     { 
     if (iChildren && iChildren->Count() > 0)
         {
-        // Take first item from list of message items, and give it for indexing
-        iMessagePlugin.MessageItemL((*iChildren)[0], ECPixAddAction, iCurrentFolder);
+        // Take first item from list of message items, and give it for indexing        
+        iMessagePlugin.MessageItemL((*iChildren)[0], ECPixAddAction, iCurrentFolder);        
         
         // Delete the item from list
         iChildren->Delete( 0 );   
@@ -276,13 +281,23 @@ TInt CMessageHarvester::RunError( TInt aError )
 //
 void CMessageHarvester::HandleNextRequest()
     {
-    if (!IsActive())
+    OstTraceFunctionEntry0( CMESSAGEHARVESTER_HANDLENEXTREQUEST_ENTRY );
+    if (!IsActive() && iMessagePlugin.GetHarvesterState())
         {
         SetActive();
         TRequestStatus* status = &iStatus;
         User::RequestComplete( status, KErrNone );
         }
+    OstTraceFunctionExit0( CMESSAGEHARVESTER_HANDLENEXTREQUEST_EXIT );
     }
 
-
+void CMessageHarvester::ResumeRequest()
+    {
+    OstTraceFunctionEntry0( CMESSAGEHARVESTER_RESUMEREQUEST_ENTRY );
+    if(iState != EStateIdle)
+        {        
+        HandleNextRequest();
+        }
+    OstTraceFunctionExit0( CMESSAGEHARVESTER_RESUMEREQUEST_EXIT );
+    }
 // End of File

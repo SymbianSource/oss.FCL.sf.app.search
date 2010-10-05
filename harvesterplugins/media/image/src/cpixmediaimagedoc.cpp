@@ -107,11 +107,11 @@ CSearchDocument* CCPIXMediaImageDoc::GetCpixDocumentL(const CMdEObject& aObject,
           AddToFieldExcerptL(textProperty->Value());
           }
     
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
        TInt slashpos = GetUri().LocateReverse('\\');
        TPtrC name = GetUri().Mid( (slashpos+1) );
        index_item->AddHLDisplayFieldL(name);
-#endif   
+//#endif   
     //Get user comment field
     CMdEPropertyDef& commentPropDef = aObjectDef.GetPropertyDefL(MdeConstants::MediaObject::KCommentProperty );
     if(aObject.Property( commentPropDef, property )!= KErrNotFound)

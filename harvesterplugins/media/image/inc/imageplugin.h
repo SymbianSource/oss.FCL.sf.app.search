@@ -80,6 +80,8 @@ public:
      * Leaves in case of errors.
      */
     void StartHarvestingL(const TDesC & aQualifiedBaseAppClass);
+    void PausePluginL();
+    void ResumePluginL();
     /*
      * HandleMdeItemL callback from MMediaObjectHandler
      * @param TItemId aObjId object Id

@@ -137,9 +137,16 @@ void CFileMonitor::RunL()
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileCreated old = %S", &fileNameOld);
 			OstTraceExt1( TRACE_NORMAL, DUP2_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileCreated new=%S", fileNameNew );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileCreated new = %S", &fileNameNew);
-            // File creation (for example over PC suite) gives fileNameOld as the created files, fileNameOld is empty.			
-            iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixAddAction);
-            iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixAddAction, false);
+            // File creation (for example over PC suite) gives fileNameOld as the created files, fileNameOld is empty.
+			if(iFilePlugin.GetHarvesterState())
+			    {
+			    iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixAddAction);
+			    iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixAddAction, EFalse);
+			    }
+			else
+			    {
+			    iFilePlugin.AddToQueueL(fileNameOld, ECPixAddAction, EFalse);
+			    }
 			}
 		break;
 		
@@ -160,8 +167,15 @@ void CFileMonitor::RunL()
 			OstTraceExt1( TRACE_NORMAL, DUP5_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileModified new=%S", fileNameNew );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileModified new = %S", &fileNameNew);
 			// File copy, fileNameOld contains the file name, fileNameNew is empty
-			iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixUpdateAction);
-			iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixUpdateAction, false);
+			if(iFilePlugin.GetHarvesterState())
+			    {
+			    iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixUpdateAction);
+			    iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixUpdateAction, EFalse);
+			    }
+			else
+			    {
+                iFilePlugin.AddToQueueL(fileNameOld, ECPixUpdateAction, EFalse);
+                }			    
 			}
 		break;
 		
@@ -178,11 +192,21 @@ void CFileMonitor::RunL()
 					{
 					if (fileNameOld.Length()>0 && fileNameOld.Compare(fileNameNew)!=0)
 						{
-						iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixRemoveAction);
-						iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction, false);
+					    if (iFilePlugin.GetHarvesterState())
+					        {
+					        iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixRemoveAction);
+					        iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction, EFalse);
+					        }
+					    else
+					        iFilePlugin.AddToQueueL(fileNameOld, ECPixRemoveAction, EFalse);
 						}
-					iFilePlugin.CreateContentIndexItemL(fileNameNew, ECPixUpdateAction);
-					iFilePlugin.CreateFolderFileIndexItemL(fileNameNew, ECPixUpdateAction, false);
+					if( iFilePlugin.GetHarvesterState())
+					    {
+					    iFilePlugin.CreateContentIndexItemL(fileNameNew, ECPixUpdateAction);
+					    iFilePlugin.CreateFolderFileIndexItemL(fileNameNew, ECPixUpdateAction, EFalse);
+					    }
+					else
+					    iFilePlugin.AddToQueueL(fileNameNew, ECPixUpdateAction, EFalse);
 					}
 				else
 					{
@@ -201,11 +225,21 @@ void CFileMonitor::RunL()
 			// File rename (funnily), fileNameOld contains the old file name, fileNameNew the new name
 			if (fileNameOld.Length()>0 && fileNameOld.Compare(fileNameNew)!=0)
 			    {
-				iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixRemoveAction);
-				iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction, false);
+			    if( iFilePlugin.GetHarvesterState() )
+			        {
+			        iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixRemoveAction);
+			        iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction, EFalse);
+			        }
+			    else
+			        iFilePlugin.AddToQueueL(fileNameOld, ECPixRemoveAction, EFalse);
 			    }
-			iFilePlugin.CreateContentIndexItemL(fileNameNew, ECPixUpdateAction);
-			iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixUpdateAction, false);
+			if( iFilePlugin.GetHarvesterState() )
+			    {
+			    iFilePlugin.CreateContentIndexItemL(fileNameNew, ECPixUpdateAction);
+			    iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixUpdateAction, EFalse);
+			    }
+			else
+			    iFilePlugin.AddToQueueL(fileNameOld, ECPixUpdateAction, EFalse);
 			}
 		break;
 				
@@ -216,20 +250,31 @@ void CFileMonitor::RunL()
 			OstTraceExt1( TRACE_NORMAL, DUP11_CFILEMONITOR_RUNL, "CFileMonitor::RunL;EFastFindFileDeleted new=%S", fileNameNew );
 			CPIXLOGSTRING2("CFileMonitor::RunL, EFastFindFileDeleted new = %S", &fileNameNew);
 			// File delete, fileNameOld contains the name of the deleted file
-			iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixRemoveAction);
-			iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction, false);
+			if( iFilePlugin.GetHarvesterState() )
+			    {
+			    iFilePlugin.CreateContentIndexItemL(fileNameOld, ECPixRemoveAction);
+			    iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction, EFalse);
+			    }
+			else
+			    iFilePlugin.AddToQueueL(fileNameOld, ECPixRemoveAction, EFalse);
 			}
 		break;
 		
 		case EFastFindDirCreated:
             {
-            iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixAddAction);
+            if (iFilePlugin.GetHarvesterState())
+                iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixAddAction);
+            else
+                iFilePlugin.AddToQueueL(fileNameOld, ECPixAddAction, ETrue);
             }
             break;
 
 		case EFastFindDirDeleted:
             {
-            iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction);
+            if(iFilePlugin.GetHarvesterState())
+                iFilePlugin.CreateFolderFileIndexItemL(fileNameOld, ECPixRemoveAction);
+            else
+                iFilePlugin.AddToQueueL(fileNameOld, ECPixRemoveAction, ETrue);
             }
             break;
 		default:

@@ -292,16 +292,32 @@ void CFolderRenamedHarvester::GetFileIdL()
                 oldFileName.Append( leaf );
                 if(entry.IsDir())
                     {
-                    iFilePlugin.CreateFolderFileIndexItemL( oldFileName, ECPixRemoveAction );
-                    iFilePlugin.CreateFolderFileIndexItemL( fileParser.FullName(), ECPixAddAction );                
+                    if(iFilePlugin.GetHarvesterState())
+                        {
+                        iFilePlugin.CreateFolderFileIndexItemL( oldFileName, ECPixRemoveAction );
+                        iFilePlugin.CreateFolderFileIndexItemL( fileParser.FullName(), ECPixAddAction );
+                        }
+                    else
+                        {
+                        iFilePlugin.AddToQueueL( oldFileName, ECPixRemoveAction, ETrue );
+                        iFilePlugin.AddToQueueL( fileParser.FullName(), ECPixAddAction, ETrue );
+                        }                    
                     }  
                 else
                     {
-                    iFilePlugin.CreateContentIndexItemL( oldFileName, ECPixRemoveAction );
-                    iFilePlugin.CreateFolderFileIndexItemL( oldFileName, ECPixRemoveAction, false );
+                    if( iFilePlugin.GetHarvesterState() )
+                        {
+                        iFilePlugin.CreateContentIndexItemL( oldFileName, ECPixRemoveAction );
+                        iFilePlugin.CreateFolderFileIndexItemL( oldFileName, ECPixRemoveAction, EFalse );
                 
-                    iFilePlugin.CreateContentIndexItemL( fileParser.FullName(), ECPixAddAction );
-                    iFilePlugin.CreateFolderFileIndexItemL( fileParser.FullName(), ECPixAddAction, false );
+                        iFilePlugin.CreateContentIndexItemL( fileParser.FullName(), ECPixAddAction );
+                        iFilePlugin.CreateFolderFileIndexItemL( fileParser.FullName(), ECPixAddAction, EFalse );
+                        }
+                    else
+                        {
+                        iFilePlugin.AddToQueueL( oldFileName, ECPixRemoveAction, EFalse );
+                        iFilePlugin.AddToQueueL( fileParser.FullName(), ECPixAddAction, EFalse );
+                        }
                     }                
                 // TODO: If this is not TRAPPED, state machine breaks 
                 iStepNumber++;
@@ -422,9 +438,17 @@ void CFolderRenamedHarvester::SetNextRequest( TFileHarvesterState aState )
 
 void CFolderRenamedHarvester::HandleFolderRenameL()
     {
+    OstTraceFunctionEntry0( CFOLDERRENAMEDHARVESTER_HANDLEFOLDERRENAMEL_ENTRY );
     RemoveBackslash(iOldFolderName);
-    iFilePlugin.CreateFolderFileIndexItemL( iOldFolderName, ECPixRemoveAction );
     RemoveBackslash(iNewFolderName);
-    iFilePlugin.CreateFolderFileIndexItemL( iNewFolderName, ECPixAddAction );
+    if(iFilePlugin.GetHarvesterState())
+        {
+        iFilePlugin.CreateFolderFileIndexItemL( iOldFolderName, ECPixRemoveAction );    
+        iFilePlugin.CreateFolderFileIndexItemL( iNewFolderName, ECPixAddAction );
+        }
+    else
+       iFilePlugin.AddToQueueL(iOldFolderName, ECPixRemoveAction, ETrue);
+       iFilePlugin.AddToQueueL(iNewFolderName, ECPixAddAction, ETrue);
+    OstTraceFunctionExit0( CFOLDERRENAMEDHARVESTER_HANDLEFOLDERRENAMEL_EXIT );
     }
 // End of File

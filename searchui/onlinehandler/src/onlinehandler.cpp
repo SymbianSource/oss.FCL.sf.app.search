@@ -18,7 +18,6 @@
 #include "searchutility.h"
 #include "onlinesearchplugin.h"  // after export should be included as systeminc
 #include "onlinesearchpluginfactory.h"  // after export should be included as systeminc
-#include <QDebug>
 #include <QPluginLoader>
 #ifdef Q_OS_SYMBIAN
 #include <QLibraryInfo>

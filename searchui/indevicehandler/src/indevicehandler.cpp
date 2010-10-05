@@ -208,15 +208,8 @@ void InDeviceHandler::setCategory(QString astring)
         mSearchInterface = NULL;
         }
     if (astring.length())
-        {
-        QString database("root ");
-        database.append(astring);
-        mSearchInterface = CpixSearcher::newInstance(database,
-                DEFAULT_SEARCH_FIELD);
-        }
-    else
-        {
-        mSearchInterface = CpixSearcher::newInstance("root",
+        {       
+        mSearchInterface = CpixSearcher::newInstance(astring,
                 DEFAULT_SEARCH_FIELD);
         }
     if (mSearchInterface)
@@ -230,7 +223,6 @@ void InDeviceHandler::setCategory(QString astring)
                 SLOT(getBatchDocumentAsync(int,int,CpixDocument**)));
         }
     }
-
 // ---------------------------------------------------------------------------
 // InDeviceHandler::isPrepared()
 // verify the mSearchInterface is prepared or not

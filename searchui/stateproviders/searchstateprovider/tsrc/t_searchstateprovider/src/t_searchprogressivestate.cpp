@@ -1,5 +1,6 @@
 #include "t_searchstateprovider.h"
 #include "searchprogressivestate.h"
+#include "searchuiloader.h"
 #include <qsignalspy.h>
 #include "indevicehandler.h"
 #include <hblistwidget.h>
@@ -42,8 +43,6 @@ void SearchStateProviderTest::testProgressiveStateConstruction()
 
 void SearchStateProviderTest::testProgressiveStateOnEntryAndExitSignalled()
     {
-    //    HbMainWindow* wind = mainWindow();
-
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
 
     QEvent *event = new QEvent(QEvent::None);
@@ -52,25 +51,6 @@ void SearchStateProviderTest::testProgressiveStateOnEntryAndExitSignalled()
     progressiveState->onExit(event);
 
     delete progressiveState;
-
-    //  delete wind;
-    }
-void SearchStateProviderTest::testsetSelectedCategories()
-    {
-    SearchProgressiveState* progressiveState = new SearchProgressiveState();
-    QEvent *event = new QEvent(QEvent::None);
-    progressiveState->onEntry(event);
-    progressiveState->getSettingCategory(0, true);
-    progressiveState->getSettingCategory(1, true);
-    progressiveState->getSettingCategory(2, true);
-    progressiveState->getSettingCategory(3, true);
-    progressiveState->getSettingCategory(4, true);
-    progressiveState->getSettingCategory(5, true);
-    progressiveState->getSettingCategory(6, true);
-    progressiveState->getSettingCategory(7, true);
-    progressiveState->setSelectedCategories();
-    QVERIFY(progressiveState->mTemplist.count());
-    delete progressiveState;
     }
 void SearchStateProviderTest::testgetAppIconFromAppId()
     {
@@ -78,91 +58,59 @@ void SearchStateProviderTest::testgetAppIconFromAppId()
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
     progressiveState->onEntry(event);
-    for (int i = 0; i < progressiveState->mIconArray.count(); i++)
-        {
-        QVERIFY(!(progressiveState->mIconArray.at(i).isNull()));
-        }
-    progressiveState->mIconArray.clear();
+    TRAP_IGNORE(progressiveState->getAppIconFromAppIdL(TUid::Uid(0x2002C377)));
     delete progressiveState;
     }
-
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 //
-
-
 void SearchStateProviderTest::testonAsyncSearchComplete()
     {
-    //  HbMainWindow* wind = mainWindow();
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
-    progressiveState->onEntry(event);
-    progressiveState->getSettingCategory(0, true);
-    progressiveState->getSettingCategory(1, true);
-    progressiveState->getSettingCategory(2, true);
-    progressiveState->getSettingCategory(3, true);
-    progressiveState->getSettingCategory(4, true);
-    progressiveState->getSettingCategory(5, true);
-    progressiveState->getSettingCategory(6, true);
-    progressiveState->getSettingCategory(7, true);
-
-    progressiveState->mSearchHandler
-            = progressiveState->mSearchHandlerList.at(2);
-   
-    //progressiveState->mSearchHandler->searchAsync("$prefix(\\jpg\\", "_aggregate");
-    //progressiveState->mSearchHandler->searchAsync("$prefix(\"jpg\")", "_aggregate");
-    progressiveState->onAsyncSearchComplete(-1,0);
-    progressiveState->onAsyncSearchComplete(0,0);
-    progressiveState->onAsyncSearchComplete(0,10);
+    progressiveState->onEntry(event);   
+    progressiveState->slotonAsyncSearchComplete(-1,0);
+    progressiveState->slotonAsyncSearchComplete(0,0);
+    progressiveState->slotonAsyncSearchComplete(0,10);
     QVERIFY(progressiveState->mResultcount);
-
     delete progressiveState;
-    //  delete wind;
     }
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 //
 void SearchStateProviderTest::testonGetDocumentComplete()
     {
-    //    HbMainWindow* wind = mainWindow();
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
-
-    progressiveState->mSelectedCategory.insert(5, true);
+    for(int i = 0;i<progressiveState->mUiLoader->ContentInfoList().count();i++)
+    {
+    if(progressiveState->mUiLoader->ContentInfoList().at(i)->getBaseApp().contains("root applications"))
+        progressiveState->mUiLoader->ContentInfoList().at(i)->setSelected(true);
+    }    
+    
     progressiveState->onEntry(event);
-    // progressiveState->mSearchHandler = progressiveState->mSearchHandlerList.at(1);
-    progressiveState->onGetDocumentComplete(0, NULL);
+    
+    progressiveState->slotonGetDocumentComplete(0, NULL);
     QCOMPARE(progressiveState->mListView->count(),0);
 
-    progressiveState->onGetDocumentComplete(-1, NULL);
+    progressiveState->slotonGetDocumentComplete(-1, NULL);
     QCOMPARE(progressiveState->mListView->count(),0);
-    progressiveState->startNewSearch("contact");
+    progressiveState->slotstartNewSearch("contact");
     QTest::qWait(2000);
     int i = progressiveState->mListView->count();
     QVERIFY(progressiveState->mListView->count());
     delete progressiveState;
-    //  delete wind;
     }
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 //
 void SearchStateProviderTest::testopenResultitem()
-    {
-    //    HbMainWindow* wind = mainWindow();
+    {    
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
 
-    progressiveState->getSettingCategory(0, true);
-    progressiveState->getSettingCategory(1, true);
-    progressiveState->getSettingCategory(2, true);
-    progressiveState->getSettingCategory(3, true);
-    progressiveState->getSettingCategory(4, true);
-    progressiveState->getSettingCategory(5, true);
-    progressiveState->getSettingCategory(6, true);
-    progressiveState->getSettingCategory(7, true);
-
     progressiveState->onEntry(event);
-    progressiveState->startNewSearch("Creat");
+    progressiveState->slotstartNewSearch("Creat");
     QTest::qWait(2000);
 
     //code for getting the model index from model
@@ -183,33 +131,8 @@ void SearchStateProviderTest::testopenResultitem()
      //code for getting the model index from model
      index = progressiveState->mModel->index(3, 0);
      progressiveState->openResultitem(index);*/
-    delete progressiveState;
-    //   delete wind;    
+    delete progressiveState;    
     }
-
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-//
-void SearchStateProviderTest::testgetSettingCategory()
-    {
-    //    HbMainWindow* wind = mainWindow();
-    SearchProgressiveState* progressiveState = new SearchProgressiveState();
-    QEvent *event = new QEvent(QEvent::None);
-    progressiveState->onEntry(event);
-
-    progressiveState->getSettingCategory(0, false);
-    progressiveState->getSettingCategory(1, false);
-    progressiveState->getSettingCategory(2, false);
-    progressiveState->getSettingCategory(4, false);
-    progressiveState->getSettingCategory(5, false);
-    progressiveState->getSettingCategory(6, false);
-    progressiveState->getSettingCategory(7, false);
-    progressiveState->getSettingCategory(3, true);
-    QCOMPARE(progressiveState->mSelectedCategory.count(),8);
-    delete progressiveState;
-    //   delete wind;
-    }
-
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 //
@@ -219,7 +142,7 @@ void SearchStateProviderTest::testsetSettings()
     QEvent *event = new QEvent(QEvent::None);
     progressiveState->onEntry(event);
     QSignalSpy spy(progressiveState, SIGNAL(switchProToSettingsState()));
-    progressiveState->setSettings();
+    progressiveState->slotsetSettings();
     QCOMPARE(spy.count(), 1);
     delete progressiveState;
     }
@@ -228,16 +151,13 @@ void SearchStateProviderTest::teststartNewSearch()
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
     progressiveState->onEntry(event);
-    progressiveState->getSettingCategory(0, true);
-    progressiveState->getSettingCategory(1, true);
-    progressiveState->getSettingCategory(2, true);
-    progressiveState->getSettingCategory(3, true);
-    progressiveState->getSettingCategory(4, true);
-    progressiveState->getSettingCategory(5, true);
-    progressiveState->getSettingCategory(6, true);
-    progressiveState->getSettingCategory(7, true);
-   
-    progressiveState->startNewSearch("jpg");
+    for(int i = 0;i<progressiveState->mUiLoader->ContentInfoList().count();i++)
+       {
+       if(progressiveState->mUiLoader->ContentInfoList().at(i)->getBaseApp().contains("root applications"))
+           progressiveState->mUiLoader->ContentInfoList().at(i)->setSelected(true);
+       }    
+      
+    progressiveState->slotstartNewSearch("contact");
     QTest::qWait(2000);
     QVERIFY(progressiveState->mListView->count());
     delete progressiveState;
@@ -250,11 +170,16 @@ void SearchStateProviderTest::testsettingsaction()
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
     progressiveState->onEntry(event);
-    progressiveState->getSettingCategory(5, true);
-    progressiveState->mOriginalString = "a";
-    progressiveState->settingsaction(false);
+    for(int i = 0;i<progressiveState->mUiLoader->ContentInfoList().count();i++)
+           {
+           if(progressiveState->mUiLoader->ContentInfoList().at(i)->getBaseApp().contains("root applications"))
+               progressiveState->mUiLoader->ContentInfoList().at(i)->setSelected(true);
+           }  
+    
+    progressiveState->mOriginalString = "contact";
+    progressiveState->slotsettingsaction(false);
     QCOMPARE(progressiveState->mResultcount, 0);
-    progressiveState->settingsaction(true);
+    progressiveState->slotsettingsaction(true);
     QTest::qWait(50);
     QCOMPARE(progressiveState->mResultcount, 0);
     delete progressiveState;
@@ -268,8 +193,13 @@ void SearchStateProviderTest::testcancelSearch()
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
     progressiveState->onEntry(event);
-    progressiveState->getSettingCategory(5, true);
-    progressiveState->startNewSearch("d");
+    for(int i = 0;i<progressiveState->mUiLoader->ContentInfoList().count();i++)
+               {
+               if(progressiveState->mUiLoader->ContentInfoList().at(i)->getBaseApp().contains("root applications"))
+                   progressiveState->mUiLoader->ContentInfoList().at(i)->setSelected(true);
+               }  
+        
+    progressiveState->slotstartNewSearch("contact");
     delete progressiveState;
 
     }
@@ -280,9 +210,9 @@ void SearchStateProviderTest::testhandleOkError()
     QEvent *event = new QEvent(QEvent::None);
     progressiveState->onEntry(event);
     QVariant var;
-    progressiveState->handleOk(var);
+    progressiveState->slothandleOk(var);
     int ret = 0;
-    progressiveState->handleError(ret, QString());
+    progressiveState->slothandleError(ret, QString());
     delete progressiveState;
     }
 
@@ -329,10 +259,7 @@ void SearchStateProviderTest::testcreateSuggestionLink()
     SearchProgressiveState* progressiveState = new SearchProgressiveState();
     QEvent *event = new QEvent(QEvent::None);
     progressiveState->onEntry(event);
-   
-   
-    //progressiveState->mISprovidersIcon.insert(1,icon1);
-    progressiveState->mISprovidersIcon.insert(1, progressiveState->mIconArray.at(1));
+    TRAP_IGNORE(progressiveState->mISprovidersIcon.insert(1, progressiveState->getAppIconFromAppIdL(TUid::Uid(0x2002C377))));
     progressiveState->createSuggestionLink();
     QCOMPARE(progressiveState->mListView->count(), 1);
     delete progressiveState;
@@ -382,7 +309,7 @@ void SearchStateProviderTest::testgetDrivefromMediaId()
     
     progressiveState->mSelectedCategory.insert(2, true);
     progressiveState->onEntry(event);
-    progressiveState->startNewSearch("3gpp");
+    progressiveState->slotstartNewSearch("3gpp");
     QTest::qWait(200);  
     
     HbListWidgetItem* item = progressiveState->mListView->item(0);
@@ -409,7 +336,7 @@ void SearchStateProviderTest::testfilterDoc()
     QEvent *event = new QEvent(QEvent::None);
     progressiveState->mSelectedCategory.insert(5, true);
     progressiveState->onEntry(event);
-    progressiveState->startNewSearch("d");
+    progressiveState->slotstartNewSearch("d");
     QTest::qWait(200);
     delete progressiveState;
     }

@@ -41,7 +41,9 @@
 namespace {
 
 _LIT(KCPixSearchServerPrivateDirectory, "\\Private\\2001f6f7\\");
+_LIT(KIndexingDBPath,"indexing\\indexdb");
 _LIT(KPathIndexDbPath, CPIX_INDEVICE_INDEXDB);
+_LIT(KfileDBPath, "\\root\\file");
 _LIT(KPathFolder, "\\root\\file\\folder");
 _LIT(KPathFileContent, "\\root\\file\\content");
 _LIT(KFileBaseAppClassContent, "root file content");
@@ -109,6 +111,7 @@ TInt MapBaseAppClassToDrive(const TDesC& aBaseAppClass, TDriveNumber& aDrive)
 
 TBool CFilePlugin::IsFileTypeMedia(const TDesC& aExt)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_ISFILETYPEMEDIA_ENTRY );
     
     const TText* KMediaExt[] = {_S("txt"),_S("pdf"), _S("jpg"),_S("mp3"), _S("jpeg"), _S("wma"), _S("3gp"), _S("mpg4"),
                                 _S("avi"), _S("jpf"), _S("mbm"), _S("png"), _S("gif"), _S("bmp"),  _S("mp4"), _S("mpeg4"),
@@ -131,6 +134,7 @@ TBool CFilePlugin::IsFileTypeMedia(const TDesC& aExt)
             break;
             }
         }    
+    OstTraceFunctionExit0( CFILEPLUGIN_ISFILETYPEMEDIA_EXIT );
     return isValid;
     }
 
@@ -169,8 +173,10 @@ CFilePlugin::~CFilePlugin()
 		}
 	delete iHarvester;
 	delete iMonitor;
-	delete iMmcMonitor;
-
+	delete iMmcMonitor;	
+	iMountDrives.Close();
+	iJobQueue.Reset();
+	iJobQueue.Close();
 	TInt err = iFs.DismountPlugin(KFastFindFSPluginName);
 	CPIXLOGSTRING2("CFilePlugin::~CFilePlugin(), iFs.DismountPlugin: %i", err);
 	err = iFs.RemovePlugin(KFastFindFSPluginName);
@@ -180,6 +186,7 @@ CFilePlugin::~CFilePlugin()
 
 void CFilePlugin::ConstructL()
 	{
+    iIndexState = ETrue;
     User::LeaveIfError( iFs.Connect() );
     TInt err = iFs.AddPlugin(KFastFindFSPluginFile);
     OstTrace1( TRACE_NORMAL, CFILEPLUGIN_CONSTRUCTL, "CFilePlugin::ConstructL;iFs.AddPlugin=%d", err );
@@ -268,6 +275,11 @@ void CFilePlugin::MountL(TDriveNumber aMedia, TBool aForceReharvest)
     // Check if already exists
     if (iIndexer[aMedia] && iFolderIndexer[aMedia])
         return;
+    //remove the database incase of memory card insertion before harvesting
+    if (aForceReharvest)
+        {        
+          RemoveFileDatabaseL(aMedia);
+        }
         
     // Add Notifications paths prior to opening IndexDB.
     AddNotificationPathsL(aMedia);
@@ -371,13 +383,21 @@ void CFilePlugin::StartHarvestingL(const TDesC& aQualifiedBaseAppClass)
     iFolderIndexer[drive]->ResetL();
     
     // Start the actual harvest
-    iHarvester->StartL(drive);
+    if( iIndexState )
+        {    
+        iHarvester->StartL(drive);
+        }
+    else
+        {
+        iMountDrives.Append(TDriveNumber(drive));
+        }
     CPIXLOGSTRING("END CFilePlugin::StartHarvestingL ");
     OstTraceFunctionExit0( CFILEPLUGIN_STARTHARVESTINGL_EXIT );
     }
 
 void CFilePlugin::CreateContentIndexItemL(const TDesC& aFilename, TCPixActionType aActionType)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_CREATECONTENTINDEXITEML_ENTRY );
     TFileName lowerCaseFilename(aFilename);
     lowerCaseFilename.LowerCase();
 
@@ -394,9 +414,11 @@ void CFilePlugin::CreateContentIndexItemL(const TDesC& aFilename, TCPixActionTyp
 		{
 		OstTrace0( TRACE_NORMAL, DUP2_CFILEPLUGIN_CREATECONTENTINDEXITEML, "CFilePlugin::CreateFileIndexItemL(): Could not map file to drive." );
 		CPIXLOGSTRING("CFilePlugin::CreateFileIndexItemL(): Could not map file to drive.");
+		OstTraceFunctionExit0( CFILEPLUGIN_CREATECONTENTINDEXITEML_EXIT );
 		return;
 		}
-
+	OstTrace0( TRACE_NORMAL, DUP5_CFILEPLUGIN_CREATECONTENTINDEXITEML, "CFilePlugin::Indexing File content" );
+	
 	// Index an empty item if removal action
 	if (aActionType == ECPixRemoveAction)
 		{
@@ -436,10 +458,12 @@ void CFilePlugin::CreateContentIndexItemL(const TDesC& aFilename, TCPixActionTyp
 			}
 		CleanupStack::PopAndDestroy(index_item);
 		}    
+    OstTraceFunctionExit0( DUP1_CFILEPLUGIN_CREATECONTENTINDEXITEML_EXIT );
     }
 
 void CFilePlugin::CreateFolderFileIndexItemL(const TDesC& aFilename, TCPixActionType aActionType, TBool aIsDir)
     {    
+    OstTraceFunctionEntry0( CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML_ENTRY );
     CSearchDocument* index_item = NULL;
     TBool isMediaFile = false;
     TFileName lowerCaseFilename(aFilename);    
@@ -460,6 +484,8 @@ void CFilePlugin::CreateFolderFileIndexItemL(const TDesC& aFilename, TCPixAction
     //Check for extension type, if media items do not index them
     if(!isMediaFile)
         {
+        OstTrace0( TRACE_NORMAL, DUP5_CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML, "CFilePlugin::Indexing File Folder" );
+        
         OstTraceExt2( TRACE_NORMAL, CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML, "CFilePlugin::CreateFolderFileIndexItemL;lowerCaseFilename=%S;aActionType=%d", lowerCaseFilename, aActionType );
         CPIXLOGSTRING3("CFilePlugin::CreateFolderFileIndexItemL lowerCaseFilename = %S aActionType = %d ", 
                                                     &lowerCaseFilename, aActionType);
@@ -472,6 +498,7 @@ void CFilePlugin::CreateFolderFileIndexItemL(const TDesC& aFilename, TCPixAction
             {
             OstTrace0( TRACE_NORMAL, DUP1_CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML, "CFilePlugin::CreateFolderFileIndexItemL(): Could not map file to drive." );
             CPIXLOGSTRING("CFilePlugin::CreateFolderFileIndexItemL(): Could not map file to drive.");
+            OstTraceFunctionExit0( CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML_EXIT );
             return;
             }
         
@@ -512,6 +539,7 @@ void CFilePlugin::CreateFolderFileIndexItemL(const TDesC& aFilename, TCPixAction
             delete index_item;
             }
         }    
+    OstTraceFunctionExit0( DUP1_CFILEPLUGIN_CREATEFOLDERFILEINDEXITEML_EXIT );
     }
 
 void CFilePlugin::HarvestingCompleted(TDriveNumber aDriveNumber, TInt aError)
@@ -614,6 +642,7 @@ HBufC* CFilePlugin::DatabasePathLC(TDriveNumber aMedia,const TDesC& aPath)
 
 CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool aIsDir)
     {
+    OstTraceFunctionEntry0( CFILEPLUGIN_CREATECPIXDOCUMENTL_ENTRY );
     
     CSearchDocument* index_item = CSearchDocument::NewLC(aFilePath, KFileBaseAppClassFolder);
         
@@ -653,7 +682,96 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
     index_item->AddExcerptL(aFilePath);
     
     CleanupStack::Pop(index_item);
+    OstTraceFunctionExit0( CFILEPLUGIN_CREATECPIXDOCUMENTL_EXIT );
     return index_item;
+    }
+
+void CFilePlugin::RemoveFileDatabaseL(TDriveNumber aDrive)
+    {
+    RFs aFs;
+    User::LeaveIfError( aFs.Connect() );
+    TChar drive;
+    TInt err = aFs.DriveToChar((TDriveNumber)aDrive,drive);
+    if ( err == KErrNone )
+        {
+        TBuf<KMaxFileName> folderpath;
+        folderpath.Append(drive);
+        folderpath.Append(KFilePluginColon);
+        folderpath.Append(KCPixSearchServerPrivateDirectory);
+        folderpath.Append(KIndexingDBPath);
+        folderpath.Append(KfileDBPath);
+        CFileMan* FileMan = CFileMan::NewL(aFs);
+        if ( FileMan )
+            FileMan->Delete( folderpath );
+        delete FileMan;
+        }
+    aFs.Close();
+    }
+
+void CFilePlugin::PausePluginL()
+    {
+    OstTraceFunctionEntry0( CFILEPLUGIN_PAUSEPLUGINL_ENTRY );
+    iIndexState = EFalse;
+    //iHarvester->SetHarvesterState(iIndexState);
+    OstTraceFunctionExit0( CFILEPLUGIN_PAUSEPLUGINL_EXIT );
+    }
+
+void CFilePlugin::ResumePluginL()
+    {
+    OstTraceFunctionEntry0( CFILEPLUGIN_RESUMEPLUGINL_ENTRY );
+    iIndexState = ETrue;
+    IndexQueuedItems();
+    iHarvester->ResumeRequest();
+    MountAvailableDrivesInQueue();
+    //iHarvester->SetHarvesterState(iIndexState);
+    OstTraceFunctionExit0( CFILEPLUGIN_RESUMEPLUGINL_EXIT );
+    }
+
+void CFilePlugin::MountAvailableDrivesInQueue()
+    {
+    OstTraceFunctionEntry0( CFILEPLUGIN_MOUNTAVAILABLEDRIVESINQUEUE_ENTRY );
+    for(TInt i=0;i<iMountDrives.Count();i++)
+        {
+        TDriveNumber drive = iMountDrives[i];
+        iMountDrives.Remove(i);
+        iHarvester->StartL(drive);        
+        }
+    OstTraceFunctionExit0( CFILEPLUGIN_MOUNTAVAILABLEDRIVESINQUEUE_EXIT );
+    }
+
+TBool CFilePlugin::GetHarvesterState()
+    {
+    return iIndexState;
+    }
+
+void CFilePlugin::AddToQueueL(const TDesC& aFilename, TCPixActionType aActionType, TBool aIsFolder)
+    {
+    OstTraceFunctionEntry0( CFILEPLUGIN_ADDTOQUEUEL_ENTRY );
+    TRecord entry;
+    entry.isFolder = aIsFolder;
+    entry.iUri.Copy(aFilename);
+    entry.iActionType = aActionType;
+    iJobQueue.AppendL(entry);
+    OstTraceFunctionExit0( CFILEPLUGIN_ADDTOQUEUEL_EXIT );
+    }
+
+void CFilePlugin::IndexQueuedItems()
+    {   
+    OstTraceFunctionEntry0( CFILEPLUGIN_INDEXQUEUEDITEMS_ENTRY );
+    while (iJobQueue.Count()>0 && GetHarvesterState())
+        {
+        TRecord entry = iJobQueue[0];        
+        //Let the indexer handle this object TRAP it as it can leave
+        if(entry.isFolder)            
+            CreateFolderFileIndexItemL( entry.iUri, entry.iActionType );
+        else
+            {
+            CreateContentIndexItemL( entry.iUri, entry.iActionType );
+            CreateFolderFileIndexItemL( entry.iUri, entry.iActionType, entry.isFolder );
+            }        
+        iJobQueue.Remove(0);
+        }
+    OstTraceFunctionExit0( CFILEPLUGIN_INDEXQUEUEDITEMS_EXIT );
     }
 
 #ifdef __PERFORMANCE_DATA

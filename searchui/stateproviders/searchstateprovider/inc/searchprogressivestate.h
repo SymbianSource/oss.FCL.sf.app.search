@@ -144,13 +144,7 @@ private:
      */
     void constructHandlers();
 
-    InDeviceHandler* constructHandlers(int mDatabase);
 
-    /**
-     * setting the categories .
-     * @since S60 ?S60_version.
-     */
-    void setSelectedCategories();
 
     /**
      * parse the result documents.
@@ -166,7 +160,7 @@ public slots:
      * @param aError error code.
      * @param aResultCount number of results
      */
-    void onAsyncSearchComplete(int aError, int aResultCount);
+    void slotonAsyncSearchComplete(int aError, int aResultCount);
 
     /**
      * slot connects to CSearchHandler to get the result item asynchronously 
@@ -174,7 +168,7 @@ public slots:
      * @param aError error code.
      * @param aDoc result item
      */
-    void onGetDocumentComplete(int aError, CpixDocument* aDoc);
+    void slotonGetDocumentComplete(int aError, CpixDocument* aDoc);
 
     /**
      * slot connects to CSearchHandler to get the result item asynchronously 
@@ -182,7 +176,7 @@ public slots:
      * @param aError error code.
      * @param aDoc result item
      */
-    void onGetBatchDocumentComplete(int aError, int aCount,
+    void slotonGetBatchDocumentComplete(int aError, int aCount,
             CpixDocument** aDoc);
 
     /**
@@ -190,61 +184,53 @@ public slots:
      * @since S60 ?S60_version.
      * @param aIndex index of the activated item.
      */
-    void openResultitem(HbListWidgetItem * item);
-
-    /**
-     * slot connects to settings state to get the selected category information
-     * @since S60 ?S60_version.
-     * @param aCategory category(database) name.
-     * @param aStatus whether the category selected or not
-     */
-    void getSettingCategory(int, bool);
-
+    void slotopenResultitem(HbListWidgetItem * item);
+    
     /**
      * slot connects to action to change the current state to settings state
      * @since S60 ?S60_version. 
      */
-    void setSettings();
+    void slotsetSettings();
 
     /**
      * slot connects to search panel to initiate the fresh search
      * @since S60 ?S60_version.
      * @param aKeyword search keyword.
      */
-    void startNewSearch(const QString &aKeyword);
+    void slotstartNewSearch(const QString &aKeyword);
 
     /**
      * slot implemented to avoid repeated search for the same category 
      * selection when user search for mutiple times
      * @since S60 ?S60_version.
      */
-    void settingsaction(bool avalue);
+    void slotsettingsaction(bool avalue);
 
     /**
      * slot connects to search state  for internet search
      * @since S60 ?S60_version.
      */
 
-    void handleOk(const QVariant& var);
+    void slothandleOk(const QVariant& var);
 
     /**
      * slot added for Application manager
      * @since S60 ?S60_version.
      */
 
-    void handleError(int ret, const QString& var);
+    void slothandleError(int ret, const QString& var);
 
     /**
      * Slot implemented to delete the calenderviewer plugin  
      * @since S60 ?S60_version.
      */
-    void _viewingCompleted();
+    void slotviewingCompleted();
 
     /**
      * Slot to notify when view is ready   
      * @since S60 ?S60_version.
      */
-    void viewReady();
+    void slotviewReady();
 
     /**
      * Slot to notify form query update form online state   
@@ -262,13 +248,13 @@ public slots:
      * Slot to launch the search result screen with the activity URI  
      * @since S60 ?S60_version.
      */
-    void activityRequested(const QString &name);
+    void slotactivityRequested(const QString &name);
 
     /**
      * Slot to notify when theme is changed
      * @since S60 ?S60_version.
-     */
-    void slotPrepareResultIcons();
+     */    
+    void slotdbChanged();
 private:
 
     /**
@@ -344,6 +330,11 @@ private:
      */
     void GetPixmapByFilenameL(TDesC& fileName, const QSize &size,
             QPixmap& pixmap);
+    
+    /**
+     * function to load the category translator files       
+     */
+    void loadTranslator(QString localizationpath);
 
 signals:
 
@@ -402,22 +393,7 @@ private:
      */
 
     QString mOriginalString;
-
-    /**
-     * selected categories on a map                        
-     */
-    QMap<int, bool> mSelectedCategory;
-
-    /**
-     * save the previous selected categories,decision to search again                        
-     */
-    QMap<int, bool> mTempSelectedCategory;
-
-    /**
-     * temporary list of selected categories
-     */
-    QStringList mTemplist;
-
+    
     /**
      * number of categories selected
      * 
@@ -446,12 +422,7 @@ private:
      */
     bool loadSettings;
 
-    /**
-     * 
-     * Icon List to be created in boot up for all categories
-     */
-    QList<HbIcon> mIconArray;
-
+    
     /**
      * Hbicon to be created 
      * 
@@ -485,6 +456,8 @@ private:
     QMap<int, HbIcon> mISprovidersIcon;
 
     bool mOnlineQueryAvailable;
+    
+    QMap<int,bool> mSelectedCategory;
 
 private:
     /**
@@ -510,6 +483,12 @@ private:
     bool mStateStatus;
 
     bool mValidateHandlerCreation;
+    
+    /**
+     * to handle exception when searchserver get terminated aburptly.
+     * 
+     */
+    bool mContinuationSearch;
 
 #ifdef OST_TRACE_COMPILER_IN_USE
     QTime m_totalSearchUiTime;

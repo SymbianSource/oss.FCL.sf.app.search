@@ -65,6 +65,8 @@ class CMessageMonitor : public CActive
 		 */		
         void HandleMsgDeletedL( const CMsvEntrySelection& aSelection );
         
+        void ResumeL();
+        
 	protected:
 		/** 
 		 * inherited from CActive

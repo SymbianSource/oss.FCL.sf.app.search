@@ -235,9 +235,9 @@ CSearchDocument* QEmailFetcher::getSearchDocumentL( const NmApiMessageEnvelope& 
     excerpt += msgBody ;
     doc->AddExcerptL( qt_QString2TPtrC(excerpt) );
     );
-    #ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
         doc->AddHLDisplayFieldL(qt_QString2TPtrC( const_cast<NmApiMessageEnvelope&>(aEnvelope).sender() ));
-    #endif
+//#endif
     qDebug() << "QEmailFetcher::getSearchDocumentL :END";
     return doc;
 }

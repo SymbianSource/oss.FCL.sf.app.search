@@ -29,6 +29,8 @@
 #include <tstasksettings.h>
 #include <hbshrinkingvkbhost.h>
 #include <qinputcontext.h>
+#include <cpixcontentinfodbread.h>
+#include <cpixcontentinfodbdef.h>
 
 const char *SEARCHSTATEPROVIDER_DOCML = ":/xml/searchstateprovider.docml";
 const char *TOC_VIEW = "tocView";
@@ -43,7 +45,7 @@ int SearchUiLoader::m_instanceCounter = 0;
 // ---------------------------------------------------------------------------
 SearchUiLoader::SearchUiLoader() :
     mDocumentLoader(NULL), mView(NULL), mListWidget(NULL),
-            mSearchPanel(NULL), mClient(NULL), mMainWindow(NULL)
+            mSearchPanel(NULL), mClient(NULL), mMainWindow(NULL), mDb(NULL)
     {
     bool ok = false;
 
@@ -110,14 +112,18 @@ SearchUiLoader::SearchUiLoader() :
 
     mBringtoForground = true;
 
+    readDB();
     }
 // ---------------------------------------------------------------------------
 // SearchUiLoader::~SearchUiLoader
 // ---------------------------------------------------------------------------
 SearchUiLoader::~SearchUiLoader()
     {
-    delete mMainWindow;
     delete mDocumentLoader;
+    qDeleteAll(mContentInfoList.begin(), mContentInfoList.end());
+    mContentInfoList.clear();
+    delete mDb;
+    delete mMainWindow;    
     delete mClient;
     }
 // ---------------------------------------------------------------------------
@@ -154,7 +160,78 @@ void SearchUiLoader::slotbringvkb()
             }
         }
     }
+void SearchUiLoader::readDB()
+    {
+    if (!mDb)
+        {
+        mDb = new ContentInfoDbRead();
+        
+        connect(mDb,SIGNAL(dataChanged()),this,SLOT(slotdataChanged));
+        }
+    
+    qDeleteAll(mContentInfoList.begin(), mContentInfoList.end());
+    
+    mContentInfoList.clear();
+    
+    QStringList primarykeys = mDb->getPrimaryKeys();
+    
+    if(primarykeys.count())
+        {
+        SearchContentInfoDbData* ptr = new SearchContentInfoDbData();
+        
+        ptr->setBaseApp("root");                
 
+        ptr->setDisplayIcon(QString());
+
+        ptr->setDisplayName("txt_search_list_select_all");
+
+        ptr->setExceptionString(QString());
+
+        ptr->setDisplayOrder(0);
+
+        ptr->setTranslationPath(QString());
+
+        ptr->setActivityUri(QString());
+
+        mContentInfoList.append(ptr);
+        }
+    for (int i = 0; i < primarykeys.count(); i++)
+        {
+        if (!(mDb->getValues(primarykeys.at(i), BLACKLISTSTATUS).toInt()))
+            {
+            SearchContentInfoDbData* ptr = new SearchContentInfoDbData();
+
+            ptr->setCategoryName(primarykeys.at(i));
+
+            ptr->setBaseApp(mDb->getValues(primarykeys.at(i), BASEAPP));
+
+            ptr->setDisplayIcon(
+                    mDb->getValues(primarykeys.at(i), DISPLAYICON));
+
+            ptr->setDisplayName(
+                    mDb->getValues(primarykeys.at(i), DISPLAYNAME));
+
+            ptr->setExceptionString(mDb->getValues(primarykeys.at(i),
+                    EXPECTIONID));
+
+            ptr->setDisplayOrder(mDb->getValues(primarykeys.at(i),
+                    DISPLAYORDER).toInt());
+
+            ptr->setTranslationPath(mDb->getValues(primarykeys.at(i),
+                    TRANSLATION));
+
+            ptr->setActivityUri(mDb->getValues(primarykeys.at(i), ACTIONURI));
+
+            mContentInfoList.append(ptr);
+            }
+        }
+    emit dbChanged();
+    }
+void SearchUiLoader::slotdataChanged()
+    {
+    //refresh the data base info
+    readDB();
+    }
 // ---------------------------------------------------------------------------
 // SearchMainWindow::slotViewReady
 // ---------------------------------------------------------------------------

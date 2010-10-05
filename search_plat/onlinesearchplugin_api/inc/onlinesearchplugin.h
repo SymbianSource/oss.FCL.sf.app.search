@@ -21,6 +21,12 @@
 #include <QObject>
 
 /**
+ * @file
+ * @ingroup Common
+ * @brief Provides online search plugin interface definition
+ */
+
+/**
  * @ingroup group_onlinesearchpluginmodel
  * @brief Represents a plugin plugin in the framework.
  *

@@ -21,3 +21,5 @@
 PRJ_MMPFILES
 fileplugin.mmp
 
+PRJ_EXPORTS
+../data/filesconfig.xml /epoc32/data/z/resource/qt/plugins/searchsrv/contentconfig/filesconfig.xml

@@ -36,9 +36,9 @@ RESOURCE REGISTRY_INFO theInfo
                                         {
                                         implementation_uid = 0x20029AB9;
                                         version_no = 1;
-                                        display_name = "Audios";
+                                        display_name = "Audio";
                                         default_data = "Media";
-                                        opaque_data = "";
+                                        opaque_data = "z:\\resource\\qt\\plugins\\searchsrv\\contentconfig\\audioconfig.xml";
                                         }
                                 };
                         }

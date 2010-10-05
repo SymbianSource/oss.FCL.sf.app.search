@@ -18,6 +18,11 @@
 #ifndef ONLINESEARCHPLUGINFACTORY_H
 #define ONLINESEARCHPLUGINFACTORY_H
 
+/**
+ * @file
+ * @ingroup Common
+ * @brief Provides online search plugin factory method interface for loading the actual plugin.
+ */
 
 class OnlineSearchPlugin;
 

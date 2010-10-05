@@ -66,6 +66,10 @@ public:
      */
     void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
     
+    virtual void PausePluginL();
+    
+    virtual void ResumePluginL();
+    
     //From MFavouritesDbObserver.
     void HandleFavouritesDbEventL(RDbNotifier::TEvent aEvent);
     

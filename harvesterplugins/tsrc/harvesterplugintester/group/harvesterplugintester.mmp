@@ -139,9 +139,9 @@ SOURCEPATH ./../../../applications/src
 SOURCE  applicationsplugin.cpp
 
 LIBRARY       apgrfx.lib //for RApaLsSession
-LIBRARY       apparc.lib //for TApaAppInfo 
-LIBRARY       widgetregistryclient.lib
+LIBRARY       apparc.lib //for TApaAppInfo
 LIBRARY       centralrepository.lib    //for CRepository
+LIBRARY	      scrclient.lib
 //---------------End of additions for Applications Plugin-------------------
 
 //------------------Added for Notes plugin ---------------------------- 

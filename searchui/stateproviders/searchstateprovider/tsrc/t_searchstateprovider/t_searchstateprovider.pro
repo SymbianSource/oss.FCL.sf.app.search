@@ -35,8 +35,9 @@ LIBS += -lapparc
 LIBS += -lefsrv
 LIBS += -lapgrfx
 LIBS += -lws32
-LIBS += -lavkon
-LIBS += -ltstaskmonitorclient.dll
+LIBS += -ltstaskmonitorclient
+LIBS += -lcpixcontentinfodb
+LIBS += -lxqserviceutil
 
 CONFIG += qtestlib
 CONFIG += hb
@@ -61,7 +62,7 @@ symbian {
 CONFIG += symbian_test               
 TARGET.UID2 = 0x100039CE
 TARGET.UID3 = 0x20026F9A
-TARGET.CAPABILITY = ALL -TCB -DRM
+TARGET.CAPABILITY = CAP_GENERAL_DLL
 INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE 
 INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE 
 }

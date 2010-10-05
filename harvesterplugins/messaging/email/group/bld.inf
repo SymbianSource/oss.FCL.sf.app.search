@@ -20,3 +20,5 @@ PRJ_MMPFILES
 
 emailplugin.mmp
 
+PRJ_EXPORTS
+../data/emailconfig.xml /epoc32/data/z/resource/qt/plugins/searchsrv/contentconfig/emailconfig.xml

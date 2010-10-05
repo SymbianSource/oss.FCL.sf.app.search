@@ -36,9 +36,9 @@ RESOURCE REGISTRY_INFO theInfo
                                         {
                                         implementation_uid = 0x20029ABA;
                                         version_no = 1;
-                                        display_name = "Videos";
+                                        display_name = "Video";
                                         default_data = "Videos";
-                                        opaque_data = "";
+                                        opaque_data = "z:\\resource\\qt\\plugins\\searchsrv\\contentconfig\\videoconfig.xml";
                                         }
                                 };
                         }

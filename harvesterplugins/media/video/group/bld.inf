@@ -18,3 +18,6 @@
 
 PRJ_MMPFILES
 videoplugin.mmp
+
+PRJ_EXPORTS
+../data/videoconfig.xml /epoc32/data/z/resource/qt/plugins/searchsrv/contentconfig/videoconfig.xml

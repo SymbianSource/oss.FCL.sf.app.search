@@ -22,8 +22,8 @@
 #include <qstatemachine.h>
 #include <qstate.h>
 #include <qfinalstate.h>
-#include <qdebug.h>
 #include <hbapplication.h>
+#include <xqaiwdecl.h>
 
 #define hbApp qobject_cast<HbApplication*>(qApp)
 
@@ -125,10 +125,7 @@ void SearchRuntime::createStates()
             SIGNAL(switchToOnlineState()), wizardOnlineState);
 
     connect(wizardSettingState, SIGNAL(clickstatus(bool)),
-            wizardProgressiveState, SLOT(settingsaction(bool)));
-
-    connect(wizardSettingState, SIGNAL(publishSelectedCategory(int,bool)),
-            wizardProgressiveState, SLOT(getSettingCategory(int,bool)));
+            wizardProgressiveState, SLOT(slotsettingsaction(bool)));
 
     connect(wizardSettingState, SIGNAL(publishISProviderIcon(int,HbIcon)),
             wizardProgressiveState, SLOT(slotISProvidersIcon(int,HbIcon)));
@@ -147,18 +144,18 @@ void SearchRuntime::createStates()
         {
 
         QVariantHash params = hbApp->activateParams();
-        QString var = params.value("activityname").toString();
+        QString var = params.value(XQURI_KEY_ACTIVITY_NAME).toString();
 
-        if (var == "SearchView")
+        if (var == SEARCHAIWDECLMAINVIEW)
             {
             searchRootState->setInitialState(wizardProgressiveState);
             }
-        else if (var == "SearchDeviceQueryView")
+        else if (var == SEARCHAIWDECLINDEVICE)
             {
             searchRootState->setInitialState(wizardProgressiveState);
 
             }
-        else if (var == "SearchWebQueryView")
+        else if (var == SEARCHAIWDECLONLINE)
             {
             searchRootState->setInitialState(wizardOnlineState);
             }

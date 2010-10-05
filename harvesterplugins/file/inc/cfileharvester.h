@@ -35,9 +35,8 @@ class CFileHarvester : public CActive
     		{
     		EHarvesterIdleState,
     		EHarvesterStartHarvest,
-    		EHarvesterGetFileId
+    		EHarvesterGetFileId    		    		
     		};
-
         /**
         * Construction
         * @return Harvester image plugin
@@ -66,6 +65,10 @@ class CFileHarvester : public CActive
         * @param aDriveNumber drive to remove the paths from
         */
         void RemoveIgnorePaths( const TDriveNumber aDriveNumber );
+        /**
+        *  On Resume plugin, continue with file harvesting       
+        */
+        void ResumeRequest();
 
     private:  //From CActive
 

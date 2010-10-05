@@ -27,15 +27,15 @@ class HbListWidget;
 class HbSearchPanel;
 class TsTaskSettings;
 class SearchMainWindow;
-class SearchHbApplication;
 class HbShrinkingVkbHost;
+class SearchContentInfoDbData;
+class ContentInfoDbRead;
 SEARCH_CLASS( SearchStateProviderTest)
 
 class SearchUiLoader : public QObject
     {
 Q_OBJECT
 public:
-
     /**
      * Singleton construtor
      * @since S60 ?S60_version.
@@ -70,6 +70,10 @@ public:
             m_instance = 0;
             }
         }
+
+private:
+    void readDB();
+
 public slots:
 
     /**
@@ -83,6 +87,11 @@ public slots:
      * @since S60 ?S60_version.
      */
     void slotbringvkb();
+
+    void slotdataChanged();
+
+signals:
+    void dbChanged();
 
 public:
 
@@ -111,6 +120,10 @@ public:
     HbSearchPanel* SearchPanel()
         {
         return mSearchPanel;
+        }
+    QList<SearchContentInfoDbData*> ContentInfoList()
+        {
+        return mContentInfoList;
         }
 private:
     /**
@@ -184,6 +197,10 @@ private:
      * Own.
      */
     bool mBringtoForground;
+
+    QList<SearchContentInfoDbData*> mContentInfoList;
+
+    ContentInfoDbRead* mDb;
 private:
     SEARCH_FRIEND_CLASS ( SearchStateProviderTest)
     };
@@ -221,6 +238,128 @@ signals:
      * @since S60 ?S60_version.
      */
     void bringvkb();
+    };
+class SearchContentInfoDbData : public QObject
+    {
+Q_OBJECT
+public:
+
+    /**
+     * Constructor.
+     * @since S60 ?S60_version.     
+     * @param aParent Owner.
+     */
+    SearchContentInfoDbData()
+        {
+        mSearchProgress = false;
+        mSelected = false;
+        }
+
+    /**
+     * Destructor.
+     * @since S60 ?S60_version.
+     */
+    ~SearchContentInfoDbData()
+        {
+        }
+public:
+    QString getCategoryName()
+        {
+        return mCategoryName;
+        }
+    QString getDisplayName()
+        {
+        return mDisplayName;
+        }
+    QString getDisplayIcon()
+        {
+        return mDisplayIcon;
+        }
+    QString getExceptionString()
+        {
+        return mExceptionString;
+        }
+    QString getBaseApp()
+        {
+        return mBaseApp;
+        }
+    QString getTranslationPath()
+        {
+        return mTranslationPath;
+        }
+    bool getActivityUri()
+        {
+        return mActivityUri;
+        }
+    int getDisplayOrder()
+        {
+        return mDisplayOrder;
+        }
+    bool getSearchProgress()
+        {
+        return mSearchProgress;
+        }
+    bool getSelected()
+        {
+        return mSelected;
+        }
+
+    void setCategoryName(QString aCategoryName)
+        {
+        mCategoryName = aCategoryName;
+        }
+    void setDisplayName(QString aDisplayName)
+        {
+        mDisplayName = aDisplayName;
+        }
+    void setDisplayIcon(QString aDisplayIcon)
+        {
+        mDisplayIcon = aDisplayIcon;
+        }
+    void setExceptionString(QString aExceptionString)
+        {
+        mExceptionString = aExceptionString;
+        }
+    void setBaseApp(QString aBaseApp)
+        {
+        mBaseApp = aBaseApp;
+        }
+    void setTranslationPath(QString aTranslationPath)
+        {
+        mTranslationPath = aTranslationPath;
+        }
+    void setActivityUri(QString aActivityUri)
+        {
+        mActivityUri = false;
+        if (aActivityUri.length())
+            {
+            mActivityUri = true;
+            }
+        }
+    void setDisplayOrder(int aDisplayOrder)
+        {
+        mDisplayOrder = aDisplayOrder;
+        }
+    void setSearchProgress(bool aSearchProgress)
+        {
+        mSearchProgress = aSearchProgress;
+        }
+    void setSelected(bool aSelected)
+        {
+        mSelected = aSelected;
+        }
+private:
+    QString mCategoryName;
+    QString mDisplayName;
+    QString mDisplayIcon;
+    QString mExceptionString;
+    bool mActivityUri;
+    QString mBaseApp;
+    int mDisplayOrder;
+    QString mTranslationPath;
+
+    bool mSearchProgress;
+    bool mSelected;
     };
 
 #endif //SEARCH_CONTROLLER_H

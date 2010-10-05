@@ -51,10 +51,18 @@ _LIT(KPathTrailer, "\\root\\media\\video");
 
 //Member Functions
 
-
 CVideoPlugin* CVideoPlugin::NewL()
     {
-    CVideoPlugin* self = new (ELeave) CVideoPlugin;    
+    CVideoPlugin* self = CVideoPlugin::NewLC();
+    CleanupStack::Pop(self);
+    return self;
+    }
+
+CVideoPlugin* CVideoPlugin::NewLC()
+    {
+    CVideoPlugin* self = new (ELeave) CVideoPlugin();
+    CleanupStack::PushL(self);
+    self->ConstructL();
     return self;
     }
 
@@ -81,6 +89,11 @@ CVideoPlugin::~CVideoPlugin()
     delete iMdsItem;
     }
 
+void CVideoPlugin::ConstructL()
+    {
+    iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
+    }
+
 void CVideoPlugin::StartPluginL()
     {
     OstTraceFunctionEntry0( CVIDEOPLUGIN_STARTPLUGINL_ENTRY );
@@ -93,7 +106,7 @@ void CVideoPlugin::StartPluginL()
     // Instansiate harvesting and monitering
     iMdsUtils = CMdsSessionObjectUtils::NewL();
     iMdsUtils->InitializeL();
-    iObjectJobQueueManager = CMdeObjectQueueManager::NewL( this );
+    //iObjectJobQueueManager = CMdeObjectQueueManager::NewL( this );
     iMdeHarvester = CMdeHarvester::NewL( iMdsUtils->GetSession(), this,
                                          iObjectJobQueueManager );   
     iMdsMonitor = CMdsMediaMonitor::NewL( iMdsUtils->GetSession(), iObjectJobQueueManager );
@@ -185,6 +198,8 @@ void CVideoPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
             return;
             }
         // Send for indexing
+        OstTrace0( TRACE_NORMAL, DUP12_CVIDEOPLUGIN_HANDLEMDEITEML, "CVideoPlugin::Indexing Video" );
+        
         if (aActionType == ECPixAddAction)
             {
 #ifdef __PERFORMANCE_DATA
@@ -304,6 +319,20 @@ void CVideoPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
                 }
             iIndexer = NULL;//Assign to null not pointing to any memory
             }    
+    }
+
+void CVideoPlugin::PausePluginL()
+    {
+    OstTraceFunctionEntry0( CVIDEOPLUGIN_PAUSEPLUGINL_ENTRY );
+    iObjectJobQueueManager->PauseL();
+    OstTraceFunctionExit0( CVIDEOPLUGIN_PAUSEPLUGINL_EXIT );
+    }
+
+void CVideoPlugin::ResumePluginL()
+    {
+    OstTraceFunctionEntry0( CVIDEOPLUGIN_RESUMEPLUGINL_ENTRY );
+    iObjectJobQueueManager->ResumeL();
+    OstTraceFunctionExit0( CVIDEOPLUGIN_RESUMEPLUGINL_EXIT );
     }
 
 #ifdef __PERFORMANCE_DATA

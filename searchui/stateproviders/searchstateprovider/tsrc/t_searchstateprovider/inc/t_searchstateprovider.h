@@ -50,12 +50,10 @@ private slots:
 
     void testProgressiveStateConstruction();
     void testProgressiveStateOnEntryAndExitSignalled();
-    void testgetAppIconFromAppId();
-    void testsetSelectedCategories();
+    void testgetAppIconFromAppId();    
     void testonAsyncSearchComplete();
     void testonGetDocumentComplete();
     void testopenResultitem();
-    void testgetSettingCategory();
     void testsetSettings();
     void teststartNewSearch();
     void testsettingsaction();
@@ -75,7 +73,6 @@ private slots:
     void testsettingsStateConstruction();
     void testsettingsStateOnEntryAndExitSignalled();
     void testhandleBackEvent();
-    void testgetItemCategory();
     void testisInternetOn();
     /**
      * t_searchinitstate.cpp
@@ -103,7 +100,7 @@ private slots:
     void testcreateGui();
     void testpreparecategories();
     void testq_currentIndexChanged();
-    void selectedItemCategory();
+    
 
    
 

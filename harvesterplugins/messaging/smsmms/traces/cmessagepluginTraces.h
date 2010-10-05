@@ -1,4 +1,20 @@
-// Created by TraceCompiler 2.2.3
+/*
+* Copyright (c) 2010 Nokia Corporation and/or its subsidiary(-ies).
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  
+*
+*/
+// Created by TraceCompiler 2.3.0
 // DO NOT EDIT, CHANGES WILL BE LOST
 
 #ifndef __CMESSAGEPLUGINTRACES_H__
@@ -18,6 +34,12 @@
 #define CMESSAGEPLUGIN_HANDLESESSIONEVENTL_EXIT 0x8a0018
 #define CMESSAGEPLUGIN_CALCULATEMESSAGETYPE_ENTRY 0x8a0019
 #define CMESSAGEPLUGIN_CALCULATEMESSAGETYPE_EXIT 0x8a001a
+#define CMESSAGEPLUGIN_PAUSEPLUGINL_ENTRY 0x8a0025
+#define CMESSAGEPLUGIN_PAUSEPLUGINL_EXIT 0x8a0026
+#define CMESSAGEPLUGIN_RESUMEPLUGINL_ENTRY 0x8a0027
+#define CMESSAGEPLUGIN_RESUMEPLUGINL_EXIT 0x8a0028
+#define CMESSAGEPLUGIN_MOUNTAVAILABLEDRIVESINQUEUE_ENTRY 0x8a0029
+#define CMESSAGEPLUGIN_MOUNTAVAILABLEDRIVESINQUEUE_EXIT 0x8a002a
 #define CMESSAGEPLUGIN_CONSTRUCTL 0x86001f
 #define CMESSAGEPLUGIN_STARTPLUGINL 0x860020
 #define CMESSAGEPLUGIN_MOUNTL 0x860021

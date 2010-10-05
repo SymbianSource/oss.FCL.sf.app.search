@@ -25,7 +25,6 @@
 #include <hbinstance.h>
 #include <hbaction.h>
 #include <qstandarditemmodel.h>
-#include <qdebug.h>
 #include <qgraphicswidget.h>
 #include <qdir.h>
 #include <hbsearchpanel.h>
@@ -49,11 +48,7 @@ SearchOnlineState::SearchOnlineState(QState *parent) :
 
     mView = mUiLoader->View();
     mListView = mUiLoader->ListWidget();
-    mSearchPanel = mUiLoader->SearchPanel();
-    if (mSearchPanel)
-        {
-        mSearchPanel->setFocus();
-        }
+    mSearchPanel = mUiLoader->SearchPanel();   
     if (mView && mMainWindow)
         {
         mMainWindow->addView(mView);
@@ -76,7 +71,6 @@ SearchOnlineState::~SearchOnlineState()
 //
 void SearchOnlineState::onEntry(QEvent *event)
     {
-    qDebug() << "search:SearchOnlineState::onEntry";
     QState::onEntry(event);
     if (mSearchPanel)
         {

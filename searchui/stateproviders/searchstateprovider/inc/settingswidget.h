@@ -32,7 +32,7 @@ class HbDataForm;
 class HbRadioButtonList;
 class HbDataFormModelItem;
 class HbComboBox;
-
+class SearchUiLoader;
 SEARCH_CLASS(SearchStateProviderTest)
 
 class SettingsWidget : public QObject
@@ -48,208 +48,243 @@ public:
      */
     ~SettingsWidget();
 public:
+
     /**
      * Launching the settings widget
      */
     void launchSettingWidget();
+
     /**
-     * Verifies internet selection
-     * 
+     * returns true is delimeter is on internet mode otherwise false
      */
     bool isInternetSearchOptionSelected();
+
     /**
-     * unchecking subcategories under the main category once main category unchecked
+     * unchecking subcategories under the main category once selectall unchecked
      */
     void unCheckSubCategories();
+
     /**
-     * checking subcategories under the main category once main category checked
+     * checking subcategories under the main category once selectall checked
      */
     void checkSubCategories();
+
     /**
      * storing settings to application ini file
-     * 
      */
     void storeSettingsToiniFile();
+
     /**
-     * Load setting from application ini file
-     * 
+     * Load setting from application ini file      
      */
     void loadDeviceSettings();
 
     /**
-     * Load default settings for search categories to ini file
-     * 
+     * Load settings whether mode in internet/indevice
      */
-
     void loadBaseSettings();
 
     /**
      * make "OK" button visible 
-     * 
      */
     void setActionVisibility();
+
     /**
      * enable default settings in the application ini file
-     * 
      */
     void storeDefaultSettings();
 
     /**
      * setting up gui for the settings widget
      */
-
     void createGui();
 
     /**
      * Filter out categories from the sql database provided by the engine
      * for only those categories that have been successfully harvested
      */
-
     void preparecategories();
 
     /**
      * initilize the settings wizard while entering to the setting state
      */
-
     void initialize();
 
+    /**
+     * Load Internet handler and settings 
+     */
     void loadIS();
 
 public slots:
+
     /**
      * will be called when settings OK is clicked
      */
-    void checkBoxOkEvent();
+    void slotOkEvent();
+
     /**
      * will be called when setting cancel is called
      */
-    void checkBoxCancelEvent();
+    void slotCancelEvent();
+
     /**
-     * will be called whenn any check box is checked
+     * will be called when any check box is checked
      */
-    void itemChecked(int);
+    void slotstateChanged(int);
+
     /**
      * slot called while clicking items added to  the combobox
      */
+    void slotcurrentIndexChanged(int);
 
-    void q_currentIndexChanged(int);
-
+    /**
+     * to get the details of intenet service provider
+     */
     void slotproviderDetails(QString, HbIcon, int);
 
+    /**
+     * to get the details of default intenet service provider
+     */
     void slotdefaultProvider(const int);
 
+    /**
+     * to get notify about selection of internet provider
+     */
     void slotitemSelected(int);
+
+    /**
+     * to get notify about contentinfodb changes
+     */
+    void slotdbChanged();
+
 signals:
+
     /**
      * Emitted when setting closed
-     * 
      */
     void settingsEvent(bool);
-    /**
-     * Emitted if settings changed for "go" button
-     * 
-     */
-    void settingsChanged();
-    /**
-     * Emitted when categories selected or deselected
-     * 
-     */
-    void selectedItemCategory(int, bool);
 
+    /**
+     * to notify the indevice search state to display suggestion links
+     */
     void ISProvidersIcon(HbIcon, int);
 
 private:
+
     /**
      * for Device category list
      */
     QList<HbCheckBox*> mDeviceCheckBoxList;
+
     /**
      * for Internet category list
      */
     QList<HbCheckBox*> mInternetCheckBoxList;
+
     /**
-     * mapper to map checkboxes
-     * 
+     * mapper to map checkboxes 
      */
     QSignalMapper* signalMapper;
+
     /**
      * settings widget popup
      */
     HbDialog *popup;
+
     /**
      * to indicate internet is selected or not
      */
     bool isInternetSelected;
 
     /**
-     * list of hardcoded device categories
+     * list holds the localised text id's of category name
      */
-    QMap<QString, bool> mCategoryDbMapping;
-
     QStringList mDeviceListDisplay;
-    /**
-     * list of hardcoded device categories:cretaed to
-     * set up default category values to the ini file
-     */
 
-    QStringList mDeviceCategoryRefList;
     /**
-     * intermediate variable to store selected category values
+     * list holds the localised string of category name
      */
+    QStringList mDeviceStoragelist;
 
-    QList<bool> mDeviceMapping;
     /**
-     * list of hardcoded service providers
-     */
-    //QStringList internetCategoryList;
-    /**
-     * for unit testing
+     * lst holds the modes (indevice/internet)
      */
     QStringList mCategoryList;
-    /**
-     * DocumentLoader variable for the setting widget
-     */
 
+    /**
+     * to load the docml and ui objects
+     */
     HbDocumentLoader* mDocumentLoader;
 
     /**
      * Dataform for the settingwidget
      */
-
     HbDataForm* dataform;
 
     /**
      * Dataform model
      */
     HbDataFormModel* mModel;
+
     /**
      * variable for customizing each item the in the dataform
      */
-
     QList<HbDataFormModelItem*> mModelItemList;
 
-    QList<QAction*> mActions;
+    /**
+     * primary action for delimeter popup
+     */
+    QAction* primaryAction;
 
+    /**
+     * secondary action for delimeter popup
+     */
+    QAction* secondaryAction;
+
+    /**
+     * hold the setting value of category mode 
+     */
     int mSelectedScope;
 
+    /**
+     * hold the Id of internet service provider
+     */
     int mSelectedProvider;
+
     /**
      * Radio buttion list for internet search categories
      */
-
     HbRadioButtonList* mradiolist;
 
     /** 
-     * combobox items
+     * combobox provide an option to select indevice/internet
      */
     HbComboBox *comboBox;
 
+    /** 
+     * to execute the ui preparation at once
+     */
     bool mInstialize;
+
+    /** 
+     * validating the select all
+     */
     bool mchangestate;
 
+    /** 
+     * handler to get the internet service provider details
+     */
     OnlineHandler *mInternetHandler;
 
+    /** 
+     * internet service providers and its ID's
+     */
     QMap<int, QString> mServiceProviders;
+
+    /** 
+     * common ui controller, to get the contentinfodb details
+     */
+    SearchUiLoader* mUiLoader;
 
     SEARCH_FRIEND_CLASS (SearchStateProviderTest)
     };

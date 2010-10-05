@@ -1,4 +1,20 @@
-// Created by TraceCompiler 2.1.2
+/*
+* Copyright (c) 2010 Nokia Corporation and/or its subsidiary(-ies).
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description: 
+ *
+*/
+// Created by TraceCompiler 2.3.0
 // DO NOT EDIT, CHANGES WILL BE LOST
 
 #ifndef __CCONTACTSPLUGINTRACES_H__
@@ -18,9 +34,22 @@
 #define DUP5_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML 0x86000a
 #define DUP6_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML 0x86000b
 #define DUP7_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML 0x86000c
+#define DUP8_CCONTACTSPLUGIN_CREATECONTACTINDEXITEML 0x86000d
+#define CCONTACTSPLUGIN_PAUSEPLUGINL_ENTRY 0x8a0001
+#define CCONTACTSPLUGIN_PAUSEPLUGINL_EXIT 0x8a0002
+#define CCONTACTSPLUGIN_RESUMEPLUGINL_ENTRY 0x8a0003
+#define CCONTACTSPLUGIN_RESUMEPLUGINL_EXIT 0x8a0004
+#define CCONTACTSPLUGIN_OVERWRITEORADDTOQUEUEL_ENTRY 0x8a0005
+#define CCONTACTSPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT 0x8a0006
+#define DUP1_CCONTACTSPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT 0x8a0007
+#define CCONTACTSPLUGIN_INDEXQUEUEDITEMS_ENTRY 0x8a0008
+#define CCONTACTSPLUGIN_INDEXQUEUEDITEMS_EXIT 0x8a0009
 
 
 #ifndef __KERNEL_MODE__
+#ifndef __OSTTRACEGEN1_TUINT32_CONST_TDESC16REF__
+#define __OSTTRACEGEN1_TUINT32_CONST_TDESC16REF__
+
 inline TBool OstTraceGen1( TUint32 aTraceID, const TDesC16& aParam1 )
     {
     TBool retval;
@@ -55,6 +84,9 @@ inline TBool OstTraceGen1( TUint32 aTraceID, const TDesC16& aParam1 )
         }
     return retval;
     }
+
+#endif // __OSTTRACEGEN1_TUINT32_CONST_TDESC16REF__
+
 #endif
 
 

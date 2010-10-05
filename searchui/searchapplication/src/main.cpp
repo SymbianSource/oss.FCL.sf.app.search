@@ -42,21 +42,7 @@ int main(int argc, char *argv[])
     commonTranslator.load("common_" + lang, path);
     search.installTranslator(&commonTranslator);
 
-    QTranslator musicTranslator;
-    musicTranslator.load("musicplayer_" + lang, path);
-    search.installTranslator(&musicTranslator);
 
-    QTranslator contactsTranslator;
-    contactsTranslator.load("contacts_" + lang, path);
-    search.installTranslator(&contactsTranslator);
-
-    QTranslator calenderTranslator;
-    calenderTranslator.load("calendar_" + lang, path);
-    search.installTranslator(&calenderTranslator);
-
-    QTranslator notesTranslator;
-    notesTranslator.load("notes_" + lang, path);
-    search.installTranslator(&notesTranslator);
     PERF_APP_LAUNCH_END("Search Component Cunstructions starts");
 
     PERF_APP_LAUNCH_END("Search Component Cunstructions Ends");

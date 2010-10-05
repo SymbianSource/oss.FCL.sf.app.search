@@ -375,14 +375,26 @@ void CFileHarvester::GetFileIdL()
                 {
                 TParse fileParser;
                 fileParser.Set( iDirscan->FullPath(), &(*iDir)[iCurrentIndex].iName, NULL );
-                if(aEntry.IsDir())
-                    {                    
-                    iFilePlugin.CreateFolderFileIndexItemL(fileParser.FullName(), ECPixAddAction);
+                if( iFilePlugin.GetHarvesterState() )
+                    {
+                    if(aEntry.IsDir())
+                        {                    
+                        iFilePlugin.CreateFolderFileIndexItemL(fileParser.FullName(), ECPixAddAction);
+                        }
+                    else
+                        {
+                        iFilePlugin.CreateContentIndexItemL(fileParser.FullName(), ECPixAddAction);
+                        iFilePlugin.CreateFolderFileIndexItemL(fileParser.FullName(), ECPixAddAction, false);
+                        }
                     }
                 else
                     {
-                    iFilePlugin.CreateContentIndexItemL(fileParser.FullName(), ECPixAddAction);
-                    iFilePlugin.CreateFolderFileIndexItemL(fileParser.FullName(), ECPixAddAction, false);
+                    TBool isFolder = EFalse;
+                    if(aEntry.IsDir())
+                        {                    
+                        isFolder = ETrue;
+                        }
+                    iFilePlugin.AddToQueueL(fileParser.FullName(), ECPixAddAction, isFolder);
                     }
                 // TODO: If this is not TRAPPED, state machine breaks 
                 iStepNumber++;
@@ -484,14 +496,23 @@ void CFileHarvester::SetNextRequest( TFileHarvesterState aState )
     {
     OstTrace0( TRACE_NORMAL, CFILEHARVESTER_SETNEXTREQUEST, "CFileHarvester::SetNextRequest" );
     CPIXLOGSTRING("CFileHarvester::SetNextRequest");
-    if ( !IsActive() )
+    if ( !IsActive()  && (iFilePlugin.GetHarvesterState()) )
         {
         iHarvestState = aState;
         SetActive();
         TRequestStatus* status = &iStatus;
         User::RequestComplete( status, KErrNone );
         }
+    else
+        iHarvestState = aState; 
     }
 
+void CFileHarvester::ResumeRequest()
+    {
+    OstTraceFunctionEntry0( CFILEHARVESTER_RESUMEREQUEST_ENTRY );
+    if(iHarvestState != EHarvesterIdleState)
+        SetNextRequest(iHarvestState);
+    OstTraceFunctionExit0( CFILEHARVESTER_RESUMEREQUEST_EXIT );
+    }
 
 // End of File

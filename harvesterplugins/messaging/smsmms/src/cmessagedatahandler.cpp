@@ -42,7 +42,7 @@
 
 
 /** Number of symbols from MsgBody taken to excerpt */
-const TInt KMsgBodyExcerptSymbols = 160;
+//const TInt KMsgBodyExcerptSymbols = 160;
 
 // For Ucs2 detection
 const TInt KUtf8BomLength = 3;
@@ -51,7 +51,7 @@ const TUint8 KUtf8Bom[KUtf8BomLength] = {0xEF, 0xBB, 0xBF};
 // CSearchDocument ID max length
 const TUint KMaxDocId = 20;
 // Hardcoded limit for the body size to index (and store)
-const TInt KMaxDocumentSize = 1024;
+//const TInt KMaxDocumentSize = 1024;
 
 _LIT8(KMimeTypeText, "text/plain" );
 
@@ -60,17 +60,17 @@ _LIT(KMimeTypeMessaging, MESSAGING_MIMETYPE);
 
 /** Field names */
 _LIT(KToField, TO_FIELD);
-_LIT(KCcField, CC_FIELD);
-_LIT(KBccField, BCC_FIELD);
+//_LIT(KCcField, CC_FIELD);
+//_LIT(KBccField, BCC_FIELD);
 _LIT(KFromField, FROM_FIELD);
 _LIT(KFolderField, FOLDER_FIELD);
 _LIT(KBodyField, BODY_FIELD);
 _LIT(KSubjectField, SUBJECT_FIELD);
 _LIT(KAttachmentField, ATTACHMENT_FIELD);
 _LIT(KValueAttachment, "Attachment");
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 _LIT(KExcerptDelimiter, " ");
-#endif
+//#endif
 // ============================ MEMBER FUNCTIONS ===============================
 
 // ---------------------------------------------------------------------------
@@ -192,6 +192,7 @@ void CMessageDataHandler::CreateMessageIndexItemL(const TMsvId& aMsvId,
 	{
 	OstTrace1( TRACE_NORMAL, CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::CreateMessageIndexItemL;aMsvId=%d", aMsvId );
 	CPIXLOGSTRING2("CMessageDataHandler::CreateMessageIndexItemL(): aMsvId = %d ", aMsvId );
+	OstTrace0( TRACE_NORMAL, DUP5_CMESSAGEDATAHANDLER_CREATEMESSAGEINDEXITEML, "CMessageDataHandler::Indexing Message" );
 
 	// Index an empty item if removal action
 	if (aActionType == ECPixRemoveAction)
@@ -302,19 +303,19 @@ CSearchDocument* CMessageDataHandler::CreateSmsDocumentL(const TMsvId& aMsvId, c
 	HBufC *fromNameOrNumberBuf = entry.iDetails.AllocLC();
 	index_item->AddFieldL(KFromField, *fromNameOrNumberBuf,
 	        CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
-#ifdef USE_HIGHLIGHTER 
+//#ifdef USE_HIGHLIGHTER 
 	if( aFolderId == KMsvGlobalInBoxIndexEntryIdValue)
         {
         index_item->AddHLDisplayFieldL(*fromNameOrNumberBuf);
         }
-#endif	
+//#endif	
 
 	// Add the recipients as content items
 	TBuf<64> to_field;
 	
-#ifdef USE_HIGHLIGHTER	
+//#ifdef USE_HIGHLIGHTER	
 	HBufC* toList = HBufC::NewL(5);
-#endif	
+//#endif	
 	const CDesCArray
 			& recipientArray =
 					static_cast<const CDesCArray&> (iSmsMtm->AddresseeList().RecipientList());
@@ -326,7 +327,7 @@ CSearchDocument* CMessageDataHandler::CreateSmsDocumentL(const TMsvId& aMsvId, c
 		index_item->AddFieldL(to_field, recipientArray.MdcaPoint(i),
 		        CDocumentField::EStoreYes | CDocumentField::EIndexTokenized | CDocumentField::EIndexFreeText);
 		
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
         // Folder field		
 		// Iterate through the list of recipients and add them under To field 
 		if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue)
@@ -341,16 +342,16 @@ CSearchDocument* CMessageDataHandler::CreateSmsDocumentL(const TMsvId& aMsvId, c
             ptr.Append(recipientArray.MdcaPoint(i));
             ptr.Append(KExcerptDelimiter);            
             }        
-#endif
+//#endif
 		}
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 	if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue)
 	    {
 	    index_item->AddHLDisplayFieldL( *toList);
 	    }
 	delete toList;
 	toList = NULL;
-#endif
+//#endif
 	// Add the body text as a content item
 	TInt msgLength = iSmsMtm->Body().DocumentLength();
 	HBufC* bodyText = HBufC::NewLC(msgLength);
@@ -389,18 +390,18 @@ CSearchDocument* CMessageDataHandler::CreateMmsDocumentL(const TMsvId& aMsvId, c
 	
 	// Add from field
 	index_item->AddFieldL(KFromField, iMmsMtm->Sender());
-#ifdef USE_HIGHLIGHTER 
+//#ifdef USE_HIGHLIGHTER 
     if( aFolderId == KMsvGlobalInBoxIndexEntryIdValue)
         {
         index_item->AddHLDisplayFieldL(iMmsMtm->Sender());
         }
-#endif
+//#endif
 
 	// Add the recipients as content items
 	TBuf<64> to_field;
-#ifdef USE_HIGHLIGHTER 
+//#ifdef USE_HIGHLIGHTER 
     HBufC* toList = HBufC::NewL(5);
-#endif
+//#endif
 	const CDesCArray
 			& recipientArray =
 					static_cast<const CDesCArray&> (iMmsMtm->AddresseeList().RecipientList());
@@ -411,7 +412,7 @@ CSearchDocument* CMessageDataHandler::CreateMmsDocumentL(const TMsvId& aMsvId, c
 			to_field.AppendNum(i);
 		index_item->AddFieldL(to_field, recipientArray.MdcaPoint(i));
 		
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
         // Folder field     
         // Iterate through the list of recipients and add them under To field 
         if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue)
@@ -426,17 +427,17 @@ CSearchDocument* CMessageDataHandler::CreateMmsDocumentL(const TMsvId& aMsvId, c
             ptr.Append(recipientArray.MdcaPoint(i));
             ptr.Append(KExcerptDelimiter);            
             }        
-#endif
+//#endif
 		}
 
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
     if( aFolderId != KMsvGlobalInBoxIndexEntryIdValue)
         {
         index_item->AddHLDisplayFieldL( *toList);
         }
     delete toList;
     toList = NULL;
-#endif
+//#endif
 	// Add subject
 	TPtrC subject(iMmsMtm->SubjectL());
 	index_item->AddFieldL(KSubjectField, subject);
@@ -565,11 +566,11 @@ HBufC* CMessageDataHandler::CreateExcerptLC(const TDesC& aFromAddress,
 	_LIT(KEllipsis, "...");
 	_LIT(KSpace, " ");
 	//
-#ifdef USE_HIGHLIGHTER	
+//#ifdef USE_HIGHLIGHTER	
 	TInt excerptLength = aBodyText.Length() + KEllipsis().Length();
-#else	
-	TInt excerptLength = KMsgBodyExcerptSymbols + KEllipsis().Length();
-#endif	
+//#else	
+//	TInt excerptLength = KMsgBodyExcerptSymbols + KEllipsis().Length();
+//#endif	
 	//Not removing commented out code as this may come back into use in near future.
 //	TMsvEntry entry;
 //	TMsvId service = 0;
@@ -623,13 +624,13 @@ HBufC* CMessageDataHandler::CreateExcerptLC(const TDesC& aFromAddress,
 //		excerptPtr.Append(aSubject);
 //		excerptPtr.Append(KSpace);
 //		}
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
     excerptPtr.Append(aBodyText);
-#else    
-	excerptPtr.Append(aBodyText.Left(KMsgBodyExcerptSymbols));	
-	if (aBodyText.Length() > KMsgBodyExcerptSymbols)
-		excerptPtr.Append(KEllipsis);
-#endif
+//#else    
+//	excerptPtr.Append(aBodyText.Left(KMsgBodyExcerptSymbols));	
+//	if (aBodyText.Length() > KMsgBodyExcerptSymbols)
+//		excerptPtr.Append(KEllipsis);
+//#endif
 //	CleanupStack::PopAndDestroy(folder_str);
 	CleanupStack::PushL(excerpt);
 	return excerpt;
@@ -856,13 +857,30 @@ TInt CMessageDataHandler::RunError(TInt aError)
 //
 void CMessageDataHandler::HandleNextRequest()
 	{
-	if (!IsActive())
+	OstTraceFunctionEntry0( CMESSAGEDATAHANDLER_HANDLENEXTREQUEST_ENTRY );
+	if (!IsActive() && iMessagePlugin.GetHarvesterState())
 		{
 		SetActive();
 		TRequestStatus* status = &iStatus;
 		User::RequestComplete(status, KErrNone);
 		}
+	OstTraceFunctionExit0( CMESSAGEDATAHANDLER_HANDLENEXTREQUEST_EXIT );
 	}
+
+void CMessageDataHandler::ResumeL()
+    {
+    OstTraceFunctionEntry0( CMESSAGEDATAHANDLER_RESUMEL_ENTRY );
+    if (iMessageArray.Count() > 0 && iMessagePlugin.GetHarvesterState())
+        {
+        // Take first id from array
+        CreateMessageIndexItemL(iMessageArray[0].iMessageId,
+                iMessageArray[0].iActionType, iMessageArray[0].iFolderId);
+        
+        // Remove item that is handled
+        iMessageArray.Remove(0);
+        }
+    OstTraceFunctionExit0( CMESSAGEDATAHANDLER_RESUMEL_EXIT );
+    }
 
 // End of File
 

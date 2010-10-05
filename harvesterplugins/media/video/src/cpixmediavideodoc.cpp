@@ -106,18 +106,18 @@ CSearchDocument* CCPIXMediaVideoDoc::GetCpixDocumentL(const CMdEObject& aObject,
         CMdETextProperty* textProperty = ( CMdETextProperty* ) property;
         if( textProperty->Value().Compare(KNullDesC) > 0 )
             {
-#ifdef USE_HIGHLIGHTER    
+//#ifdef USE_HIGHLIGHTER    
             index_item->AddHLDisplayFieldL(textProperty->Value());
             AddToFieldExcerptL(name); //Add name to excerpt field
-#else  
-            AddToFieldExcerptL(name); //Add name to excerpt field
-#endif
+//#else  
+//            AddToFieldExcerptL(name); //Add name to excerpt field
+//#endif
             }
             else
             {
-#ifdef USE_HIGHLIGHTER    
+//#ifdef USE_HIGHLIGHTER    
             index_item->AddHLDisplayFieldL(name);
-#endif
+//#endif
             }
         }
     //URI and Excerpt is done add additional properties here 

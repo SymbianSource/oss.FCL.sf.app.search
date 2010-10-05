@@ -97,7 +97,7 @@ CImagePlugin::~CImagePlugin()
 // -----------------------------------------------------------------------------
 void CImagePlugin::ConstructL()
 	{
-	
+    iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
 	}
 
 // -----------------------------------------------------------------------------
@@ -114,7 +114,7 @@ void CImagePlugin::StartPluginL()
 	//Instantiate all monitoring and harvesting class here
 	iMdsUtils = CMdsSessionObjectUtils::NewL();
 	iMdsUtils->InitializeL(); //Create valid session in it
-	iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
+	//iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
 	iMdeHarvester = CMdeHarvester::NewL(iMdsUtils->GetSession(),
 	                                    this,iObjectJobQueueManager);
 	iMdsMonitor = CMdsMediaMonitor::NewL(iMdsUtils->GetSession(),iObjectJobQueueManager);
@@ -204,6 +204,8 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
             CPIXLOGSTRING("CImagePlugin::HandleMdeItemL(): Indexer not found");
             return;
             }
+        OstTrace0( TRACE_NORMAL, DUP12_CIMAGEPLUGIN_HANDLEMDEITEML, "CImagePlugin::Indexing Image" );
+        
         // Send for indexing
         if (aActionType == ECPixAddAction)
             {
@@ -326,6 +328,20 @@ void CImagePlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
             }
         iIndexer = NULL;//Assign to null not pointing to any memory
         }    
+    }
+
+void CImagePlugin::PausePluginL()
+    {
+    OstTraceFunctionEntry0( CIMAGEPLUGIN_PAUSEPLUGINL_ENTRY );
+    iObjectJobQueueManager->PauseL();
+    OstTraceFunctionExit0( CIMAGEPLUGIN_PAUSEPLUGINL_EXIT );
+    }
+
+void CImagePlugin::ResumePluginL()
+    {
+    OstTraceFunctionEntry0( CIMAGEPLUGIN_RESUMEPLUGINL_ENTRY );
+    iObjectJobQueueManager->ResumeL();    
+    OstTraceFunctionExit0( CIMAGEPLUGIN_RESUMEPLUGINL_EXIT );
     }
 
 #ifdef __PERFORMANCE_DATA

@@ -19,3 +19,5 @@
 PRJ_MMPFILES
 notesplugin.mmp
 
+PRJ_EXPORTS
+../data/notesconfig.xml /epoc32/data/z/resource/qt/plugins/searchsrv/contentconfig/notesconfig.xml

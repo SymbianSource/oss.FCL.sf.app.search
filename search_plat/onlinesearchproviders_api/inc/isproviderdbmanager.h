@@ -31,6 +31,12 @@
 #endif
 
 
+/**
+ * @file
+ * @ingroup Common
+ * @brief Provides management facility for internet search provider config db.
+ */
+
 
 class QSqlDatabase;
 

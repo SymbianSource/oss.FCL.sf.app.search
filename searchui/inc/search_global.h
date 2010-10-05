@@ -26,8 +26,46 @@
 #include <e32hal.h>
 #endif
 #endif
-//settings file 
+
+//settings storage path 
 const QString SETTINGS_INI_PATH("C:\\private\\2002c377\\searchsettings.ini");
+
+
+#define SEARCHAIWDECLINDEVICE "SearchDeviceQueryView"
+#define SEARCHAIWDECLONLINE "SearchWebQueryView"
+#define SEARCHAIWDECLMAINVIEW "SearchView"
+
+#define SEARCHAIWQUERY "query"
+
+#define SEARCHAPPUID "2002C377"
+
+#define DEFAULT_SEARCH_FIELD "_aggregate"
+
+
+#define SUGGESTIONLINKS "links"
+
+#define FIRSTLINEFIELD "_hlexcerpt"
+#define MAILBOXFIELD "MailBoxId"
+#define FOLDERFIELD "FolderId"
+#define NAMEFIELD "Name"
+#define EXTENSIONFIELD "Extension"
+#define ISFOLDERFIELD "IsFolder"
+#define MEDIAIDFIELD "MediaId"
+
+#define MEDIACATEGORY "media"
+#define AUDIOCATEGORY "audio"
+#define VIDEOCATEGORY "video"
+#define IMAGECATEGORY "image"
+#define EMAILCATEGORY "email"
+#define CONTACTCATEGORY "contact"
+#define CALENDARCATEGORY "calendar"
+#define BOOKMARKCATEGORY "bookmark"
+#define APPLICATIONCATEGORY "applications"
+#define NOTESCATEGORY "notes"
+#define FILECATEGORY "file"
+#define MESSAGECATEGORY "msg"
+#define FILEFOLDERCATEGORY "file folder"
+
 //#define OST_TRACE_COMPILER_IN_USE //Uncomment to enable performance measurements.
 
 #ifdef OST_TRACE_COMPILER_IN_USE

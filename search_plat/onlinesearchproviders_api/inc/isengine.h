@@ -15,6 +15,12 @@
 *
 */
 
+/**
+ * @file
+ * @ingroup Common
+ * @brief Provides internet search plugin config db interface
+ */
+
 #ifndef ISENGINE_H
 #define ISENGINE_H
 

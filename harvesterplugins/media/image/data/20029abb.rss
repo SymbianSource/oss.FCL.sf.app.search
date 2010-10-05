@@ -36,9 +36,9 @@ RESOURCE REGISTRY_INFO theInfo
                                         {
                                         implementation_uid = 0x20029ABB;
                                         version_no = 1;
-                                        display_name = "Images";
+                                        display_name = "Image";
                                         default_data = "Images";
-                                        opaque_data = "";
+                                        opaque_data = "z:\\resource\\qt\\plugins\\searchsrv\\contentconfig\\imageconfig.xml";
                                         }
                                 };
                         }

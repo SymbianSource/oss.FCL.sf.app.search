@@ -49,6 +49,11 @@ public:
     */
     static CVideoPlugin* NewL();    
     /*
+     * NewLC
+     * @return instance of Media plugin
+     */
+    static CVideoPlugin* NewLC();
+    /*
     * Destructor
     */
     ~CVideoPlugin();
@@ -67,6 +72,10 @@ public:
     * Leaves in case of errors.
     */
     void StartHarvestingL(const TDesC & aQualifiedBaseAppClass);
+    
+    void PausePluginL();
+    void ResumePluginL();
+    
     /*
     * HandleMdeItemL callback from MMediaObjectHandler
     * @param TItemId aObjId object Id
@@ -92,7 +101,11 @@ private:
     /*
     * Default constructor
     */
-    CVideoPlugin();    
+    CVideoPlugin();
+    /*
+     * Second phase constructor
+     */
+    void ConstructL();
 
 private:
     // data

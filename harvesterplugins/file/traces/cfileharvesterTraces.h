@@ -1,4 +1,20 @@
-// Created by TraceCompiler 2.1.2
+/*
+* Copyright (c) 2010 Nokia Corporation and/or its subsidiary(-ies).
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description: 
+*
+*/
+// Created by TraceCompiler 2.3.0
 // DO NOT EDIT, CHANGES WILL BE LOST
 
 #ifndef __CFILEHARVESTERTRACES_H__
@@ -16,6 +32,8 @@
 #define CFILEHARVESTER_GETFILEIDL_EXIT 0x8a0008
 #define CFILEHARVESTER_RUNL_ENTRY 0x8a0009
 #define CFILEHARVESTER_RUNL_EXIT 0x8a000a
+#define CFILEHARVESTER_RESUMEREQUEST_ENTRY 0x8a003a
+#define CFILEHARVESTER_RESUMEREQUEST_EXIT 0x8a003b
 #define CFILEHARVESTER_ADDIGNOREPATHSL 0x860001
 #define DUP1_CFILEHARVESTER_ADDIGNOREPATHSL 0x860002
 #define DUP2_CFILEHARVESTER_ADDIGNOREPATHSL 0x860003
@@ -33,6 +51,9 @@
 
 
 #ifndef __KERNEL_MODE__
+#ifndef __OSTTRACEGEN1_TUINT32_CONST_TDESC16REF__
+#define __OSTTRACEGEN1_TUINT32_CONST_TDESC16REF__
+
 inline TBool OstTraceGen1( TUint32 aTraceID, const TDesC16& aParam1 )
     {
     TBool retval;
@@ -67,6 +88,9 @@ inline TBool OstTraceGen1( TUint32 aTraceID, const TDesC16& aParam1 )
         }
     return retval;
     }
+
+#endif // __OSTTRACEGEN1_TUINT32_CONST_TDESC16REF__
+
 #endif
 
 

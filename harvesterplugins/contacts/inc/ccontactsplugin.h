@@ -75,6 +75,18 @@ const TInt KYearLength = 4;
 
 class CContactsPlugin : public CIndexingPlugin, public MContactDbObserver, public MDelayedCallbackObserver
 {
+private:
+    enum THarvesterState
+        {
+        EHarvesterIdleState,
+        EHarvesterStartHarvest        
+        };
+        
+    struct TRecord 
+        {
+        TInt iContactId;
+        TCPixActionType iActionType;
+        };
 public:
 	static CContactsPlugin* NewL();
 	static CContactsPlugin* NewLC();
@@ -85,7 +97,8 @@ public:
 	 */
 	void StartPluginL();
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
-
+	void PausePluginL();
+	void ResumePluginL();
 	/**
 	 * From MContactDbObserver, HandleDatabaseEventL.
 	 */
@@ -119,13 +132,17 @@ protected:
 	 *  Helper function: adds information field to the document and to the excerpt field(if available)
 	 */
 	void AddFieldToDocumentAndExcerptL(CSearchDocument& aDocument, CContactItemFieldSet& aFieldSet, TUid aFieldId, const TDesC& aFieldName, const TInt aConfig = CDocumentField::EStoreYes | CDocumentField::EIndexTokenized );
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 	void AddFieldToHLExcerptL( CContactItemFieldSet& aFieldSet, TUid aFieldId);
-#endif
+//#endif
 	/**
 	 * Creates the actual contact book index item
 	 */
 	void CreateContactIndexItemL(TInt aContentId, TCPixActionType aActionType);
+	
+	void OverWriteOrAddToQueueL(TRecord& aEntry);
+	
+	void IndexQueuedItems();
 
 private:
 	
@@ -141,12 +158,17 @@ private:
 	TInt iCurrentIndex;	
 	/** placeholder for Excerpt text dynamic creation */
 	HBufC* iExcerpt;
-#ifdef USE_HIGHLIGHTER
+//#ifdef USE_HIGHLIGHTER
 	   HBufC* iHLDisplayExcerpt;
-#endif
+//#endif
 	// CPix database 
     CCPixIndexer* iIndexer;
-
+    //State of harvester either to pause/resume
+    TBool iIndexState;    
+    // Queue of documents to be indexed
+    RArray<TRecord> iJobQueue;
+    //harvesting state
+    THarvesterState iHarvestState;
 //for helping with testing.
 #ifdef HARVESTERPLUGINTESTER_FRIEND
     friend class CHarvesterPluginTester;

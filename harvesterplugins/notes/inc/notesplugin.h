@@ -38,7 +38,18 @@ class CCalInstance;
 
 class CNotesPlugin : public CIndexingPlugin, public MDelayedCallbackObserver, public MCalChangeCallBack2
 {
-public: // Constructors and destructor
+public: // Constructors and destructo
+
+	enum THarvesterState
+        {
+        EHarvesterIdleState,
+        EHarvesterStartHarvest        
+        };
+    struct TRecord 
+        {
+        TCalLocalUid iLocalUid;
+        TCPixActionType iActionType;
+        };
     /*
      * NewL
      * @return instance of Notes plugin
@@ -57,6 +68,8 @@ public: // Constructors and destructor
 public: // From CIndexingPlugin
 	void StartPluginL();
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
+    void PausePluginL();
+    void ResumePluginL();
 	
 public:	// From MCalChangeCallBack2
 	
@@ -90,6 +103,10 @@ private:
      * Leaves in case of errors.
      */
 	void InitTimeValuesL( TTime& aStartTime, TTime& aEndTime );
+	
+	void OverWriteOrAddToQueueL(const TCalLocalUid& aLocalUid, TCPixActionType aActionType);
+	        
+	void IndexQueuedItems();
 
 private: // Constructors
 	
@@ -125,6 +142,13 @@ private:
 	
 	//Notes count
 	TInt iNoteCount;
+	
+	//State of harvester either to pause/resume
+    TBool iIndexState;    
+    // Queue of documents to be indexed
+    RArray<TRecord> iJobQueue;    
+    //harvesting state
+    THarvesterState iHarvestState;
 	
 	//for unit testing.
 	#ifdef HARVESTERPLUGINTESTER_FRIEND

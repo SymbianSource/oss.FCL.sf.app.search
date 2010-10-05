@@ -57,8 +57,10 @@ LIBS += -lapparc
 LIBS += -lefsrv
 LIBS += -lapgrfx
 LIBS += -lws32
-LIBS += -lavkon
-LIBS += -ltstaskmonitorclient.dll
+LIBS += -ltstaskmonitorclient
+LIBS += -lcpixcontentinfodb
+LIBS += -lxqserviceutil
+
 
 coverage:DEFINES += COVERAGE_MEASUREMENT
 
@@ -83,7 +85,7 @@ symbian {
     TARGET.UID2 = 0x20004C45
     TARGET.UID3 = 0x2002C37A
     TARGET.EPOCALLOWDLLDATA=1
-    TARGET.CAPABILITY = ALL -TCB -DRM
+    TARGET.CAPABILITY = CAP_GENERAL_DLL 
     INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE 
     INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE
     

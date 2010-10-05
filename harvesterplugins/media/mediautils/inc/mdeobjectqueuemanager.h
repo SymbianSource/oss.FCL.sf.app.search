@@ -52,6 +52,8 @@ public:
     void RunL();
     void DoCancel();
     TInt RunError();
+    void PauseL();
+    void ResumeL();
 private:
     /*
      * OverWriteOrAddToQueueL add or update item to queue
@@ -65,6 +67,10 @@ private:
      */
     CMdeObjectQueueManager(MMediaObjectHandler* );
     /*
+     * Activate the timer object to index queued media items
+     */
+    void ActivateAO();
+    /*
      * Second phase constructor
      */
     void ConstructL();
@@ -73,6 +79,11 @@ private:
     { 
         EStateNone = 0, 
         EStateWaiting 
+    };
+    enum THarvestingState 
+    { 
+        EStateResume = 0, 
+        EStatePause 
     };
     struct TMdeActionRecord 
     {
@@ -89,6 +100,7 @@ private:
     RArray<TMdeActionRecord> iJobQueue; 
     // State machine's state
     TState iState;
+    THarvestingState iHState;
     // Timer which is used to delay indexing messages
     RTimer iTimer; //Timer for self activation of AO
     MMediaObjectHandler* iMdeObjectHandler; //media object handler

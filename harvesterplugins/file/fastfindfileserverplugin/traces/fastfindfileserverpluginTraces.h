@@ -1,4 +1,20 @@
-// Created by TraceCompiler 2.1.2
+/*
+* Copyright (c) 2010 Nokia Corporation and/or its subsidiary(-ies).
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  Monitors file creations, modifications and deletions.
+*
+*/
+// Created by TraceCompiler 2.3.0
 // DO NOT EDIT, CHANGES WILL BE LOST
 
 #ifndef __FASTFINDFILESERVERPLUGINTRACES_H__
@@ -122,6 +138,9 @@
 
 
 #ifndef __KERNEL_MODE__
+#ifndef __OSTTRACEGEN1_TUINT32_CONST_TDESC16REF__
+#define __OSTTRACEGEN1_TUINT32_CONST_TDESC16REF__
+
 inline TBool OstTraceGen1( TUint32 aTraceID, const TDesC16& aParam1 )
     {
     TBool retval;
@@ -156,6 +175,9 @@ inline TBool OstTraceGen1( TUint32 aTraceID, const TDesC16& aParam1 )
         }
     return retval;
     }
+
+#endif // __OSTTRACEGEN1_TUINT32_CONST_TDESC16REF__
+
 #endif
 
 

@@ -18,3 +18,5 @@
 PRJ_MMPFILES
 calendarplugin.mmp
 
+PRJ_EXPORTS
+../data/calendarconfig.xml                                                  /epoc32/data/z/resource/qt/plugins/searchsrv/contentconfig/calendarconfig.xml

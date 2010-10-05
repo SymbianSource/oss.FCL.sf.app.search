@@ -22,8 +22,6 @@
 #include "searchonlinestate.h"
 
 #include <qstate.h>
-#include <qdebug.h>
-
 // states
 const char initStateFileUri[] = "search.nokia.com/state/initstate";
 

@@ -75,6 +75,7 @@ void CMdeObjectQueueManager::ConstructL()
     {
     CActiveScheduler::Add(this);
     User::LeaveIfError(iTimer.CreateLocal());
+    iHState = EStateResume;
     }
 
 // -----------------------------------------------------------------------------
@@ -84,32 +85,8 @@ void CMdeObjectQueueManager::ConstructL()
 void CMdeObjectQueueManager::AddMdeItemToQueueL( TItemId aMsgId, 
                                                  TCPixActionType aActionType)
     {
-    OverWriteOrAddToQueueL(aMsgId,aActionType);
-    // Check the size against maximum queue size
-    if (iJobQueue.Count() > INDEXING_QUEUE_MAX)
-        {
-        // Maximum is exceeded, force the write immediately
-        if (iState == EStateWaiting)
-            {
-            iTimer.Cancel(); // RunL will be called with iStatus of KErrCancelled
-            }
-        else if (iState == EStateNone)
-            {
-            SetActive();
-            TRequestStatus* status = &iStatus;
-            User::RequestComplete(status, KErrNone); // RunL will be called with iStatus of KErrNone
-            }
-        }
-        else
-        {
-            // Maximum is not exceeded, keep waiting
-            if (iState == EStateNone)
-            {
-            iState = EStateWaiting;
-            iTimer.After(iStatus, INDEXING_DELAY); // Wait 5 seconds before putting this to index
-            SetActive();
-            }
-        }
+    OverWriteOrAddToQueueL(aMsgId,aActionType);    
+    ActivateAO();
     }
 
 // -----------------------------------------------------------------------------
@@ -137,6 +114,38 @@ void CMdeObjectQueueManager::OverWriteOrAddToQueueL( TItemId aObjId,
     iJobQueue.AppendL(object);    
     }
 
+void CMdeObjectQueueManager::ActivateAO()
+    {
+    // Proceed only if the plugin is not in pause state 
+    if ( iHState == EStateResume )
+        {
+        // Check the size against maximum queue size
+        if (iJobQueue.Count() > INDEXING_QUEUE_MAX)
+            {
+            // Maximum is exceeded, force the write immediately
+            if (iState == EStateWaiting)
+                {
+                iTimer.Cancel(); // RunL will be called with iStatus of KErrCancelled
+                }
+            else if (iState == EStateNone)
+                {
+                SetActive();
+                TRequestStatus* status = &iStatus;
+                User::RequestComplete(status, KErrNone); // RunL will be called with iStatus of KErrNone
+                }
+            }
+        else
+            {
+            // Maximum is not exceeded, keep waiting
+            if (iState == EStateNone)
+                {
+                iState = EStateWaiting;
+                iTimer.After(iStatus, INDEXING_DELAY); // Wait 5 seconds before putting this to index
+                SetActive();
+                }
+            }
+        }
+    }
 // -----------------------------------------------------------------------------
 // CCPixIndexerUtils::RunL()
 // -----------------------------------------------------------------------------
@@ -144,7 +153,14 @@ void CMdeObjectQueueManager::OverWriteOrAddToQueueL( TItemId aObjId,
 void CMdeObjectQueueManager::RunL()
     {
     CPIXLOGSTRING("START CMdeObjectQueueManager::RunL");
-    while (iJobQueue.Count()>0)
+    
+    if ( iHState == EStatePause )
+        {
+        iState = EStateNone;
+        CPIXLOGSTRING("END CMdeObjectQueueManager::RunL as Harvester in Pause state");  
+        return;          
+        }
+    while (iJobQueue.Count()>0 )
         {
         TMdeActionRecord object = iJobQueue[0];
         //iJobQueue.Remove(0);
@@ -194,4 +210,23 @@ TInt CMdeObjectQueueManager::RunError()
     {
     return KErrNone;
     }
+
+// -----------------------------------------------------------------------------
+// CCPixIndexerUtils::PauseL()
+// -----------------------------------------------------------------------------
+//
+void CMdeObjectQueueManager::PauseL()
+    {
+    iHState = EStatePause;
+    }
+// -----------------------------------------------------------------------------
+// CCPixIndexerUtils::ResumeL()
+// -----------------------------------------------------------------------------
+//
+void CMdeObjectQueueManager::ResumeL()
+    {
+    iHState = EStateResume;
+    ActivateAO();       
+    }
+
 //End of file

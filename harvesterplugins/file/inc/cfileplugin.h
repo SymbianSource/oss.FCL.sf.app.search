@@ -44,7 +44,15 @@ const TInt KFilePluginBaseAppClassMaxLen = 64;
 
 class CFilePlugin : public CIndexingPlugin
 {
-public:
+public:    
+    
+    struct TRecord
+        {
+        TFileName iUri;
+        TCPixActionType iActionType;
+        TBool isFolder;
+        };
+    
 	static CFilePlugin* NewL();
 	static CFilePlugin* NewLC();
 	virtual ~CFilePlugin();
@@ -54,7 +62,8 @@ public:
 	 */
 	void StartPluginL();
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
-
+	void PausePluginL();
+	void ResumePluginL();
 	/**
 	 * CreateContentIndexItemL sends a file for indexing contents
 	 * @aFilename full path and filename of the file to be indexed
@@ -67,6 +76,11 @@ public:
      * @aActionType action to be taken on the file
      */
 	void CreateFolderFileIndexItemL(const TDesC& aFilename, TCPixActionType aActionType, TBool aIsDir = ETrue);
+	/**
+     * Get the current file plugin harvesting state 
+     * ETrue on pause, EFalse on resume  
+     */
+	TBool GetHarvesterState();
 private:
 	/**
      * CreateCpixDocumentL creates a document file 
@@ -79,6 +93,12 @@ private:
      * @aExt file extention
      */
 	TBool IsFileTypeMedia(const TDesC& aExt);
+	
+	/**
+     * RemoveFileDatabaseL deletes the database file from the requested drive 
+     * @aDrive drive number
+     */
+	void RemoveFileDatabaseL(TDriveNumber aDrive);
 
 public:
 	// 
@@ -132,6 +152,12 @@ public:
 	 * returns pointer to the IndexDb path.
 	 */
 	HBufC* DatabasePathLC(TDriveNumber aMedia,const TDesC& aPath);
+	
+	void MountAvailableDrivesInQueue();
+	
+	void AddToQueueL(const TDesC& aFilename, TCPixActionType aActionType, TBool aIsFolder);
+	            
+	void IndexQueuedItems();
 
 protected:
 	CFilePlugin();
@@ -142,6 +168,10 @@ private:
     CCPixIndexer* iIndexer[EDriveZ+1]; // EDriveZ enum value is 25, so add 1.
     
     CCPixIndexer* iFolderIndexer[EDriveZ+1];
+    
+    RArray<TDriveNumber>  iMountDrives;
+    
+    RArray<TRecord> iJobQueue;
 
     // File system session
     RFs iFs;
@@ -154,7 +184,9 @@ private:
     CFileMonitor* iMonitor;
 
     // MMC monitor
-    CMMCMonitor* iMmcMonitor; 
+    CMMCMonitor* iMmcMonitor;
+    
+    TBool iIndexState;
    
     //for unit testing.
     #ifdef HARVESTERPLUGINTESTER_FRIEND

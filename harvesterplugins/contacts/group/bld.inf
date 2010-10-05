@@ -19,3 +19,5 @@
 PRJ_MMPFILES
 contactsplugin.mmp
 
+PRJ_EXPORTS
+../data/contactconfig.xml /epoc32/data/z/resource/qt/plugins/searchsrv/contentconfig/contactconfig.xml

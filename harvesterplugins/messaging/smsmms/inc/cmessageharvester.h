@@ -46,6 +46,8 @@ class CMessageHarvester : public CActive
         * Start harvesting message items
         */
         void StartHarvestingL();
+        
+        void ResumeRequest();
 
     private:  //From CActive
 

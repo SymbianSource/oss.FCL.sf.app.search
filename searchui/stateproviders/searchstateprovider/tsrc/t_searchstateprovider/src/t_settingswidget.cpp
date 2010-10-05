@@ -15,7 +15,6 @@
 //
 void SearchStateProviderTest::testsettingswizardConstruction()
     {
-    // HbMainWindow* wind = mainWindow();
     SettingsWidget* settingswizard = new SettingsWidget();
 
     QVERIFY(settingswizard != NULL);
@@ -29,18 +28,8 @@ void SearchStateProviderTest::testsettingswizardConstruction()
 void SearchStateProviderTest::teststoreSettingsToiniFile()
     {
     SettingsWidget* settingswizard = new SettingsWidget();
-
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
-    HbAction * action = new HbAction();
-      //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
-      settingswizard->mActions.append(action);
-
-      action = new HbAction();
-      //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
-      settingswizard->mActions.append(action);
-
-    settingswizard->q_currentIndexChanged(0);
+    
+    settingswizard->initialize();
 
     for (int i = 0; i < settingswizard->mDeviceCheckBoxList.count(); i++)
         (settingswizard->mDeviceCheckBoxList.at(i))->setCheckState(
@@ -49,6 +38,7 @@ void SearchStateProviderTest::teststoreSettingsToiniFile()
     settingswizard->storeSettingsToiniFile();
 
     settingswizard->loadDeviceSettings();
+    
     for (int i = 0; i < settingswizard->mDeviceCheckBoxList.count(); i++)
         QCOMPARE(settingswizard->mDeviceCheckBoxList.at(i)->checkState(),Qt::Unchecked);
 
@@ -59,17 +49,13 @@ void SearchStateProviderTest::teststoreSettingsToiniFile()
 //
 void SearchStateProviderTest::testloadDeviceSettings()
     {
-    SettingsWidget* settingswizard = new SettingsWidget();
-
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
+    SettingsWidget* settingswizard = new SettingsWidget();    
     settingswizard->initialize();
-
-    settingswizard->q_currentIndexChanged(0);
-
+    
     for (int i = 0; i < settingswizard->mDeviceCheckBoxList.count(); i++)
         (settingswizard->mDeviceCheckBoxList.at(i))->setCheckState(
                 Qt::Checked);
+    
     settingswizard->storeSettingsToiniFile();
 
     settingswizard->loadDeviceSettings();
@@ -82,9 +68,6 @@ void SearchStateProviderTest::testloadDeviceSettings()
 void SearchStateProviderTest::testloadBaseSettings()
     {
     SettingsWidget* settingswizard = new SettingsWidget();
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
-
     QCOMPARE(settingswizard->mSelectedScope,0);
     delete settingswizard;
     }
@@ -94,19 +77,8 @@ void SearchStateProviderTest::testloadBaseSettings()
 void SearchStateProviderTest::testlaunchSettingWidget()
     {
     SettingsWidget* settingswizard = new SettingsWidget();
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
-    HbAction * action = new HbAction();
-        // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
-         settingswizard->mActions.append(action);
-
-         action = new HbAction();
-         //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
-         settingswizard->mActions.append(action);
-
-    settingswizard->q_currentIndexChanged(0);
+    settingswizard->initialize();
     settingswizard->launchSettingWidget();
-
     delete settingswizard;
 
     }
@@ -116,7 +88,6 @@ void SearchStateProviderTest::testisInternetSearchOptionSelected()
     settingswizard->initialize();
     settingswizard->isInternetSelected = false;
     QCOMPARE(settingswizard->isInternetSearchOptionSelected(),false);
-
     delete settingswizard;
 
     }
@@ -124,10 +95,7 @@ void SearchStateProviderTest::testunCheckSubCategories()
     {
     SettingsWidget* settingswizard = new SettingsWidget();
     settingswizard->initialize();
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
 
-    settingswizard->q_currentIndexChanged(0);
     settingswizard->mDeviceCheckBoxList.at(0)->setCheckState(Qt::Unchecked);
 
     for (int i = 0; i < settingswizard->mDeviceCheckBoxList.count(); i++)
@@ -141,10 +109,6 @@ void SearchStateProviderTest::testcheckSubCategories()
     SettingsWidget* settingswizard = new SettingsWidget();
     settingswizard->initialize();
 
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
-
-    settingswizard->q_currentIndexChanged(0);
     settingswizard->mDeviceCheckBoxList.at(0)->setCheckState(Qt::Checked);
 
     for (int i = 0; i < settingswizard->mDeviceCheckBoxList.count(); i++)
@@ -161,10 +125,6 @@ void SearchStateProviderTest::teststoreDefaultSettings()
 
     SettingsWidget* settingswizard = new SettingsWidget();
     settingswizard->initialize();
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
-
-    settingswizard->q_currentIndexChanged(0);
 
     for (int i = 0; i < settingswizard->mDeviceCheckBoxList.count(); i++)
         QCOMPARE(settingswizard->mDeviceCheckBoxList.at(i)->checkState(),Qt::Checked);
@@ -173,21 +133,9 @@ void SearchStateProviderTest::teststoreDefaultSettings()
 void SearchStateProviderTest::testcheckBoxOkEvent()
     {
     SettingsWidget* settingswizard = new SettingsWidget();
-
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
-    HbAction * action = new HbAction();
-          // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
-           settingswizard->mActions.append(action);
-
-           action = new HbAction();
-           //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
-           settingswizard->mActions.append(action);
-
-    settingswizard->q_currentIndexChanged(0);
-
+    settingswizard->initialize();    
     QSignalSpy spy(settingswizard, SIGNAL(settingsEvent(bool)));
-    settingswizard->checkBoxOkEvent();
+    settingswizard->slotOkEvent();
     QCOMPARE(spy.count(), 1);
     delete settingswizard;
 
@@ -195,21 +143,9 @@ void SearchStateProviderTest::testcheckBoxOkEvent()
 void SearchStateProviderTest::testcheckBoxCancelEvent()
     {
     SettingsWidget* settingswizard = new SettingsWidget();
-
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
-    
-    HbAction * action = new HbAction();
-          // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
-           settingswizard->mActions.append(action);
-
-           action = new HbAction();
-           //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
-           settingswizard->mActions.append(action);
-
-    settingswizard->q_currentIndexChanged(0);
+    settingswizard->initialize();
     QSignalSpy spy(settingswizard, SIGNAL(settingsEvent(bool)));
-    settingswizard->checkBoxCancelEvent();
+    settingswizard->slotCancelEvent();
     QCOMPARE(spy.count(), 1);
     delete settingswizard;
 
@@ -218,17 +154,6 @@ void SearchStateProviderTest::testitemChecked()
     {
     SettingsWidget* settingswizard = new SettingsWidget();
     settingswizard->initialize();
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
-    HbAction * action = new HbAction();
-          // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
-           settingswizard->mActions.append(action);
-
-           action = new HbAction();
-           //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
-           settingswizard->mActions.append(action);
-
-    settingswizard->q_currentIndexChanged(0);
 
     settingswizard->mDeviceCheckBoxList.at(0)->setCheckState(Qt::Unchecked);
 
@@ -242,9 +167,6 @@ void SearchStateProviderTest::testitemChecked()
 void SearchStateProviderTest::testpreparecategories()
     {
     SettingsWidget* settingswizard = new SettingsWidget();
-
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
     settingswizard->preparecategories();
     QVERIFY(settingswizard->mDeviceListDisplay.count());
     delete settingswizard;
@@ -253,44 +175,13 @@ void SearchStateProviderTest::testpreparecategories()
 void SearchStateProviderTest::testq_currentIndexChanged()
     {
     SettingsWidget* settingswizard = new SettingsWidget();
-
-       settingswizard->mCategoryDbMapping.insert("Contacts", true);
-       settingswizard->mCategoryDbMapping.insert("Messages", true);
-       settingswizard->initialize();
-       HbAction * action = new HbAction();
-             // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
-              settingswizard->mActions.append(action);
-
-              action = new HbAction();
-              //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
-              settingswizard->mActions.append(action);
-
-       settingswizard->q_currentIndexChanged(0);
-       settingswizard->q_currentIndexChanged(1);
-       delete settingswizard;
-    }
-void SearchStateProviderTest::selectedItemCategory()
-    {
-    SettingsWidget* settingswizard = new SettingsWidget();
-
-    settingswizard->mCategoryDbMapping.insert("Contacts", true);
-    settingswizard->mCategoryDbMapping.insert("Messages", true);
-    HbAction * action = new HbAction();
-          // connect(action, SIGNAL(triggered()), this, SLOT(checkBoxOkEvent()));
-           settingswizard->mActions.append(action);
-
-           action = new HbAction();
-           //connect(action, SIGNAL(triggered()), this, SLOT(checkBoxCancelEvent()));
-           settingswizard->mActions.append(action);
-    settingswizard->q_currentIndexChanged(0);
-    QSignalSpy spy(settingswizard, SIGNAL(selectedItemCategory(int,bool)));
-    settingswizard->loadDeviceSettings();
-    QVERIFY(spy.count());
+    settingswizard->initialize();
     delete settingswizard;
     }
 void SearchStateProviderTest::testcreateGui()
     {
-    SettingsWidget* settingswizard = new SettingsWidget();    
+    SettingsWidget* settingswizard = new SettingsWidget();
+    settingswizard->initialize();
     delete settingswizard;
     }
 

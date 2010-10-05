@@ -353,7 +353,16 @@ void CBookmarksPlugin::HandleFavouritesDbEventL( RDbNotifier::TEvent aEvent )
         StartHarvestingL( KNullDesC );
         }
     }
-	
+
+void CBookmarksPlugin::PausePluginL()
+    {
+    
+    }
+
+void CBookmarksPlugin::ResumePluginL()
+    {
+    
+    }	
 // -----------------------------------------------------------------------------
 #ifdef __PERFORMANCE_DATA
 void  CBookmarksPlugin::UpdatePerformaceDataL()
