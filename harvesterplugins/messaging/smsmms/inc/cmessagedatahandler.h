@@ -57,6 +57,12 @@ public:
 	void GatherDataL(TMsvId& aMessageId, TCPixActionType aActionType, TMsvId& aFolderId);
 	
 	void ResumeL();
+	
+	void SetFilePath( const TDesC& aFilePath );
+	
+	void SaveRecordsL();
+	
+	void LoadRecordsL();
 
 private:
 	//From CActive
@@ -165,6 +171,7 @@ private:
 	CPop3ClientMtm*				iPop3Mtm;                   // client for opening pop3
 	CImap4ClientMtm*			iImap4Mtm;                  // client for opening imap4
 	RFs							iFs;
+	TFileName   iFilePath;
 #ifdef HARVESTERPLUGINTESTER_FRIEND
     friend class CHarvesterPluginTester;
 #endif

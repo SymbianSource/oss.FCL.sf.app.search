@@ -19,7 +19,8 @@
 #include "mediaplugin.h"
 
 #include <e32base.h> 
-
+#include <s32file.h>
+#include <bautils.h>
 #include "harvesterserverlogger.h"
 #include "common.h"
 #include "csearchdocument.h"
@@ -41,6 +42,7 @@
 
 //Constants
 _LIT(KPathTrailer, "\\root\\media\\audio");
+_LIT(KManagerFileName, "AudioStore.temp");
 
 //***** MEDAI AUDIO*****
 #define MEDIA_QBASEAPPCLASS   "@0:root media audio"
@@ -52,6 +54,7 @@ _LIT(KPathTrailer, "\\root\\media\\audio");
 #define LMEDIAGENERICAPPCLASS  L":root media audio"
 #define DATABASEPATH           "\\root\\media\\audio"
 #define LDATABASEPATH           "\\root\\media\\audio"
+
 
 // -----------------------------------------------------------------------------
 CAudioPlugin* CAudioPlugin::NewL()
@@ -94,12 +97,23 @@ CAudioPlugin::~CAudioPlugin()
 	delete iMMcMonitor;
 	delete iDBManager;
 	delete iMdsItem;
+	iFs.Close();
 	}
 	
 // -----------------------------------------------------------------------------
 void CAudioPlugin::ConstructL()
 	{
     iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
+    // connect to file system
+    User::LeaveIfError(iFs.Connect());    
+    // Load the configuration
+    TFileName pathWithoutDrive;
+    iFs.CreatePrivatePath(EDriveC);
+    iFilePath = _L("C:");        
+    iFs.PrivatePath( pathWithoutDrive );
+    iFilePath.Append(pathWithoutDrive);
+    iFilePath.Append(KManagerFileName);
+    iObjectJobQueueManager->SetFilePath(iFilePath);
 	}
 
 // -----------------------------------------------------------------------------
@@ -130,6 +144,8 @@ void CAudioPlugin::StartPluginL()
 	TUid uidOfPlugin = {0x20029AB9};
 	iDBManager = CCPIXMDEDbManager::NewL(uidOfPlugin);
 	iMdsItem = CMDSEntity::NewL();
+	if( BaflUtils::FileExists(iFs,iFilePath) )
+	        LoadL();
 	OstTraceFunctionExit0( CAUDIOPLUGIN_STARTPLUGINL_EXIT );
 	}
 
@@ -334,16 +350,26 @@ void CAudioPlugin::HandleMdeItemL( TItemId aObjId, TCPixActionType aActionType)
 
 void CAudioPlugin::PausePluginL()
     {
-    OstTraceFunctionEntry0( CAUDIOPLUGIN_PAUSEPLUGINL_ENTRY );
-    iObjectJobQueueManager->PauseL();
+    OstTraceFunctionEntry0( CAUDIOPLUGIN_PAUSEPLUGINL_ENTRY );    
+    iObjectJobQueueManager->PauseL();    
     OstTraceFunctionExit0( CAUDIOPLUGIN_PAUSEPLUGINL_EXIT );
     }
 
 void CAudioPlugin::ResumePluginL()
     {
-    OstTraceFunctionEntry0( CAUDIOPLUGIN_RESUMEPLUGINL_ENTRY );
+    OstTraceFunctionEntry0( CAUDIOPLUGIN_RESUMEPLUGINL_ENTRY );    
     iObjectJobQueueManager->ResumeL();
     OstTraceFunctionExit0( CAUDIOPLUGIN_RESUMEPLUGINL_EXIT );
+    }
+
+void CAudioPlugin::LoadL()
+    {
+    iObjectJobQueueManager->LoadQueuedItems();    
+    }
+
+void CAudioPlugin::SaveL()
+    {
+    iObjectJobQueueManager->SaveQueuedItems();
     }
 
 #ifdef __PERFORMANCE_DATA

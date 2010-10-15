@@ -54,6 +54,7 @@ CMdeObjectQueueManager::~CMdeObjectQueueManager()
     {
     Cancel();
     iTimer.Close();
+    iFs.Close();
     }
 
 // -----------------------------------------------------------------------------
@@ -74,6 +75,7 @@ CMdeObjectQueueManager::CMdeObjectQueueManager(MMediaObjectHandler* aHandler):
 void CMdeObjectQueueManager::ConstructL()
     {
     CActiveScheduler::Add(this);
+    User::LeaveIfError(iFs.Connect());
     User::LeaveIfError(iTimer.CreateLocal());
     iHState = EStateResume;
     }
@@ -125,13 +127,17 @@ void CMdeObjectQueueManager::ActivateAO()
             // Maximum is exceeded, force the write immediately
             if (iState == EStateWaiting)
                 {
-                iTimer.Cancel(); // RunL will be called with iStatus of KErrCancelled
+                if(IsActive())
+                    iTimer.Cancel(); // RunL will be called with iStatus of KErrCancelled
                 }
             else if (iState == EStateNone)
                 {
-                SetActive();
-                TRequestStatus* status = &iStatus;
-                User::RequestComplete(status, KErrNone); // RunL will be called with iStatus of KErrNone
+                if(!IsActive())
+                    {
+                    SetActive();
+                    TRequestStatus* status = &iStatus;
+                    User::RequestComplete(status, KErrNone); // RunL will be called with iStatus of KErrNone
+                    }
                 }
             }
         else
@@ -139,9 +145,12 @@ void CMdeObjectQueueManager::ActivateAO()
             // Maximum is not exceeded, keep waiting
             if (iState == EStateNone)
                 {
-                iState = EStateWaiting;
-                iTimer.After(iStatus, INDEXING_DELAY); // Wait 5 seconds before putting this to index
-                SetActive();
+                if(!IsActive())
+                    {
+                    iState = EStateWaiting;
+                    iTimer.After(iStatus, INDEXING_DELAY); // Wait 5 seconds before putting this to index
+                    SetActive();
+                    }
                 }
             }
         }
@@ -160,7 +169,7 @@ void CMdeObjectQueueManager::RunL()
         CPIXLOGSTRING("END CMdeObjectQueueManager::RunL as Harvester in Pause state");  
         return;          
         }
-    while (iJobQueue.Count()>0 )
+    while (iJobQueue.Count()>0  && iHState == EStateResume )
         {
         TMdeActionRecord object = iJobQueue[0];
         //iJobQueue.Remove(0);
@@ -188,7 +197,13 @@ void CMdeObjectQueueManager::RunL()
         iMdeObjectHandler->UpdateLogL();
 #endif
         // Everything is indexed no need to be waiting anymore
-        iState = EStateNone;    
+        iState = EStateNone;
+        
+        if(iJobQueue.Count() <= 0)
+            {
+            if( BaflUtils::FileExists( iFs, iFilePath ))
+                 BaflUtils::DeleteFile( iFs, iFilePath );
+            }
         CPIXLOGSTRING("END CMdeObjectQueueManager::RunL");    
     }
 
@@ -229,4 +244,55 @@ void CMdeObjectQueueManager::ResumeL()
     ActivateAO();       
     }
 
+void CMdeObjectQueueManager::SetFilePath(const TDesC& aFilePath)
+    {
+    iFilePath.Copy(aFilePath);
+    }
+
+void CMdeObjectQueueManager::SaveQueuedItems()
+    {
+    if( iJobQueue.Count() <= 0)
+        return;
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Replace(iFs, iFilePath, EFileWrite));
+    CleanupClosePushL(file);
+    
+    RFileWriteStream wr(file);
+    wr.PushL();
+    
+    // Write harvester count
+    wr.WriteInt32L(iJobQueue.Count());
+    
+    for (TInt i=0; i<iJobQueue.Count(); i++)    
+        {
+        wr.WriteUint32L(iJobQueue[i].iObjectId);
+        wr.WriteInt16L(iJobQueue[i].iAction);        
+        }    
+    // Commit and cleanup
+    wr.CommitL();
+    CleanupStack::PopAndDestroy(2, &file);
+    }
+
+void CMdeObjectQueueManager::LoadQueuedItems()
+    {
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Open(iFs, iFilePath, EFileRead));
+    CleanupClosePushL(file);
+    RFileReadStream rd(file);
+    rd.PushL();    
+    
+    // Read harvester count
+    TInt count = rd.ReadInt32L();
+    // Read the harvesters
+    for (TInt i=0; i<count; i++)
+        {
+        TItemId iObjId= rd.ReadUint32L();
+        TCPixActionType iActionType = static_cast<TCPixActionType> ( rd.ReadInt16L());        
+        AddMdeItemToQueueL( iObjId, iActionType );
+        }    
+    // Cleanup
+    CleanupStack::PopAndDestroy(2, &file);
+    }
 //End of file

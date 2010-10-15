@@ -28,6 +28,7 @@
 #include <xqaiwrequest.h>
 #include "search_global.h"
 #include <f32file.h>
+#include <afactivation.h>
 
 #ifdef OST_TRACE_COMPILER_IN_USE //defined in Search_global.h 
 #define PERF_CAT_API_TIME_RESTART  m_categorySearchApiTime.restart();
@@ -248,7 +249,7 @@ public slots:
      * Slot to launch the search result screen with the activity URI  
      * @since S60 ?S60_version.
      */
-    void slotactivityRequested(const QString &name);
+    void slotactivityRequested(Af::ActivationReason reason, const QString &name, QVariantHash parameter  );
 
     /**
      * Slot to notify when theme is changed
@@ -479,6 +480,7 @@ private:
     QSize mListViewIconSize;
 
     SearchUiLoader* mUiLoader;
+    AfActivation *activation ;
 
     bool mStateStatus;
 

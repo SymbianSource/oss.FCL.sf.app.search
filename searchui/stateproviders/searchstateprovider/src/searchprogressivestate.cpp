@@ -60,7 +60,7 @@
 #include <email_services_api.h>
 #include <xqrequestinfo.h>
 QTM_USE_NAMESPACE
-#define hbApp qobject_cast<HbApplication*>(qApp)
+
 
 const int intial_iteration = 3;
 const int batch_iteration = 20;
@@ -95,6 +95,9 @@ SearchProgressiveState::SearchProgressiveState(QState *parent) :
         mSearchPanel->setPlaceholderText(hbTrId(
                 "txt_search_dialog_search_device"));
         }
+   
+    activation  = new AfActivation(this);
+          connect( activation, SIGNAL( activated( Af::ActivationReason, QString, QVariantHash ) ), this, SLOT( slotactivityRequested( Af::ActivationReason, QString, QVariantHash ) ) );
 
     constructHandlers();
     if (mView && mMainWindow)
@@ -108,11 +111,7 @@ SearchProgressiveState::SearchProgressiveState(QState *parent) :
     mResultparser = 0;
     loadSettings = true;
 
-    if (hbApp)
-        {
-        connect(hbApp->activityManager(), SIGNAL(activityRequested(QString)),
-                this, SLOT(slotactivityRequested(QString)));
-        }
+
 
 #ifdef OST_TRACE_COMPILER_IN_USE 
     //start() the timers to avoid worrying abt having to start()/restart() later
@@ -1079,11 +1078,10 @@ void SearchProgressiveState::slotviewingCompleted()
 // ---------------------------------------------------------------------------
 void SearchProgressiveState::slotviewReady()
     {
-    if (hbApp)
-        {
-        if (hbApp->activateReason() == Hb::ActivationReasonActivity)
+   
+        if (activation->reason() == Af::ActivationReasonActivity)
             {
-            QVariantHash params = hbApp->activateParams();
+            QVariantHash params = activation->parameters();
             QString searchKey = params.value(SEARCHAIWQUERY).toString();
             params.remove(SEARCHAIWQUERY);
             params.remove(XQURI_KEY_ACTIVITY_NAME);
@@ -1109,7 +1107,7 @@ void SearchProgressiveState::slotviewReady()
             if (searchKey.length() > 0)
                 mSearchPanel->setCriteria(searchKey);
             }
-        }
+       
     PERF_APP_LAUNCH_END("SearchAppplication View is ready");
     emit applicationReady();
     }
@@ -1134,11 +1132,11 @@ void SearchProgressiveState::slotISProvidersIcon(int id, HbIcon icon)
 // ---------------------------------------------------------------------------
 // SearchProgressiveState::slotactivityRequested
 // ---------------------------------------------------------------------------
-void SearchProgressiveState::slotactivityRequested(const QString &name)
+void SearchProgressiveState::slotactivityRequested(Af::ActivationReason reason, const QString &name, QVariantHash parameter )
     {
-    if (name == SEARCHAIWDECLINDEVICE)
+    if ((reason == Af::ActivationReasonActivity)&&(name == SEARCHAIWDECLINDEVICE))
         {
-        QVariantHash params = hbApp->activateParams();
+        QVariantHash params =parameter;
         QString searchKey = params.value(SEARCHAIWQUERY).toString();
         int i = params.count();
         params.remove(SEARCHAIWQUERY);
@@ -1248,8 +1246,7 @@ void SearchProgressiveState::parseDocument(CpixDocument* aDoc)
             }                
         for (int i = 0; i < mUiLoader->ContentInfoList().count(); i++)
             {
-            if (aDoc->baseAppClass()
-                    == mUiLoader->ContentInfoList().at(i)->getBaseApp())
+            if (!(aDoc->baseAppClass().compare (mUiLoader->ContentInfoList().at(i)->getBaseApp())))
                 {
                 if (!firstrow.length())
                     {
@@ -1296,9 +1293,10 @@ void SearchProgressiveState::loadTranslator(QString localizationpath)
     int pos = localizationpath.lastIndexOf("/");
     
     QString path = localizationpath.left(pos);
-    QString filename = localizationpath.right(pos);
+    QString filename = localizationpath.right((localizationpath.length() - 1) - pos);
 
-    translator->load(filename + lang, path);
-
-    QCoreApplication::installTranslator(translator);
+    if(translator->load(filename + lang, path))
+           QCoreApplication::installTranslator(translator);
+    else
+        delete translator;
     }

@@ -371,6 +371,11 @@ void CApplicationsPlugin::ResumePluginL()
     OstTraceFunctionExit0( CAPPLICATIONSPLUGIN_RESUMEPLUGINL_EXIT );
     }
 
+void CApplicationsPlugin::SaveL()
+    {
+    
+    }
+
 #ifdef __PERFORMANCE_DATA
 void CApplicationsPlugin::UpdatePerformaceDataL()
     {

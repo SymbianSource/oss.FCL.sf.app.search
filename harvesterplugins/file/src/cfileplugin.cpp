@@ -56,6 +56,7 @@ _LIT(KIsFolderField, "IsFolder");
 _LIT(KMimeTypeFile, FILE_MIMETYPE);
 _LIT(KMimeTypeFolder , FOLDER_MIMETYPE);
 _LIT(KMimeTypeField , CPIX_MIMETYPE_FIELD);
+_LIT(KManagerFileName, "FilesStore.temp");
 
 #define CONSTANT_TO_PTR16(ptr, c) TPtrC16 ptr; ptr.Set((const TUint16*)c,User::StringLength(c) );
 
@@ -221,7 +222,18 @@ void CFilePlugin::ConstructL()
 
     iHarvester = CFileHarvester::NewL(*this, iFs);
     iMonitor = CFileMonitor::NewL(*this, &iFs);
-    iMmcMonitor = CMMCMonitor::NewL(*this, &iFs);
+    iMmcMonitor = CMMCMonitor::NewL(*this, &iFs);    
+    
+    // connect to file system
+    User::LeaveIfError(iFs.Connect());    
+    // Load the configuration
+    TFileName pathWithoutDrive;
+    iFs.CreatePrivatePath(EDriveC);
+    iFilePath = _L("C:");        
+    iFs.PrivatePath( pathWithoutDrive );
+    iFilePath.Append(pathWithoutDrive);
+    iFilePath.Append(KManagerFileName);
+    
     }
 
 void CFilePlugin::StartPluginL()
@@ -266,6 +278,9 @@ void CFilePlugin::StartPluginL()
     			}
             }
         }
+    
+    if( BaflUtils::FileExists(iFs,iFilePath) )
+            LoadL();
 }
 
 void CFilePlugin::MountL(TDriveNumber aMedia, TBool aForceReharvest)
@@ -687,11 +702,9 @@ CSearchDocument* CFilePlugin::CreateCpixDocumentL(const TDesC& aFilePath, TBool 
     }
 
 void CFilePlugin::RemoveFileDatabaseL(TDriveNumber aDrive)
-    {
-    RFs aFs;
-    User::LeaveIfError( aFs.Connect() );
+    {    
     TChar drive;
-    TInt err = aFs.DriveToChar((TDriveNumber)aDrive,drive);
+    TInt err = iFs.DriveToChar((TDriveNumber)aDrive,drive);
     if ( err == KErrNone )
         {
         TBuf<KMaxFileName> folderpath;
@@ -700,12 +713,11 @@ void CFilePlugin::RemoveFileDatabaseL(TDriveNumber aDrive)
         folderpath.Append(KCPixSearchServerPrivateDirectory);
         folderpath.Append(KIndexingDBPath);
         folderpath.Append(KfileDBPath);
-        CFileMan* FileMan = CFileMan::NewL(aFs);
+        CFileMan* FileMan = CFileMan::NewL(iFs);
         if ( FileMan )
             FileMan->Delete( folderpath );
         delete FileMan;
         }
-    aFs.Close();
     }
 
 void CFilePlugin::PausePluginL()
@@ -771,7 +783,71 @@ void CFilePlugin::IndexQueuedItems()
             }        
         iJobQueue.Remove(0);
         }
+    
+    if(iJobQueue.Count() <= 0)
+        {
+        //Check for temp file, it exists delete
+        if( BaflUtils::FileExists( iFs, iFilePath ))
+            BaflUtils::DeleteFile( iFs, iFilePath );
+        }
+    
     OstTraceFunctionExit0( CFILEPLUGIN_INDEXQUEUEDITEMS_EXIT );
+    }
+
+void CFilePlugin::LoadL()
+    {
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Open(iFs, iFilePath, EFileRead));
+    CleanupClosePushL(file);
+    RFileReadStream rd(file);
+    rd.PushL();    
+    
+    // Read harvester count
+    TInt count = rd.ReadInt32L();
+    // Read the harvesters
+    for (TInt i=0; i<count; i++)
+        {
+        TRecord record;
+        TInt length = rd.ReadInt32L();
+        rd.ReadL(record.iUri, length);        
+        record.iActionType = static_cast<TCPixActionType> ( rd.ReadInt16L());
+        record.isFolder = rd.ReadInt8L();
+        AddToQueueL(record.iUri, record.iActionType, record.isFolder);
+        }
+    
+    if( count > 0)
+        IndexQueuedItems();
+    // Cleanup
+    CleanupStack::PopAndDestroy(2, &file);
+    }
+
+void CFilePlugin::SaveL()
+    {
+    if (iJobQueue.Count() <= 0)
+         return;
+    
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Replace(iFs, iFilePath, EFileWrite));
+    CleanupClosePushL(file);
+    
+    RFileWriteStream wr(file);
+    wr.PushL();
+    
+    // Write harvester count
+    wr.WriteInt32L(iJobQueue.Count());
+    
+    for (TInt i=0; i<iJobQueue.Count(); i++)    
+        {
+        wr.WriteInt32L(iJobQueue[i].iUri.Length());
+        wr.WriteL(iJobQueue[i].iUri);
+        wr.WriteInt16L(iJobQueue[i].iActionType);
+        wr.WriteInt8L(iJobQueue[i].isFolder);
+        }    
+    // Commit and cleanup
+    wr.CommitL();
+    CleanupStack::PopAndDestroy(2, &file);
     }
 
 #ifdef __PERFORMANCE_DATA

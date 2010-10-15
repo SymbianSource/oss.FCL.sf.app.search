@@ -54,6 +54,7 @@ public:
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
     void PausePluginL();
     void ResumePluginL();
+    void SaveL();
     
 	/**
 	* callback from MMsvSessionObserver
@@ -133,6 +134,7 @@ public:
 protected:
 	CMessagePlugin();
 	void ConstructL();
+	void LoadL();
 
 private:
     // Session to Messge server session
@@ -150,7 +152,10 @@ private:
     
     TBool iIndexState;
     
-    RArray<TDriveNumber>  iMountDrives;    
+    RArray<TDriveNumber>  iMountDrives;
+    
+    /* Path to the queued records file */
+    TFileName iFilePath;
     
 #ifdef HARVESTERPLUGINTESTER_FRIEND
     friend class CHarvesterPluginTester;

@@ -16,7 +16,8 @@
 */
 
 
-#include <e32base.h> 
+#include <e32base.h>
+#include <bautils.h>
 #include <msvids.h>
 #include <msvuids.h>
 #include <mmsconst.h>
@@ -46,7 +47,7 @@
 // maximum length that the fully qualified msg Plugin base app class descriptor can be
 // e.g. "@c:root msg"
 const TInt KMsgPluginBaseAppClassMaxLen = 64;
-
+_LIT(KManagerFileName, "MessageStore.temp");
 
 // local declarations and functions
 namespace {
@@ -158,7 +159,15 @@ void CMessagePlugin::ConstructL()
     for (TInt i=EDriveA; i<=EDriveZ; i++)
         {
         iIndexer[i] = NULL; //Initialize to NULL
-        }
+        }        
+    // Load the configuration
+    TFileName pathWithoutDrive;
+    iFs.CreatePrivatePath(EDriveC);
+    iFilePath = _L("C:");        
+    iFs.PrivatePath( pathWithoutDrive );
+    iFilePath.Append(pathWithoutDrive);
+    iFilePath.Append(KManagerFileName);
+    iMessageDataHandler->SetFilePath( iFilePath );
 }
 
 // ---------------------------------------------------------------------------
@@ -173,6 +182,8 @@ void CMessagePlugin::StartPluginL()
 	CPIXLOGSTRING2("currentDrive from messaging app : %d", iCurrentDrive );
 	MountL(TDriveNumber(iCurrentDrive)); //Mount current drive
 	// Define this base application class, use default location
+	if( BaflUtils::FileExists(iFs,iFilePath) )
+	      LoadL();
 	}
 
 // ---------------------------------------------------------------------------
@@ -555,7 +566,7 @@ void CMessagePlugin::PausePluginL()
 void CMessagePlugin::ResumePluginL()
     {
     OstTraceFunctionEntry0( CMESSAGEPLUGIN_RESUMEPLUGINL_ENTRY );
-    iIndexState = ETrue;
+    iIndexState = ETrue;    
     //IndexQueuedItems();
     iMessageDataHandler->ResumeL();
     iMessageMonitor->ResumeL();
@@ -579,6 +590,16 @@ void CMessagePlugin::MountAvailableDrivesInQueue()
 TBool CMessagePlugin::GetHarvesterState()
     {
     return iIndexState;
+    }
+
+void CMessagePlugin::SaveL()
+    {
+    iMessageDataHandler->SaveRecordsL();
+    }
+
+void CMessagePlugin::LoadL()
+    {
+    iMessageDataHandler->LoadRecordsL();
     }
 
 // ---------------------------------------------------------------------------

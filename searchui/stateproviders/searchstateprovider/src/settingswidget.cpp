@@ -153,8 +153,6 @@ void SettingsWidget::slotcurrentIndexChanged(int avalue)
         
         HbCheckBox *checkboxitem = NULL;
         
-        qDeleteAll(mDeviceCheckBoxList.begin(), mDeviceCheckBoxList.end());
-        
         mDeviceCheckBoxList.clear();
         
         for (int i = 0; i < mDeviceListDisplay.count(); i++)
@@ -408,14 +406,15 @@ void SettingsWidget::storeSettingsToiniFile()
         for (int i = 0; i < mDeviceCheckBoxList.count(); i++)
             {
             int value;
-            (mDeviceCheckBoxList.at(i)->checkState() == Qt::Checked) ? (value = 1) : (value = 0);                
-            
+            (mDeviceCheckBoxList.at(i)->checkState() == Qt::Checked) ? (value = 1) : (value = 0);  
             appSettings.setValue(mDeviceStoragelist.at(i), value);
             
             for (int j = 0; j < mUiLoader->ContentInfoList().count(); j++)
                 {
                 if (mUiLoader->ContentInfoList().at(j)->getDisplayName() == mDeviceStoragelist.at(i))
+                    {                    
                     value ? (mUiLoader->ContentInfoList().at(j)->setSelected(true)) : (mUiLoader->ContentInfoList().at(j)->setSelected(false));
+                    }
                 }
             }
         }

@@ -155,6 +155,13 @@ CFolderRenamedHarvester::~CFolderRenamedHarvester()
     {
     delete iDir;
     delete iDirscan;
+    for ( int i =0; i < iRenamedFolders.Count(); i++ )
+        {
+        CFolderRenamedItem* item = iRenamedFolders[0];
+        iRenamedFolders.Remove(0);
+        delete item;
+        item = NULL;
+        }
     iRenamedFolders.ResetAndDestroy();
     iRenamedFolders.Close();
     Cancel();
@@ -413,6 +420,13 @@ TInt CFolderRenamedHarvester::RunError(TInt aError)
 	{
     OstTrace1( TRACE_NORMAL, CFOLDERRENAMEDHARVESTER_RUNERROR, "CFolderRenamedHarvester::RunError;aError=%d", aError );
     CPIXLOGSTRING2("CFolderRenamedHarvester::RunError - aError: %d", aError );
+    for ( int i =0; i < iRenamedFolders.Count(); i++ )
+        {
+        CFolderRenamedItem* item = iRenamedFolders[0];
+        iRenamedFolders.Remove(0);
+        delete item;
+        item = NULL;
+        }
     iRenamedFolders.ResetAndDestroy();
 	iHarvestState = EFolderRenamedIdleState;
 	return KErrNone;

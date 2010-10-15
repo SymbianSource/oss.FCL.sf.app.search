@@ -60,6 +60,7 @@ LIBS += -lws32
 LIBS += -ltstaskmonitorclient
 LIBS += -lcpixcontentinfodb
 LIBS += -lxqserviceutil
+LIBS += -lafservice
 
 
 coverage:DEFINES += COVERAGE_MEASUREMENT

@@ -37,7 +37,7 @@ win32 {
 }
 
 LIBS +=  -lsearchstateprovider
-    
+LIBS +=  -lafservice
 
 
 CONFIG += hb

@@ -38,6 +38,7 @@ LIBS += -lws32
 LIBS += -ltstaskmonitorclient
 LIBS += -lcpixcontentinfodb
 LIBS += -lxqserviceutil
+LIBS += -lafservice
 
 CONFIG += qtestlib
 CONFIG += hb
@@ -61,7 +62,6 @@ INCLUDEPATH += .\
 symbian {         
 CONFIG += symbian_test               
 TARGET.UID2 = 0x100039CE
-TARGET.UID3 = 0x20026F9A
 TARGET.CAPABILITY = CAP_GENERAL_DLL
 INCLUDEPATH += $$MW_LAYER_SYSTEMINCLUDE 
 INCLUDEPATH += $$APP_LAYER_SYSTEMINCLUDE 

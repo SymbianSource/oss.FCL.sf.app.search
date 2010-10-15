@@ -82,6 +82,7 @@ public:
     void StartHarvestingL(const TDesC & aQualifiedBaseAppClass);
     void PausePluginL();
     void ResumePluginL();
+    void SaveL();
     /*
      * HandleMdeItemL callback from MMediaObjectHandler
      * @param TItemId aObjId object Id
@@ -113,7 +114,13 @@ private:
      */
     void ConstructL();
     
+    void LoadL();
+    
 private:
+    /* File server connection */ 
+    RFs iFs;
+    /* Path to the queued records file */
+    TFileName iFilePath;
     CCPixIndexer *iIndexer; //Indexer
     CMdeHarvester* iMdeHarvester; //Mde harvester owned
     CMdeObjectQueueManager* iObjectJobQueueManager; //Objectqueue manager owned

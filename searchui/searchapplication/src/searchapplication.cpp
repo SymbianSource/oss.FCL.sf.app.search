@@ -25,8 +25,8 @@
 // SearchApplication::SearchApplication
 // ---------------------------------------------------------------------------
 //
-SearchApplication::SearchApplication(int argc, char *argv[]) :
-    HbApplication(argc, argv), mRuntime(NULL)
+SearchApplication::SearchApplication(int &argc, char *argv[] ) :
+    HbApplication(argc, argv ), mRuntime(NULL)
     {
     SEARCH_FUNC_ENTRY("SEARCH::SearchApplication::SearchApplication"); SEARCH_FUNC_EXIT("SEARCH::SearchApplication::SearchApplication");
     }

@@ -17,7 +17,9 @@
 
 
 #include "imageplugin.h"
-#include <e32base.h> 
+#include <e32base.h>
+#include <s32file.h>
+#include <bautils.h>
 #include "harvesterserverlogger.h"
 #include "common.h"
 #include "csearchdocument.h"
@@ -39,6 +41,7 @@
 
 //Constants
 _LIT(KPathTrailer, "\\root\\media\\image");
+_LIT(KManagerFileName, "ImageStore.temp");
 
 //***** MEDAI AUDIO*****
 #define MEDIA_QBASEAPPCLASS   "@0:root media image"
@@ -92,12 +95,23 @@ CImagePlugin::~CImagePlugin()
 	delete iMMcMonitor;
 	delete iDBManager;
 	delete iMdsItem;
+	iFs.Close();
 	}
 	
 // -----------------------------------------------------------------------------
 void CImagePlugin::ConstructL()
 	{
-    iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
+    iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);    
+    // connect to file system
+    User::LeaveIfError(iFs.Connect());    
+    // Load the configuration
+    TFileName pathWithoutDrive;
+    iFs.CreatePrivatePath(EDriveC);
+    iFilePath = _L("C:");        
+    iFs.PrivatePath( pathWithoutDrive );
+    iFilePath.Append(pathWithoutDrive);
+    iFilePath.Append(KManagerFileName);
+    iObjectJobQueueManager->SetFilePath(iFilePath);
 	}
 
 // -----------------------------------------------------------------------------
@@ -128,6 +142,8 @@ void CImagePlugin::StartPluginL()
 	TUid uidOfPlugin = {0x20029ABB};
 	iDBManager = CCPIXMDEDbManager::NewL(uidOfPlugin);
 	iMdsItem = CMDSEntity::NewL();
+	if( BaflUtils::FileExists(iFs,iFilePath) )
+	        LoadL();
 	OstTraceFunctionExit0( CIMAGEPLUGIN_STARTPLUGINL_EXIT );
 	}
 
@@ -339,9 +355,19 @@ void CImagePlugin::PausePluginL()
 
 void CImagePlugin::ResumePluginL()
     {
-    OstTraceFunctionEntry0( CIMAGEPLUGIN_RESUMEPLUGINL_ENTRY );
+    OstTraceFunctionEntry0( CIMAGEPLUGIN_RESUMEPLUGINL_ENTRY );    
     iObjectJobQueueManager->ResumeL();    
     OstTraceFunctionExit0( CIMAGEPLUGIN_RESUMEPLUGINL_EXIT );
+    }
+
+void CImagePlugin::SaveL()
+    {
+    iObjectJobQueueManager->LoadQueuedItems();    
+    }
+
+void CImagePlugin::LoadL()
+    {
+    iObjectJobQueueManager->SaveQueuedItems();
     }
 
 #ifdef __PERFORMANCE_DATA

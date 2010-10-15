@@ -19,7 +19,7 @@
 //  INCLUDES 
 
 #include <e32base.h>
-
+#include <bautils.h>
 #include <mtclreg.h>
 #include <smsclnt.h> // SMS Headers
 #include <mmsclient.h> // MMS Headers
@@ -879,7 +879,71 @@ void CMessageDataHandler::ResumeL()
         // Remove item that is handled
         iMessageArray.Remove(0);
         }
+    
+    if( iMessageArray.Count() <= 0 )
+        {
+        if( BaflUtils::FileExists( iFs, iFilePath ))
+                 BaflUtils::DeleteFile( iFs, iFilePath );
+        }
+    
     OstTraceFunctionExit0( CMESSAGEDATAHANDLER_RESUMEL_EXIT );
+    }
+
+void CMessageDataHandler::SetFilePath(const TDesC& aFilePath)
+    {
+    iFilePath.Copy(aFilePath);
+    }
+
+void CMessageDataHandler::SaveRecordsL()
+    {
+    if(iMessageArray.Count() <= 0)
+        return;
+    
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Replace(iFs, iFilePath, EFileWrite));
+    CleanupClosePushL(file);
+    
+    RFileWriteStream wr(file);
+    wr.PushL();
+    
+    // Write harvester count
+    wr.WriteInt32L(iMessageArray.Count());
+    
+    for (TInt i=0; i<iMessageArray.Count(); i++)    
+        {
+        wr.WriteInt32L(iMessageArray[i].iMessageId);
+        wr.WriteInt16L(iMessageArray[i].iActionType);
+        wr.WriteInt32L(iMessageArray[i].iFolderId);
+        }    
+    // Commit and cleanup
+    wr.CommitL();
+    CleanupStack::PopAndDestroy(2, &file);
+    }
+
+void CMessageDataHandler::LoadRecordsL()
+    {
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Open(iFs, iFilePath, EFileRead));
+    CleanupClosePushL(file);
+    RFileReadStream rd(file);
+    rd.PushL();    
+    
+    // Read harvester count
+    TInt count = rd.ReadInt32L();
+    // Read the harvesters
+    for (TInt i=0; i<count; i++)
+        {        
+        TMsvId MessageId = rd.ReadInt32L();
+        TCPixActionType ActionType = static_cast<TCPixActionType> ( rd.ReadInt16L());
+        TMsvId FolderId = rd.ReadInt32L();
+        TMessageItem record( MessageId, ActionType, FolderId );
+        iMessageArray.AppendL( record );
+        }    
+    HandleNextRequest();
+    // Cleanup
+    CleanupStack::PopAndDestroy(2, &file);
     }
 
 // End of File

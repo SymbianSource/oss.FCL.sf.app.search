@@ -71,6 +71,7 @@ public: // From CIndexingPlugin
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
 	void PausePluginL();
 	void ResumePluginL();
+	void SaveL();
 	
 public: // From MCalProgressCallBack
 
@@ -151,9 +152,16 @@ private: // Constructors
 	 * Symbian 2nd phase constructor.
 	 */
 	void ConstructL();
+	
+	void LoadL();
 
 private:
 	
+	/* File server connection */ 
+    RFs iFs;
+    /* Path to the queued records file */
+    TFileName iFilePath;
+    
 	/** The asynchronizer */
 	CDelayedCallback* iAsynchronizer;	
 	

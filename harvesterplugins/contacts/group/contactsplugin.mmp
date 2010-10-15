@@ -42,6 +42,8 @@ end
 LIBRARY       euser.lib
 LIBRARY       ecom.lib
 LIBRARY       efsrv.lib
+LIBRARY		  estor.lib
+LIBRARY 	  bafl.lib
 LIBRARY       cntmodel.lib
 LIBRARY       cpixharvesterplugininterface.lib
 LIBRARY       cpixsearchclient.lib

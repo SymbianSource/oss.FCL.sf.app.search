@@ -24,8 +24,9 @@
 #include <qfinalstate.h>
 #include <hbapplication.h>
 #include <xqaiwdecl.h>
+#include <afactivation.h>
 
-#define hbApp qobject_cast<HbApplication*>(qApp)
+
 
 // states
 const char wizardProgressiveStateUri[] =
@@ -138,12 +139,14 @@ void SearchRuntime::createStates()
 
     connect(wizardOnlineState, SIGNAL(onlineSearchQuery(QString)),
             wizardProgressiveState, SLOT(slotOnlineQuery(QString)));
+    
+    AfActivation *activation = new AfActivation(this);
 
     // set initial state for statemachine
-    if (hbApp->activateReason() == Hb::ActivationReasonActivity)
+    if (activation->reason() == Af::ActivationReasonActivity)
         {
 
-        QVariantHash params = hbApp->activateParams();
+        QVariantHash params =activation->parameters();
         QString var = params.value(XQURI_KEY_ACTIVITY_NAME).toString();
 
         if (var == SEARCHAIWDECLMAINVIEW)
@@ -160,7 +163,7 @@ void SearchRuntime::createStates()
             searchRootState->setInitialState(wizardOnlineState);
             }
         }
-    else if (hbApp->activateReason() == Hb::ActivationReasonNormal)
+    else if (activation->reason() == Af::ActivationReasonNormal)
         {
 
         searchRootState->setInitialState(wizardProgressiveState);

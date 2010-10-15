@@ -18,7 +18,11 @@
 
 #ifndef MDEOBJECTQUEUEMANAGER_H_
 #define MDEOBJECTQUEUEMANAGER_H_
+
 #include <e32def.h>
+#include <f32file.h>
+#include <s32file.h>
+#include <bautils.h>
 #include <mdccommon.h>
 #include "mediaobjecthandler.h"
 
@@ -54,6 +58,12 @@ public:
     TInt RunError();
     void PauseL();
     void ResumeL();
+    
+    void SetFilePath( const TDesC& aFilePath );
+    
+    void SaveQueuedItems();
+    
+    void LoadQueuedItems();
 private:
     /*
      * OverWriteOrAddToQueueL add or update item to queue
@@ -97,7 +107,11 @@ private:
     };
 private:
     // Queue of documents to be indexed
-    RArray<TMdeActionRecord> iJobQueue; 
+    RArray<TMdeActionRecord> iJobQueue;
+    //File server connection 
+    RFs iFs;
+    // Path to the queued records
+    TFileName iFilePath;
     // State machine's state
     TState iState;
     THarvestingState iHState;

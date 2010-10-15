@@ -45,6 +45,8 @@ end
 LIBRARY       euser.lib
 LIBRARY       ecom.lib
 LIBRARY       efsrv.lib
+LIBRARY		  estor.lib
+LIBRARY 	  bafl.lib
 LIBRARY		  msgs.lib
 LIBRARY		  gsmu.lib
 LIBRARY       cpixharvesterplugininterface.lib

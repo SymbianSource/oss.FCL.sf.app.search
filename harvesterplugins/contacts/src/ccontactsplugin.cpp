@@ -22,6 +22,8 @@
 
 #include <ccpixindexer.h>
 #include <e32base.h>
+#include <s32file.h>
+#include <BAUTILS.H>
 #include "OstTraceDefinitions.h"
 #ifdef OST_TRACE_COMPILER_IN_USE
 #include "ccontactspluginTraces.h"
@@ -40,7 +42,7 @@ const TInt KContactsPerRunL = 1;
 
 _LIT(KExcerptDelimiter, " ");
 _LIT(KTimeFormat, "%D%N%Y%1 %2 %3"); //Date, Month name and Year format
- 
+_LIT(KManagerFileName, "ContactStore.temp");
 // -----------------------------------------------------------------------------
 // CContactsPlugin::NewL()
 // -----------------------------------------------------------------------------
@@ -95,7 +97,8 @@ CContactsPlugin::~CContactsPlugin()
                 delete iHLDisplayExcerpt;
                 iHLDisplayExcerpt = NULL;
                 }
-//#endif            
+//#endif
+    iFs.Close();    
 	}
 	
 // -----------------------------------------------------------------------------
@@ -103,7 +106,8 @@ CContactsPlugin::~CContactsPlugin()
 // -----------------------------------------------------------------------------
 //
 void CContactsPlugin::ConstructL()
-	{
+	{    
+    
 	iDatabase = CContactDatabase::OpenL();
     iIndexState = ETrue;
 	// This pointer is valid until a change is made to the database or until 
@@ -112,7 +116,17 @@ void CContactsPlugin::ConstructL()
 	// array must first be made.
 	iContacts = iDatabase->SortedItemsL();
 
-    iAsynchronizer = CDelayedCallback::NewL( CActive::EPriorityIdle );
+    iAsynchronizer = CDelayedCallback::NewL( CActive::EPriorityIdle );// connect to file system
+    
+    User::LeaveIfError(iFs.Connect());    
+    // Load the configuration
+    TFileName pathWithoutDrive;
+    iFs.CreatePrivatePath(EDriveC);
+    iFilePath = _L("C:");        
+    iFs.PrivatePath( pathWithoutDrive );
+    iFilePath.Append(pathWithoutDrive);
+    iFilePath.Append(KManagerFileName);
+    
 	}
 
 // -----------------------------------------------------------------------------
@@ -133,6 +147,9 @@ void CContactsPlugin::StartPluginL()
 
 	// Start monitoring when plugin is started
 	iChangeNotifier = CContactChangeNotifier::NewL(*iDatabase, this);	
+    
+    if( BaflUtils::FileExists(iFs,iFilePath) )
+        LoadL();
 	}
 
 // -----------------------------------------------------------------------------
@@ -640,7 +657,8 @@ void CContactsPlugin::OverWriteOrAddToQueueL(TRecord& aEntry)
             if (iJobQueue[i].iContactId == aEntry.iContactId)
             {
                 // Older version found
-                iJobQueue[i] = aEntry;
+                iJobQueue[i].iContactId = aEntry.iContactId;
+                iJobQueue[i].iActionType = aEntry.iActionType;
                 OstTraceFunctionExit0( CCONTACTSPLUGIN_OVERWRITEORADDTOQUEUEL_EXIT );
                 return;
             }
@@ -653,7 +671,7 @@ void CContactsPlugin::OverWriteOrAddToQueueL(TRecord& aEntry)
 void CContactsPlugin::IndexQueuedItems()
     {
     OstTraceFunctionEntry0( CCONTACTSPLUGIN_INDEXQUEUEDITEMS_ENTRY );
-    while (iJobQueue.Count()>0)
+    while (iJobQueue.Count()>0 && iIndexState )
         {
         TRecord entry = iJobQueue[0];        
         //Let the indexer handle this object TRAP it as it can leave
@@ -663,7 +681,66 @@ void CContactsPlugin::IndexQueuedItems()
             iJobQueue.Remove(0);
             }
         }
+    
+    if( iJobQueue.Count() == 0 )
+        {
+        //Check for temp file, it exists delete
+        if( BaflUtils::FileExists( iFs, iFilePath ))
+                BaflUtils::DeleteFile( iFs, iFilePath );
+        }
     OstTraceFunctionExit0( CCONTACTSPLUGIN_INDEXQUEUEDITEMS_EXIT );
+    }
+
+void CContactsPlugin::LoadL()
+    {
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Open(iFs, iFilePath, EFileRead));
+    CleanupClosePushL(file);
+    RFileReadStream rd(file);
+    rd.PushL();
+    
+    // Read harvester count
+    TInt count = rd.ReadInt32L();
+    // Read the harvesters
+    for (TInt i=0; i<count; i++)
+        {
+        TRecord record;
+        record.iContactId = rd.ReadInt32L();
+        record.iActionType = static_cast<TCPixActionType> ( rd.ReadInt16L());        
+        OverWriteOrAddToQueueL(record);
+        }
+    
+    if( count > 0)
+        IndexQueuedItems();
+    // Cleanup
+    CleanupStack::PopAndDestroy(2, &file);
+    }
+
+void CContactsPlugin::SaveL()
+    { 
+    if (iJobQueue.Count() <= 0)
+        return;
+    
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Replace(iFs, iFilePath, EFileWrite));
+    CleanupClosePushL(file);
+    
+    RFileWriteStream wr(file);
+    wr.PushL();
+    
+    // Write harvester count
+    wr.WriteInt32L(iJobQueue.Count());
+    
+    for (TInt i=0; i<iJobQueue.Count(); i++)    
+        {
+        wr.WriteInt32L(iJobQueue[i].iContactId);
+        wr.WriteInt16L(iJobQueue[i].iActionType);        
+        }    
+    // Commit and cleanup
+    wr.CommitL();
+    CleanupStack::PopAndDestroy(2, &file);
     }
 // ---------------------------------------------------------------------------
 // CContactsPlugin::UpdatePerformaceDataL

@@ -99,6 +99,7 @@ public:
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
 	void PausePluginL();
 	void ResumePluginL();
+	void SaveL();
 	/**
 	 * From MContactDbObserver, HandleDatabaseEventL.
 	 */
@@ -143,9 +144,15 @@ protected:
 	void OverWriteOrAddToQueueL(TRecord& aEntry);
 	
 	void IndexQueuedItems();
+	
+	void LoadL();	
 
 private:
 	
+	/* File server connection */ 
+	RFs iFs;
+	/* Path to the queued records file */
+	TFileName iFilePath;	    
 	/** Contact change notifier */
 	CContactChangeNotifier* iChangeNotifier;
 	/** Sorted contact id array */

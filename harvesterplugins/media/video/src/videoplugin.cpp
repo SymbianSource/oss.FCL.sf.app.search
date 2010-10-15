@@ -18,6 +18,8 @@
 //  Include Files
 #include "videoplugin.h" //CVideoPlugin
 #include <e32base.h>
+#include <s32file.h>
+#include <bautils.h>
 #include "harvesterserverlogger.h"
 #include "common.h"
 #include "csearchdocument.h"
@@ -39,6 +41,7 @@
 
 //Constants
 _LIT(KPathTrailer, "\\root\\media\\video");
+_LIT(KManagerFileName, "VideoStore.temp");
 #define MEDIA_QBASEAPPCLASS   "@0:root media video"
 #define LMEDIA_QBASEAPPCLASS  L"@0:root media video"
 #define MEDIAAPPCLASS   "root media video"
@@ -87,12 +90,23 @@ CVideoPlugin::~CVideoPlugin()
     delete iMMcMonitor;
     delete iDBManager;
     delete iMdsItem;
+	iFs.Close();
     }
 
 void CVideoPlugin::ConstructL()
     {
     iObjectJobQueueManager = CMdeObjectQueueManager::NewL(this);
-    }
+    // connect to file system
+    User::LeaveIfError(iFs.Connect());    
+    // Load the configuration
+    TFileName pathWithoutDrive;
+    iFs.CreatePrivatePath(EDriveC);
+    iFilePath = _L("C:");        
+    iFs.PrivatePath( pathWithoutDrive );
+    iFilePath.Append(pathWithoutDrive);
+    iFilePath.Append(KManagerFileName);
+    iObjectJobQueueManager->SetFilePath(iFilePath);
+	}
 
 void CVideoPlugin::StartPluginL()
     {
@@ -120,6 +134,8 @@ void CVideoPlugin::StartPluginL()
     TUid uidOfPlugin = {0x20029ABA};
     iDBManager = CCPIXMDEDbManager::NewL(uidOfPlugin);
     iMdsItem = CMDSEntity::NewL();
+    if( BaflUtils::FileExists(iFs,iFilePath) )
+                LoadL();
     OstTraceFunctionExit0( CVIDEOPLUGIN_STARTPLUGINL_EXIT );
     }
 
@@ -331,8 +347,20 @@ void CVideoPlugin::PausePluginL()
 void CVideoPlugin::ResumePluginL()
     {
     OstTraceFunctionEntry0( CVIDEOPLUGIN_RESUMEPLUGINL_ENTRY );
+    if( BaflUtils::FileExists( iFs, iFilePath ))
+         BaflUtils::DeleteFile( iFs, iFilePath );
     iObjectJobQueueManager->ResumeL();
     OstTraceFunctionExit0( CVIDEOPLUGIN_RESUMEPLUGINL_EXIT );
+    }
+
+void CVideoPlugin::LoadL()
+    {
+    iObjectJobQueueManager->LoadQueuedItems();    
+    }
+
+void CVideoPlugin::SaveL()
+    {
+    iObjectJobQueueManager->SaveQueuedItems();
     }
 
 #ifdef __PERFORMANCE_DATA

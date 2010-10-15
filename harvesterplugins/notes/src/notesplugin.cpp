@@ -21,7 +21,9 @@
 #include <common.h>
 #include <csearchdocument.h>
 #include <ccpixindexer.h>
-#include <e32base.h> 
+#include <e32base.h>
+#include <s32file.h>
+#include <BAUTILS.H>
 #include <calsession.h>
 #include <calentry.h>
 #include <calinstanceview.h>
@@ -51,7 +53,7 @@ const TUint32 KEndDateKey = 0x2;
 _LIT(KNpdMemo , "Memo");
 //date Field name in CPIX indexer for notepad record
 _LIT(KNpdUpdateTime , "Date");
-
+_LIT(KManagerFileName, "NotesStore.temp");
 //Reference from CPix calender harvester plugin.
 _LIT(KNotesTimeFormat,"%04d %02d %02d %02d %02d");
 
@@ -107,6 +109,7 @@ CNotesPlugin::~CNotesPlugin()
 		iSession->StopChangeNotification();
 		}
 	delete iSession;
+	iFs.Close();
 	}
 	
 // ---------------------------------------------------------------------------
@@ -125,7 +128,16 @@ void CNotesPlugin::ConstructL()
         iSession->OpenL( iSession->DefaultFileNameL() );
         }
 	iNotesInstanceView = CCalInstanceView::NewL( *iSession );	
-	iEntryView = CCalEntryView::NewL( *iSession );	
+	iEntryView = CCalEntryView::NewL( *iSession );
+	
+    //Load the temp stored items if any
+    User::LeaveIfError(iFs.Connect());
+    TFileName pathWithoutDrive;
+    iFs.CreatePrivatePath(EDriveC);
+    iFilePath = _L("C:");        
+    iFs.PrivatePath( pathWithoutDrive );
+    iFilePath.Append(pathWithoutDrive);
+    iFilePath.Append(KManagerFileName);
 	}
 
 // ---------------------------------------------------------------------------
@@ -161,6 +173,9 @@ void CNotesPlugin::StartPluginL()
 	//Start the Monitoring
 	iSession->StartChangeNotification( *this, *filter );
 	delete filter;
+    
+    if( BaflUtils::FileExists(iFs,iFilePath) )
+        LoadL();
 	CPIXLOGSTRING("CNotesPlugin::StartPluginL: Exit");
 	OstTraceFunctionExit0( CNOTESPLUGIN_STARTPLUGINL_EXIT );
 	}	
@@ -483,7 +498,11 @@ void CNotesPlugin::ResumePluginL()
     {
     OstTraceFunctionEntry0( CNOTESPLUGIN_RESUMEPLUGINL_ENTRY );
     iIndexState = ETrue;
-            
+    
+    //Check for temp file, it exists delete
+    if( BaflUtils::FileExists( iFs, iFilePath ))
+          BaflUtils::DeleteFile( iFs, iFilePath );
+    
     if(iHarvestState == EHarvesterStartHarvest)
         {
         if(iAsynchronizer->CallbackPending())
@@ -528,7 +547,7 @@ void CNotesPlugin::OverWriteOrAddToQueueL(const TCalLocalUid& aLocalUid, TCPixAc
 void CNotesPlugin::IndexQueuedItems()
     {
     OstTraceFunctionEntry0( CNOTESPLUGIN_INDEXQUEUEDITEMS_ENTRY );
-    while (iJobQueue.Count()>0)
+    while ( iJobQueue.Count()>0 && iIndexState )
         {
         TRecord entry = iJobQueue[0];        
         //Let the indexer handle this object TRAP it as it can leave
@@ -538,7 +557,63 @@ void CNotesPlugin::IndexQueuedItems()
             iJobQueue.Remove(0);
             }
         }
+    if(iJobQueue.Count() <= 0)
+        {
+        if( BaflUtils::FileExists( iFs, iFilePath ))
+             BaflUtils::DeleteFile( iFs, iFilePath );
+        }
     OstTraceFunctionExit0( CNOTESPLUGIN_INDEXQUEUEDITEMS_EXIT );
+    }
+
+void CNotesPlugin::LoadL()
+    {
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Open(iFs, iFilePath, EFileRead));
+    CleanupClosePushL(file);
+    RFileReadStream rd(file);
+    rd.PushL();
+    
+    // Read harvester count
+    TInt count = rd.ReadInt32L();
+    // Read the harvesters
+    for (TInt i=0; i<count; i++)
+        {
+        TRecord record;
+        record.iLocalUid = rd.ReadUint32L();
+        record.iActionType = static_cast<TCPixActionType> ( rd.ReadInt16L());        
+        OverWriteOrAddToQueueL(record.iLocalUid, record.iActionType);
+        }
+    
+    if( count > 0)
+        IndexQueuedItems();
+    // Cleanup
+    CleanupStack::PopAndDestroy(2, &file);
+    }
+
+void CNotesPlugin::SaveL()
+    {
+    if( iJobQueue.Count() <= 0)
+         return;
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Replace(iFs, iFilePath, EFileWrite));
+    CleanupClosePushL(file);
+    
+    RFileWriteStream wr(file);
+    wr.PushL();
+    
+    // Write harvester count
+    wr.WriteInt32L(iJobQueue.Count());
+    
+    for (TInt i=0; i<iJobQueue.Count(); i++)    
+        {
+        wr.WriteUint32L(iJobQueue[i].iLocalUid);
+        wr.WriteInt16L(iJobQueue[i].iActionType);        
+        }    
+    // Commit and cleanup
+    wr.CommitL();
+    CleanupStack::PopAndDestroy(2, &file);
     }
 
 #ifdef __PERFORMANCE_DATA

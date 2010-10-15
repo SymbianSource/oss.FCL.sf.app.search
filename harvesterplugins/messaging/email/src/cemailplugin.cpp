@@ -393,6 +393,11 @@ void CEmailPlugin::ResumePluginL()
     
     }
 
+void CEmailPlugin::SaveL()
+    {
+    
+    }
+
 // ---------------------------------------------------------------------------
 // CEmailPlugin::UpdatePerformaceDataL
 // ---------------------------------------------------------------------------

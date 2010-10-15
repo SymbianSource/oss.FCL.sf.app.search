@@ -60,6 +60,7 @@ public: // From CIndexingPlugin
 	virtual void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
 	void PausePluginL();
 	void ResumePluginL();
+	void SaveL();
 	
 public: // From MDelayedCallbackObserver
     void DelayedCallbackL(TInt aCode);

@@ -75,7 +75,7 @@ public:
     
     void PausePluginL();
     void ResumePluginL();
-    
+    void SaveL();
     /*
     * HandleMdeItemL callback from MMediaObjectHandler
     * @param TItemId aObjId object Id
@@ -106,11 +106,16 @@ private:
      * Second phase constructor
      */
     void ConstructL();
-
+    
+    void LoadL();
+    
 private:
-    // data
-    CCPixIndexer*           iIndexer; //Indexer
-    CMdeHarvester*          iMdeHarvester; //Mde harvester owned
+    /* File server connection */ 
+    RFs iFs;
+    /* Path to the queued records file */
+    TFileName iFilePath;
+    CCPixIndexer *iIndexer; //Indexer
+    CMdeHarvester* iMdeHarvester; //Mde harvester owned
     CMdeObjectQueueManager* iObjectJobQueueManager; //Objectqueue manager owned
     CMdsMediaMonitor*       iMdsMonitor;//MDS monitor owned
     CMdsSessionObjectUtils* iMdsUtils;//Mds utils owned

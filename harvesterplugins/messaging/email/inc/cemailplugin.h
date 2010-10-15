@@ -54,6 +54,8 @@ public:
      void PausePluginL();
      
      void ResumePluginL();
+     
+     void SaveL();
 	 
 	 /**
      * Gets the database observer class

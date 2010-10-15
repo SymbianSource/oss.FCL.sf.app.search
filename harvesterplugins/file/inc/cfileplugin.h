@@ -20,7 +20,8 @@
 #define CFILEPLUGIN_H
 
 #include <f32file.h> // TDriveNumber
-
+#include <s32file.h>
+#include <BAUTILS.H>
 #include <cindexingplugin.h>
 #include <common.h>
 #include <rsearchserversession.h>
@@ -64,6 +65,7 @@ public:
 	void StartHarvestingL(const TDesC& aQualifiedBaseAppClass);
 	void PausePluginL();
 	void ResumePluginL();
+	void SaveL();
 	/**
 	 * CreateContentIndexItemL sends a file for indexing contents
 	 * @aFilename full path and filename of the file to be indexed
@@ -158,6 +160,8 @@ public:
 	void AddToQueueL(const TDesC& aFilename, TCPixActionType aActionType, TBool aIsFolder);
 	            
 	void IndexQueuedItems();
+	
+	void LoadL();
 
 protected:
 	CFilePlugin();
@@ -174,7 +178,10 @@ private:
     RArray<TRecord> iJobQueue;
 
     // File system session
-    RFs iFs;
+    RFs iFs;    
+    
+    /* Path to the queued records file */
+    TFileName iFilePath;
 
     // Harvester
     CFileHarvester* iHarvester;

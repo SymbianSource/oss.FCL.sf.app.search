@@ -46,7 +46,7 @@ public:
      * @since S60 ?S60_version.     
      * @param aParent Parent object.
      */
-    SearchApplication(int argc, char *argv[]);
+    SearchApplication(int &argc, char *argv[] );
 
     /**
      * Destructor.

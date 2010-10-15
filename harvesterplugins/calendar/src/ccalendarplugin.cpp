@@ -21,7 +21,8 @@
 #include <csearchdocument.h>
 
 #include <ccpixindexer.h>
-#include <e32base.h> 
+#include <s32file.h>
+#include <BAUTILS.H>
 #include <calsession.h>
 #include <calentry.h>
 #include <caliterator.h>
@@ -40,6 +41,7 @@ _LIT(KExcerptDelimiter, " ");
 
 /** The delay between harvesting chunks. */
 const TInt KHarvestingDelay = 2000;
+_LIT(KManagerFileName, "CalendarStore.temp");
 _LIT(KCalendarTimeFormat,"%04d %02d %02d %02d %02d");
 
 _LIT(KExcerptTimeFormat,"%04d/%02d/%02d %02d:%02d");
@@ -99,6 +101,8 @@ CCalendarPlugin::~CCalendarPlugin()
 		iSession->StopChangeNotification();
 		}
 	delete iSession;
+	
+	iFs.Close();
 	}
 	
 // ---------------------------------------------------------------------------
@@ -118,6 +122,15 @@ void CCalendarPlugin::ConstructL()
 	    }
 	iCalIterator = CCalIter::NewL( *iSession );
 	iEntryView = CCalEntryView::NewL( *iSession, *this );
+
+    User::LeaveIfError(iFs.Connect());    
+    TFileName pathWithoutDrive;
+    iFs.CreatePrivatePath(EDriveC);
+    iFilePath = _L("C:");        
+    iFs.PrivatePath( pathWithoutDrive );
+    iFilePath.Append(pathWithoutDrive);
+    iFilePath.Append(KManagerFileName);
+    
 	}
 
 // ---------------------------------------------------------------------------
@@ -145,7 +158,10 @@ void CCalendarPlugin::StartPluginL()
 	endTimeCal.SetTimeUtcL( endTime );
 	CCalChangeNotificationFilter* filter = CCalChangeNotificationFilter::NewL( MCalChangeCallBack2::EChangeEntryAll, ETrue, CalCommon::TCalTimeRange( startTimeCal, endTimeCal ) );
 	iSession->StartChangeNotification( *this, *filter );
-	delete filter;
+	delete filter;	
+    
+    if( BaflUtils::FileExists(iFs,iFilePath) )
+        LoadL();
 	}	
 
 // ---------------------------------------------------------------------------
@@ -594,8 +610,7 @@ void CCalendarPlugin::PausePluginL()
 void CCalendarPlugin::ResumePluginL()
     {
     OstTraceFunctionEntry0( CCALENDARPLUGIN_RESUMEPLUGINL_ENTRY );
-    iIndexState = ETrue;
-        
+    iIndexState = ETrue;    
     if( iHarvestState == EHarvesterStartHarvest )
         {
         if(iAsynchronizer->CallbackPending())
@@ -640,7 +655,7 @@ void CCalendarPlugin::OverWriteOrAddToQueueL(const TCalLocalUid& aLocalUid, TCPi
 void CCalendarPlugin::IndexQueuedItems()
     {
     OstTraceFunctionEntry0( CCALENDARPLUGIN_INDEXQUEUEDITEMS_ENTRY );
-    while (iJobQueue.Count()>0)
+    while (iJobQueue.Count()>0 && iIndexState )
         {
         TRecord entry = iJobQueue[0];        
         //Let the indexer handle this object TRAP it as it can leave
@@ -650,7 +665,67 @@ void CCalendarPlugin::IndexQueuedItems()
             iJobQueue.Remove(0);
             }
         }
+    
+    if(iJobQueue.Count() <= 0)
+        {
+        //Check for temp file, it exists delete
+        if( BaflUtils::FileExists( iFs, iFilePath ))
+              BaflUtils::DeleteFile( iFs, iFilePath );
+            
+        }
     OstTraceFunctionExit0( CCALENDARPLUGIN_INDEXQUEUEDITEMS_EXIT );
+    }
+
+void CCalendarPlugin::LoadL()
+    {
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Open(iFs, iFilePath, EFileRead));
+    CleanupClosePushL(file);
+    RFileReadStream rd(file);
+    rd.PushL();
+    
+    // Read harvester count
+    TInt count = rd.ReadInt32L();
+    // Read the harvesters
+    for (TInt i=0; i<count; i++)
+        {
+        TRecord record;
+        record.iLocalUid = rd.ReadUint32L();
+        record.iActionType = static_cast<TCPixActionType> ( rd.ReadInt16L());        
+        OverWriteOrAddToQueueL(record.iLocalUid, record.iActionType);
+        }
+    
+    if( count > 0)
+        IndexQueuedItems();
+    // Cleanup
+    CleanupStack::PopAndDestroy(2, &file);
+    }
+
+void CCalendarPlugin::SaveL()
+    {
+    if(iJobQueue.Count() <= 0)
+        return;
+    
+    // Open the stream
+    RFile file;
+    User::LeaveIfError(file.Replace(iFs, iFilePath, EFileWrite));
+    CleanupClosePushL(file);
+    
+    RFileWriteStream wr(file);
+    wr.PushL();
+    
+    // Write harvester count
+    wr.WriteInt32L(iJobQueue.Count());
+    
+    for (TInt i=0; i<iJobQueue.Count(); i++)    
+        {
+        wr.WriteUint32L(iJobQueue[i].iLocalUid);
+        wr.WriteInt16L(iJobQueue[i].iActionType);        
+        }    
+    // Commit and cleanup
+    wr.CommitL();
+    CleanupStack::PopAndDestroy(2, &file);
     }
 // ---------------------------------------------------------------------------
 // CCalendarPlugin::UpdatePerformaceDataL
